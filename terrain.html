@@ -3,153 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Terrain T3N 2026</title>
+    <title>T3N - Interface Terrain</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
-    <style>
-        .sticky-header { position: sticky; top: 0; z-index: 50; }
-        body { -webkit-tap-highlight-color: transparent; }
-    </style>
 </head>
-<body id="b" class="bg-slate-950 text-white font-sans transition-all duration-700 overflow-x-hidden">
-    
-    <div id="step1" class="flex flex-col items-center justify-center min-h-screen gap-8 p-6">
-        <h1 class="text-4xl font-black italic text-amber-500 uppercase text-center leading-none">Sélection<br>Catégorie</h1>
-        <div class="grid grid-cols-1 w-full max-w-xs gap-4">
-            <button onclick="pickCat('U8')" class="bg-blue-600 p-8 rounded-[2.5rem] font-black text-2xl uppercase shadow-2xl active:scale-95 transition-all">U8</button>
-            <button onclick="pickCat('U10')" class="bg-slate-200 text-slate-900 p-8 rounded-[2.5rem] font-black text-2xl uppercase shadow-2xl active:scale-95 transition-all border-b-8 border-slate-400">U10</button>
-            <button onclick="pickCat('U12')" class="bg-red-600 p-8 rounded-[2.5rem] font-black text-2xl uppercase shadow-2xl active:scale-95 transition-all">U12</button>
-        </div>
-    </div>
+<body class="bg-slate-950 text-white font-sans overflow-x-hidden select-none">
 
-    <div id="step2" class="hidden flex flex-col items-center justify-center min-h-screen gap-6 p-6 text-center">
-        <h1 class="text-4xl font-black italic text-amber-500 uppercase">Numéro de<br>Terrain</h1>
-        <div id="terrainList" class="grid grid-cols-1 w-full max-w-xs gap-4 p-2">
-            </div>
-        <p id="noMatchMsg" class="hidden text-xs opacity-50 italic">Aucun planning publié pour cette catégorie.</p>
-        <button onclick="location.reload()" class="opacity-30 text-[10px] uppercase font-bold mt-8 underline tracking-widest">Retour</button>
-    </div>
-
-    <div id="app" class="hidden">
-        <header id="headerTerrain" class="sticky-header bg-slate-100 text-slate-900 py-6 px-4 shadow-2xl border-b-4 border-slate-400 text-center">
-            <h2 id="title" class="text-6xl font-black uppercase tracking-[0.4em] italic leading-none"></h2>
-        </header>
-        <div class="p-4 space-y-12 pb-20">
-            <div id="matchCard" class="space-y-10"></div>
-            <div class="mt-12">
-                <h3 class="font-black uppercase text-[10px] opacity-40 text-center mb-6 tracking-[0.4em]">Séquence des rencontres</h3>
-                <div id="timeline" class="space-y-3"></div>
-            </div>
+    <header class="bg-slate-900 border-b border-white/10 p-4 sticky top-0 z-50 flex justify-between items-center">
+        <div>
+            <h1 id="display-terrain" class="text-2xl font-black text-amber-500 uppercase italic leading-none">Terrain ...</h1>
+            <p id="display-cat" class="text-[10px] font-bold opacity-50 uppercase tracking-widest mt-1">Chargement...</p>
         </div>
-    </div>
+        <div id="connection-status" class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_red]"></div>
+    </header>
+
+    <main id="app" class="p-4 space-y-6">
+        <div class="flex flex-col items-center justify-center py-20 opacity-20 italic">
+            Récupération des matchs sur Firebase...
+        </div>
+    </main>
 
     <script>
-        const firebaseConfig = { databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app/" };
-        firebase.initializeApp(firebaseConfig); const db = firebase.database();
+        // Extraction des paramètres URL
+        const params = new URLSearchParams(window.location.search);
+        const year = params.get('year') || '2026';
+        const cat = params.get('cat') || 'U10';
+        const terrain = params.get('terrain') || 'A';
+
+        document.getElementById('display-terrain').innerText = `Terrain ${terrain}`;
+        document.getElementById('display-cat').innerText = `${cat} • SAISON ${year}`;
+
+        // Configuration Firebase (À compléter avec vos clés)
+        const firebaseConfig = { /* Vos clés ici */ };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // Listener des matchs pour ce terrain spécifique
+        const matchRef = db.ref(`t3n/${year}/${cat}/matches`).orderByChild('terrain').equalTo(terrain);
         
-        let selectedCat = ""; 
+        matchRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            document.getElementById('connection-status').classList.replace('bg-red-500', 'bg-green-500');
+            document.getElementById('connection-status').style.boxShadow = "0 0 10px green";
+            renderMatches(data);
+        });
 
-        function pickCat(cat) {
-            selectedCat = cat; 
-            document.getElementById('step1').classList.add('hidden');
-            document.getElementById('step2').classList.remove('hidden');
-            
-            const cont = document.getElementById('terrainList');
-            const msg = document.getElementById('noMatchMsg');
-            cont.innerHTML = "";
-            msg.classList.add('hidden');
+        function renderMatches(data) {
+            const container = document.getElementById('app');
+            if(!data) {
+                container.innerHTML = "<p class='text-center opacity-50'>Aucun match programmé pour ce terrain.</p>";
+                return;
+            }
 
-            // SYNC : On regarde quels terrains ont des matchs dans Firebase
-            db.ref(`t3n/matin/${selectedCat}/matches`).once('value', snap => {
-                const matches = snap.val() || [];
-                if (matches.length === 0) {
-                    msg.classList.remove('hidden');
-                    return;
-                }
+            const matches = Object.entries(data)
+                .map(([id, val]) => ({ id, ...val }))
+                .filter(m => m.status !== 'termine')
+                .sort((a, b) => a.ordre - b.ordre);
 
-                // On extrait les noms de terrains uniques
-                const uniqueTerrains = [...new Set(matches.map(m => m.terrain))].sort();
+            container.innerHTML = matches.map((m, idx) => `
+                <div class="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 ${idx === 0 ? 'ring-2 ring-amber-500/50 shadow-2xl scale-100' : 'opacity-40 scale-95'} transition-all">
+                    <div class="flex justify-between items-start mb-6">
+                        <span class="bg-white/10 px-3 py-1 rounded-full text-[10px] font-black uppercase">Match n°${m.ordre}</span>
+                        <button onclick="setHold('${m.id}')" class="text-[10px] font-black uppercase text-amber-500 border border-amber-500/30 px-3 py-1 rounded-full">Attendre</button>
+                    </div>
 
-                uniqueTerrains.forEach(tId => {
-                    // On nettoie le nom pour l'affichage (ex: U10T1 -> T1, U10T1A -> T1A)
-                    const label = tId.replace(selectedCat, "");
-                    cont.innerHTML += `<button onclick="start('${tId}')" class="bg-slate-800 p-6 rounded-3xl font-black text-3xl border border-white/5 shadow-xl active:bg-amber-500 active:text-black">${label}</button>`;
-                });
-            });
-        }
-
-        function start(tId) {
-            selectedTerrain = tId; 
-            document.getElementById('step2').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            
-            const b = document.body;
-            const h = document.getElementById('headerTerrain');
-            if(selectedCat === "U8") { b.className = "bg-blue-800 text-white"; h.className = "sticky-header bg-blue-50 text-blue-900 py-6 shadow-2xl border-b-4 border-blue-300 text-center"; }
-            if(selectedCat === "U10") { b.className = "bg-slate-300 text-slate-900"; h.className = "sticky-header bg-slate-100 text-slate-900 py-6 shadow-2xl border-b-4 border-slate-400 text-center"; }
-            if(selectedCat === "U12") { b.className = "bg-red-800 text-white"; h.className = "sticky-header bg-red-50 text-red-900 py-6 shadow-2xl border-b-4 border-red-300 text-center"; }
-            
-            document.getElementById('title').innerText = selectedTerrain.split('').join(' ');
-            
-            db.ref(`t3n/matin/${selectedCat}/matches`).on('value', snap => { render(snap.val() || []); });
-        }
-
-        function render(matches) {
-            const cont = document.getElementById('matchCard'); 
-            const time = document.getElementById('timeline');
-            cont.innerHTML = ""; time.innerHTML = "";
-            let currentMatchFound = false;
-
-            matches.forEach((m, i) => {
-                if(m.terrain === selectedTerrain) {
-                    if (m.status === 'waiting' && !currentMatchFound) {
-                        currentMatchFound = true;
-                        cont.innerHTML = `
-                        <div class="text-center space-y-10">
-                            <div class="bg-black/5 py-4 rounded-3xl border border-black/5"><p class="text-3xl font-black uppercase tracking-tight">${m.ref}</p></div>
-                            <div class="space-y-12">
-                                ${renderTeamBlock(m.t1, m.s1, i, 1)}
-                                <div class="text-3xl font-black opacity-10 italic">VS</div>
-                                ${renderTeamBlock(m.t2, m.s2, i, 2)}
+                    <div class="grid grid-cols-2 gap-4 items-center mb-8">
+                        <div class="text-center space-y-4">
+                            <h2 class="text-xl font-black uppercase leading-tight h-12 flex items-center justify-center">${m.t1}</h2>
+                            <div class="flex flex-col items-center gap-2">
+                                <button onclick="updateScore('${m.id}', 's1', 1)" class="bg-amber-500 text-slate-950 w-full py-8 rounded-3xl text-6xl font-black shadow-lg active:scale-95 transition-transform">+</button>
+                                <button onclick="updateScore('${m.id}', 's1', -1)" class="text-white/20 font-bold p-2">-1</button>
                             </div>
-                            <div class="flex flex-col gap-4 mt-8 px-4">
-                                <button onclick="valider(${i})" class="w-full bg-green-600 text-white p-8 rounded-[2.5rem] font-black uppercase text-3xl shadow-2xl border-b-8 border-green-800 active:translate-y-2 transition-all">Valider Score</button>
-                                <button onclick="setHold(${i})" class="w-full bg-orange-500 text-slate-900 p-4 rounded-3xl font-black uppercase text-sm">Sauter le match</button>
+                            <div class="text-7xl font-black italic tracking-tighter">${m.s1}</div>
+                        </div>
+                        
+                        <div class="text-center space-y-4">
+                            <h2 class="text-xl font-black uppercase leading-tight h-12 flex items-center justify-center">${m.t2}</h2>
+                            <div class="flex flex-col items-center gap-2">
+                                <button onclick="updateScore('${m.id}', 's2', 1)" class="bg-white text-slate-950 w-full py-8 rounded-3xl text-6xl font-black shadow-lg active:scale-95 transition-transform">+</button>
+                                <button onclick="updateScore('${m.id}', 's2', -1)" class="text-white/20 font-bold p-2">-1</button>
                             </div>
-                        </div>`;
-                    } 
-                    else if (m.status !== 'finished') {
-                        const isHold = m.status === 'hold';
-                        time.innerHTML += `<div class="${isHold ? 'bg-orange-500/20 border-orange-500' : 'bg-black/5 border-black/5'} p-4 rounded-3xl flex justify-between items-center border shadow-sm">
-                            <span class="text-sm font-bold">${m.t1} vs ${m.t2}</span>
-                            ${isHold ? `<button onclick="setWaiting(${i})" class="bg-orange-500 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Lancer</button>` : ''}
-                        </div>`;
-                    }
-                }
-            });
-            if(!currentMatchFound) cont.innerHTML = `<div class="text-center py-20 opacity-20 font-black uppercase">Terminé</div>`;
-        }
+                            <div class="text-7xl font-black italic tracking-tighter">${m.s2}</div>
+                        </div>
+                    </div>
 
-        function renderTeamBlock(name, score, idx, teamNum) {
-            return `<div class="space-y-4">
-                <h3 class="text-5xl font-black uppercase px-2 tracking-tighter">${name}</h3>
-                <div class="flex items-center justify-center gap-6">
-                    <button onclick="changeScore(${idx},${teamNum},-1)" class="bg-red-500 text-white w-20 h-20 rounded-full text-4xl font-black shadow-lg">-</button>
-                    <button onclick="changeScore(${idx},${teamNum},1)" class="bg-amber-500 text-slate-900 w-40 h-40 rounded-[3rem] text-9xl font-black shadow-2xl border-b-8 border-amber-600 active:translate-y-2">+</button>
+                    <button onclick="finishMatch('${m.id}')" class="w-full bg-green-600 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl">Valider & Clôturer</button>
                 </div>
-                <p class="text-[130px] font-black leading-none">${score}</p>
-            </div>`;
+            `).join('');
         }
 
-        function changeScore(idx, team, val) {
-            const key = team === 1 ? 's1' : 's2';
-            db.ref(`t3n/matin/${selectedCat}/matches/${idx}/${key}`).transaction(c => Math.max(0, (c||0) + val));
+        function updateScore(matchId, scoreKey, val) {
+            const ref = db.ref(`t3n/${year}/${cat}/matches/${matchId}/${scoreKey}`);
+            ref.transaction(current => Math.max(0, (current || 0) + val));
         }
 
-        function setHold(idx) { db.ref(`t3n/matin/${selectedCat}/matches/${idx}/status`).set('hold'); }
-        function setWaiting(idx) { db.ref(`t3n/matin/${selectedCat}/matches/${idx}/status`).set('waiting'); }
-        function valider(idx) { if(confirm("Confirmer ?")) db.ref(`t3n/matin/${selectedCat}/matches/${idx}/status`).set('finished'); }
+        function setHold(matchId) {
+            // Logique : on augmente l'index 'ordre' pour le mettre à la fin
+            db.ref(`t3n/${year}/${cat}/matches/${matchId}`).update({ ordre: Date.now() });
+        }
+
+        function finishMatch(matchId) {
+            if(confirm("Confirmer le score final ? Le match disparaîtra de votre liste.")) {
+                db.ref(`t3n/${year}/${cat}/matches/${matchId}`).update({ status: 'termine' });
+            }
+        }
     </script>
 </body>
 </html>
