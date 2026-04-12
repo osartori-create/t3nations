@@ -2,286 +2,319 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master Orchestrator v8</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T3N Master Orchestrator v11</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
         .active-tab { background: #f59e0b !important; color: #000 !important; }
-        .drag-over { border: 3px dashed #f59e0b !important; background: #fffbeb !important; }
-        .conflict { animation: shake 0.5s; border: 2px solid #ef4444 !important; background: #fef2f2; }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .conflict { animation: shake 0.5s; border-color: #ef4444 !important; background: #fef2f2 !important; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+        .drag-over-active { border-color: #f59e0b !important; background: #fffbeb !important; }
+        ::-webkit-scrollbar{width:4px;height:4px} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen">
 
-    <header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 border-amber-500 sticky top-0 z-50">
-        <div class="flex items-center gap-6">
-            <h1 class="text-2xl font-black italic uppercase tracking-tighter">T3N <span class="text-amber-500 text-3xl">MASTER</span></h1>
-            <input type="number" id="config-year" value="2026" onchange="updateMaintDisplay()" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
-            <nav class="flex gap-1 bg-white/5 p-1 rounded-xl">
-                <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase active-tab" id="tab-IMPORT">Import</button>
-                <button onclick="showTab('U6')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U6">U6</button>
-                <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
-                <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
-                <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
-                <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/30" id="tab-MAINTENANCE">Maintenance</button>
-            </nav>
+<header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 border-amber-500 sticky top-0 z-50">
+    <div class="flex items-center gap-6">
+        <h1 class="text-2xl font-black italic uppercase tracking-tighter">T3N <span class="text-amber-500 text-3xl">MASTER</span></h1>
+        <input type="number" id="config-year" value="2026" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
+        <nav class="flex gap-1 bg-white/5 p-1 rounded-xl" id="nav-tabs">
+            <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase active-tab flex items-center gap-2" id="tab-IMPORT">
+                Import <span id="check-import" class="hidden text-green-400 text-xs">●</span>
+            </button>
+            <button onclick="showTab('U6')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U6">U6</button>
+            <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
+            <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
+            <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
+            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/20" id="tab-MAINTENANCE">Maintenance</button>
+        </nav>
+    </div>
+</header>
+
+<main class="p-6 max-w-[1800px] mx-auto">
+    
+    <section id="content-IMPORT" class="tab-content space-y-6">
+        <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+            <h2 class="text-xl font-black uppercase mb-4 italic">1. Chargement de la liste</h2>
+            <textarea id="csv-input" rows="8" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Colle ici tes lignes Excel (Nom + U6 + U8 + U10 + U12)"></textarea>
+            <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 transition-all">Analyser & Valider les Clubs</button>
         </div>
-    </header>
+        <div id="master-table-container" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 hidden">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-[10px] font-black uppercase opacity-40">
+                    <tr><th class="p-3">Club</th><th class="p-3 text-center">Étranger</th><th class="p-3 text-center">U6</th><th class="p-3 text-center">U8</th><th class="p-3 text-center">U10</th><th class="p-3 text-center">U12</th></tr>
+                </thead>
+                <tbody id="master-tbody" class="divide-y divide-slate-100 italic"></tbody>
+            </table>
+        </div>
+    </section>
 
-    <main class="p-6 max-w-[1800px] mx-auto">
+    <section id="content-CAT" class="tab-content hidden grid grid-cols-1 xl:grid-cols-12 gap-8">
+        <div class="xl:col-span-3 space-y-6">
+            <div class="bg-white p-6 rounded-[2rem] border border-slate-200 sticky top-24">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 class="text-3xl font-black uppercase text-amber-500" id="active-cat-title">...</h2>
+                        <p class="text-[10px] font-black opacity-40 uppercase"><span id="active-cat-count">0</span> équipes</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-[10px] font-bold uppercase opacity-40">Terrains</span><br>
+                        <span id="terrain-counter" class="text-xl font-black">0 / 0</span>
+                    </div>
+                </div>
+                <div id="format-suggestions" class="space-y-2"></div>
+            </div>
+        </div>
+        <div class="xl:col-span-9 space-y-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6" id="match-board"></div>
+            <div id="deploy-zone" class="hidden bg-white p-6 rounded-[2rem] shadow-xl border-t-4 border-amber-500 flex justify-between items-center">
+                <p class="text-xs font-bold opacity-50 uppercase italic">Vérifiez l'ordre global des matchs avant l'envoi.</p>
+                <button onclick="deployCurrentCat()" class="bg-amber-500 hover:bg-amber-600 px-10 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-all">Déployer <span id="deploy-label">...</span></button>
+            </div>
+        </div>
+    </section>
+
+    <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl">
+            <h2 class="text-2xl font-black uppercase text-red-600 mb-6">🛠️ Maintenance Base Firebase</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="p-6 bg-slate-50 rounded-3xl border border-slate-200">
+                    <h3 class="font-black uppercase mb-4">Par Catégorie</h3>
+                    <select id="maint-cat" class="w-full mb-4 p-3 rounded-xl border-none font-bold bg-white shadow-sm">
+                        <option>U6</option><option>U8</option><option>U10</option><option>U12</option>
+                    </select>
+                    <div class="space-y-2">
+                        <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100 text-slate-600">Remettre les scores à zéro</button>
+                        <button onclick="purge('matches')" class="w-full py-3 bg-white border border-orange-200 rounded-xl text-xs font-bold text-orange-600 hover:bg-orange-50">Supprimer Calendrier Matchs</button>
+                        <button onclick="purge('teams')" class="w-full py-3 bg-white border border-red-200 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">Supprimer Équipes & Poules</button>
+                    </div>
+                </div>
+                <div class="p-6 bg-red-600 rounded-3xl text-white flex flex-col justify-between">
+                    <h3 class="font-black uppercase text-xl italic">Reset Année</h3>
+                    <p class="text-xs opacity-80 mb-6 font-bold uppercase italic">Action de fin de saison (Efface tout).</p>
+                    <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase active:scale-95 transition-all shadow-xl">Purger l'Année</button>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script>
+    // MATRICES FFR
+    const MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
+    const MATRICES = {
+        3: [{a:1, b:2, arb:3}, {a:2, b:3, arb:1}, {a:1, b:3, arb:2}],
+        4: [{a:1, b:2, arb:4}, {a:3, b:4, arb:1}, {a:1, b:3, arb:2}, {a:2, b:4, arb:3}, {a:1, b:4, arb:2}, {a:2, b:3, arb:1}],
+        5: [{a:2, b:5, arb:1}, {a:3, b:4, arb:1}, {a:1, b:5, arb:2}, {a:2, b:3, arb:4}, {a:1, b:4, arb:5}, {a:3, b:5, arb:2}, {a:1, b:3, arb:4}, {a:2, b:4, arb:5}, {a:4, b:5, arb:1}, {a:1, b:2, arb:3}],
+        6: [{a:1, b:2, arb:5}, {a:3, b:4, arb:1}, {a:5, b:6, arb:3}, {a:1, b:3, arb:2}, {a:2, b:5, arb:4}, {a:4, b:6, arb:1}, {a:1, b:4, arb:6}, {a:2, b:6, arb:5}, {a:3, b:5, arb:2}, {a:1, b:5, arb:4}, {a:2, b:3, arb:6}, {a:4, b:5, arb:2}, {a:1, b:6, arb:3}, {a:2, b:4, arb:1}, {a:3, b:6, arb:5}]
+    };
+
+    // CONFIG FIREBASE
+    const firebaseConfig = {
+        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
+        authDomain: "t3nations.firebaseapp.com",
+        databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "t3nations",
+        storageBucket: "t3nations.firebasestorage.app",
+        messagingSenderId: "368081588642",
+        appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let masterData = [];
+    let currentCat = 'U10';
+    let currentPoules = [];
+
+    // NAVIGATION
+    function showTab(id) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+        document.getElementById(`tab-${id}`).classList.add('active-tab');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         
-        <section id="content-IMPORT" class="tab-content space-y-6">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-                <h2 class="text-xl font-black uppercase mb-4 italic">1. Importation de la liste Sportive</h2>
-                <textarea id="csv-input" rows="8" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Colle ici tes lignes Excel (Nom + U6 + U8 + U10 + U12)"></textarea>
-                <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 transition-all">Analyser & Valider les Clubs</button>
-            </div>
-            <div id="master-table-container" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 hidden">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 text-[10px] font-black uppercase opacity-40">
-                        <tr><th class="p-3">Club</th><th class="p-3 text-center">Étranger</th><th class="p-3 text-center">U6</th><th class="p-3 text-center">U8</th><th class="p-3 text-center">U10</th><th class="p-3 text-center">U12</th></tr>
-                    </thead>
-                    <tbody id="master-tbody" class="divide-y divide-slate-100"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <section id="content-CAT" class="tab-content hidden grid grid-cols-1 xl:grid-cols-12 gap-8">
-            <div class="xl:col-span-3 space-y-6">
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-200 sticky top-24">
-                    <div class="flex justify-between items-end mb-6">
-                        <div>
-                            <h2 class="text-3xl font-black uppercase text-amber-500" id="active-cat-title">...</h2>
-                            <p class="text-[10px] font-black opacity-40 uppercase"><span id="active-cat-count">0</span> équipes détectées</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="text-[10px] font-bold uppercase opacity-40">Terrains</span><br>
-                            <span id="terrain-counter" class="text-xl font-black">0 / 0</span>
-                        </div>
-                    </div>
-                    <div id="format-suggestions" class="space-y-2"></div>
-                </div>
-            </div>
-            <div class="xl:col-span-9 space-y-8">
-                <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6" id="match-board"></div>
-                <div id="deploy-zone" class="hidden bg-white p-6 rounded-[2.5rem] shadow-xl border-t-4 border-amber-500 flex justify-between items-center">
-                    <p class="text-xs font-bold opacity-50 uppercase italic">Vérifiez les ordres de rencontre avant l'envoi.</p>
-                    <button onclick="deployCurrentCat()" class="bg-amber-500 hover:bg-amber-600 px-10 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-all">Déployer la catégorie <span id="deploy-label">...</span></button>
-                </div>
-            </div>
-        </section>
-
-        <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
-            <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl">
-                <h2 class="text-2xl font-black uppercase text-red-600 mb-6 flex items-center gap-2">🛠️ Maintenance <span id="maint-year-label">2026</span></h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="p-6 bg-slate-50 rounded-3xl border border-slate-200">
-                        <h3 class="font-black uppercase mb-4">Actions Ciblées</h3>
-                        <select id="maint-cat" class="w-full mb-4 p-3 rounded-xl font-bold bg-white border-none shadow-sm outline-none">
-                            <option>U6</option><option>U8</option><option>U10</option><option>U12</option>
-                        </select>
-                        <div class="space-y-2">
-                            <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100">Réinitialiser les scores (Tests)</button>
-                            <button onclick="purge('matches')" class="w-full py-3 bg-white border-2 border-orange-200 rounded-xl text-xs font-bold text-orange-600 hover:bg-orange-50">Vider le calendrier des matchs</button>
-                            <button onclick="purge('teams')" class="w-full py-3 bg-white border-2 border-red-200 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">Vider équipes & poules</button>
-                        </div>
-                    </div>
-                    <div class="p-6 bg-red-600 rounded-3xl text-white flex flex-col justify-between">
-                        <h3 class="font-black uppercase text-xl">Remise à zéro totale</h3>
-                        <p class="text-xs opacity-70 mb-6">Efface TOUTES les catégories de l'année en cours.</p>
-                        <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase active:scale-95 transition-all shadow-xl">Purge totale année</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <script>
-        const MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
-        const MATRICES = {
-            3: [{a:1, b:2, arb:3}, {a:2, b:3, arb:1}, {a:1, b:3, arb:2}],
-            4: [{a:1, b:2, arb:4}, {a:3, b:4, arb:1}, {a:1, b:3, arb:2}, {a:2, b:4, arb:3}, {a:1, b:4, arb:2}, {a:2, b:3, arb:1}],
-            5: [{a:2, b:5, arb:1}, {a:3, b:4, arb:1}, {a:1, b:5, arb:2}, {a:2, b:3, arb:4}, {a:1, b:4, arb:5}, {a:3, b:5, arb:2}, {a:1, b:3, arb:4}, {a:2, b:4, arb:5}, {a:4, b:5, arb:1}, {a:1, b:2, arb:3}],
-            6: [{a:1, b:2, arb:5}, {a:3, b:4, arb:1}, {a:5, b:6, arb:3}, {a:1, b:3, arb:2}, {a:2, b:5, arb:4}, {a:4, b:6, arb:1}, {a:1, b:4, arb:6}, {a:2, b:6, arb:5}, {a:3, b:5, arb:2}, {a:1, b:5, arb:4}, {a:2, b:3, arb:6}, {a:4, b:5, arb:2}, {a:1, b:6, arb:3}, {a:2, b:4, arb:1}, {a:3, b:6, arb:5}]
-        };
-
-        // --- FIREBASE CONFIGURATION ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
-            authDomain: "t3nations.firebaseapp.com",
-            databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "t3nations",
-            storageBucket: "t3nations.firebasestorage.app",
-            messagingSenderId: "368081588642",
-            appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
-        };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        let masterData = [];
-        let currentCat = 'U10';
-        let currentPoules = [];
-
-        function updateMaintDisplay() {
-            document.getElementById('maint-year-label').innerText = document.getElementById('config-year').value;
+        if (id === 'IMPORT' || id === 'MAINTENANCE') {
+            document.getElementById(`content-${id}`).classList.remove('hidden');
+        } else {
+            currentCat = id;
+            document.getElementById('content-CAT').classList.remove('hidden');
+            initCategory(id);
         }
+    }
 
-        function showTab(id) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
-            document.getElementById(`tab-${id}`).classList.add('active-tab');
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-            
-            if (id === 'IMPORT' || id === 'MAINTENANCE') {
-                document.getElementById(`content-${id}`).classList.remove('hidden');
-            } else {
-                currentCat = id;
-                document.getElementById('content-CAT').classList.remove('hidden');
-                initCategory(id);
+    // LOGIQUE IMPORT
+    function processMasterImport() {
+        const raw = document.getElementById('csv-input').value;
+        let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length > 0 && (lines[0].toLowerCase().includes('nom'))) lines.shift();
+
+        masterData = [];
+        lines.forEach((line, idx) => {
+            const p = line.split(/[\t\s]+/);
+            if(p.length >= 5) {
+                const u12=p.pop(), u10=p.pop(), u8=p.pop(), u6=p.pop(), name=p.join(' ').trim();
+                masterData.push({ id: `club_${idx}`, name, foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg/), u6:parseInt(u6)||0, u8:parseInt(u8)||0, u10:parseInt(u10)||0, u12:parseInt(u12)||0 });
             }
-        }
+        });
+        document.getElementById('check-import').classList.remove('hidden');
+        renderMasterTable();
+    }
 
-        function processMasterImport() {
-            const raw = document.getElementById('csv-input').value;
-            let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
-            if (lines.length > 0 && (lines[0].toLowerCase().includes('nom') || lines[0].toLowerCase().includes('u6'))) lines.shift();
+    function renderMasterTable() {
+        document.getElementById('master-tbody').innerHTML = masterData.map((c, i) => `
+            <tr>
+                <td class="p-3 font-bold uppercase text-xs">${c.name}</td>
+                <td class="p-3 text-center"><input type="checkbox" ${c.foreign ? 'checked' : ''} onchange="masterData[${i}].foreign=this.checked" class="accent-amber-500"></td>
+                <td class="p-3 text-center font-bold">${c.u6}</td><td class="p-3 text-center font-bold">${c.u8}</td><td class="p-3 text-center font-bold">${c.u10}</td><td class="p-3 text-center font-bold">${c.u12}</td>
+            </tr>
+        `).join('');
+        document.getElementById('master-table-container').classList.remove('hidden');
+    }
 
-            masterData = [];
-            lines.forEach((line, idx) => {
-                const parts = line.split(/[\t\s]+/);
-                if(parts.length >= 5) {
-                    const u12=parts.pop(), u10=parts.pop(), u8=parts.pop(), u6=parts.pop(), name=parts.join(' ').trim();
-                    masterData.push({ id: `club_${idx}`, name, foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg/), u6:parseInt(u6)||0, u8:parseInt(u8)||0, u10:parseInt(u10)||0, u12:parseInt(u12)||0 });
-                }
-            });
-            renderMasterTable();
-        }
+    // LOGIQUE CATEGORIES
+    function initCategory(cat) {
+        document.getElementById('active-cat-title').innerText = cat;
+        document.getElementById('deploy-label').innerText = cat;
+        document.getElementById('match-board').innerHTML = '';
+        document.getElementById('deploy-zone').classList.add('hidden');
+        
+        let teams = [];
+        masterData.forEach(c => { for(let i=1; i<=c[cat.toLowerCase()]; i++) teams.push({ club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign }); });
+        document.getElementById('active-cat-count').innerText = teams.length;
+        
+        const list = document.getElementById('format-suggestions');
+        list.innerHTML = "";
+        const total = teams.length;
+        if(total < 3) return;
 
-        function renderMasterTable() {
-            document.getElementById('master-tbody').innerHTML = masterData.map((c, i) => `
-                <tr>
-                    <td class="p-3 font-bold uppercase text-xs">${c.name}</td>
-                    <td class="p-3 text-center"><input type="checkbox" ${c.foreign ? 'checked' : ''} onchange="masterData[${i}].foreign=this.checked" class="accent-amber-500"></td>
-                    <td class="p-3 text-center font-bold">${c.u6}</td><td class="p-3 text-center font-bold">${c.u8}</td><td class="p-3 text-center font-bold">${c.u10}</td><td class="p-3 text-center font-bold">${c.u12}</td>
-                </tr>
-            `).join('');
-            document.getElementById('master-table-container').classList.remove('hidden');
-        }
-
-        function initCategory(cat) {
-            document.getElementById('active-cat-title').innerText = cat;
-            document.getElementById('deploy-label').innerText = cat;
-            document.getElementById('match-board').innerHTML = '';
-            document.getElementById('deploy-zone').classList.add('hidden');
-            
-            let teams = [];
-            masterData.forEach(c => { for(let i=1; i<=c[cat.toLowerCase()]; i++) teams.push({ club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign }); });
-            document.getElementById('active-cat-count').innerText = teams.length;
-            
-            const list = document.getElementById('format-suggestions');
-            list.innerHTML = "";
-            const total = teams.length;
-            if(total < 3) return;
-
-            for(let p6=0; p6<=total/6; p6++) {
-                for(let p5=0; p5<=total/5; p5++) {
-                    for(let p4=0; p4<=total/4; p4++) {
-                        for(let p3=0; p3<=total/3; p3++) {
-                            if(p6*6 + p5*5 + p4*4 + p3*3 === total) {
-                                const nbP = p6+p5+p4+p3;
-                                const sizes = [p6?6:0, p5?5:0, p4?4:0, p3?3:0].filter(x=>x);
-                                const diff = Math.max(...sizes) - Math.min(...sizes);
-                                if(nbP > MAX_TERRAINS[cat] * 2) continue; // On autorise jusqu'à 2 terrains par poule
-                                let color = diff <= 1 ? 'bg-green-50 border-green-200' : (diff === 2 ? 'bg-yellow-50 border-yellow-200' : 'bg-orange-50 border-orange-200');
-                                const btn = document.createElement('button');
-                                btn.className = `w-full p-3 rounded-xl border-2 text-left text-[10px] font-black uppercase mb-1 ${color}`;
-                                btn.innerText = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`;
-                                btn.onclick = () => ventiler(teams, {p6,p5,p4,p3});
-                                list.appendChild(btn);
-                            }
+        // Calculateur de formats dynamiques
+        for(let p6=0; p6<=total/6; p6++) {
+            for(let p5=0; p5<=total/5; p5++) {
+                for(let p4=0; p4<=total/4; p4++) {
+                    for(let p3=0; p3<=total/3; p3++) {
+                        if(p6*6 + p5*5 + p4*4 + p3*3 === total) {
+                            const nbP = p6+p5+p4+p3;
+                            const sizes = [p6?6:0, p5?5:0, p4?4:0, p3?3:0].filter(x=>x);
+                            const diff = Math.max(...sizes) - Math.min(...sizes);
+                            if(nbP > MAX_TERRAINS[cat] * 2) continue;
+                            let color = diff <= 1 ? 'bg-green-50 border-green-200' : (diff === 2 ? 'bg-yellow-50 border-yellow-200' : 'bg-orange-50 border-orange-200');
+                            const btn = document.createElement('button');
+                            btn.className = `w-full p-3 rounded-xl border-2 text-left text-[10px] font-black uppercase mb-1 hover:scale-[1.01] transition-all ${color}`;
+                            btn.innerText = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`;
+                            btn.onclick = () => ventiler(teams, {p6,p5,p4,p3});
+                            list.appendChild(btn);
                         }
                     }
                 }
             }
-            updateTerrainCounter(0);
         }
+        updateTerrainCounter(0);
+    }
 
-        function updateTerrainCounter(used) {
-            const max = MAX_TERRAINS[currentCat];
-            const el = document.getElementById('terrain-counter');
-            el.innerText = `${used} / ${max}`;
-            el.className = `text-xl font-black ${used > max ? 'text-red-600' : 'text-green-600'}`;
-        }
+    function updateTerrainCounter(used) {
+        const max = MAX_TERRAINS[currentCat];
+        const el = document.getElementById('terrain-counter');
+        el.innerText = `${used} / ${max}`;
+        el.className = `text-xl font-black ${used > max ? 'text-red-600' : 'text-green-600'}`;
+    }
 
-        function ventiler(teams, c) {
-            currentPoules = [];
-            let tIdx = 1;
-            const make = (n, s) => { for(let i=0; i<n; i++) currentPoules.push({ letter: String.fromCharCode(65+currentPoules.length), target: s, terrain: tIdx++, tUsed: 1, teams: [], tab: 'teams' }); };
-            make(c.p6, 6); make(c.p5, 5); make(c.p4, 4); make(c.p3, 3);
-            const sorted = [...teams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
-            sorted.forEach(t => {
-                const best = currentPoules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
-                if(best) best.teams.push(t);
+    function ventiler(teams, c) {
+        currentPoules = [];
+        let tIdx = 1;
+        const make = (n, s) => { for(let i=0; i<n; i++) currentPoules.push({ letter: String.fromCharCode(65+currentPoules.length), target: s, terrain: tIdx++, tUsed: 1, teams: [], tab: 'teams' }); };
+        make(c.p6, 6); make(c.p5, 5); make(c.p4, 4); make(c.p3, 3);
+
+        const sorted = [...teams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
+        sorted.forEach(t => {
+            const best = currentPoules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
+            if(best) best.teams.push(t);
+        });
+        renderBoard();
+        document.getElementById('deploy-zone').classList.remove('hidden');
+    }
+
+    function renderBoard() {
+        updateTerrainCounter(currentPoules.reduce((s, p) => s + p.tUsed, 0));
+        document.getElementById('match-board').innerHTML = currentPoules.map((p, i) => {
+            const conflict = p.teams.map(t => t.club).some((c, idx, arr) => arr.indexOf(c) !== idx);
+            const teamsHtml = `<div class="space-y-1 min-h-[100px]">` + p.teams.map((t, ti) => `<div draggable="true" ondragstart="drag(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-[10px] font-bold flex justify-between cursor-move shadow-sm"><span>${t.name}${t.foreign?' 🌍':''}</span><span class="opacity-30">N.${t.level}</span></div>`).join('') + `</div>`;
+            const matchesHtml = p.teams.length === p.target ? `<div class="space-y-1">` + MATRICES[p.target].map(m => `<div class="p-1 bg-slate-50 border rounded text-[9px] flex justify-between font-bold"><span>${p.teams[m.a-1].name} <span class="opacity-10">vs</span> ${p.teams[m.b-1].name}</span><span class="text-amber-600 uppercase">Arb: ${p.teams[m.arb-1].name}</span></div>`).join('') + `</div>` : `<p class="text-[10px] opacity-20 italic">Ajustement requis</p>`;
+            
+            return `<div class="bg-white p-5 rounded-[2rem] border-2 ${conflict ? 'conflict' : 'border-slate-100'} shadow-sm" ondragover="event.preventDefault()" ondrop="drop(event, ${i})">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="font-black italic uppercase text-sm">Poule ${p.letter} <span class="text-[10px] opacity-20">(${p.teams.length}/${p.target})</span></h3>
+                    <select onchange="currentPoules[${i}].tUsed=parseInt(this.value);renderBoard()" class="text-[10px] font-bold bg-slate-100 p-1 rounded outline-none border border-slate-200"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select>
+                </div>
+                <div class="flex gap-1 mb-4 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="currentPoules[${i}].tab='teams';renderBoard()" class="flex-1 py-1 text-[9px] font-black uppercase rounded ${p.tab==='teams'?'bg-white shadow':''}">Équipes</button>
+                    <button onclick="currentPoules[${i}].tab='match';renderBoard()" class="flex-1 py-1 text-[9px] font-black uppercase rounded ${p.tab==='match'?'bg-white shadow':''}">Rencontres</button>
+                </div>
+                ${p.tab==='teams' ? teamsHtml : matchesHtml}
+            </div>`;
+        }).join('');
+    }
+
+    // DRAG & DROP PC
+    function drag(e, pi, ti) { e.dataTransfer.setData("text", JSON.stringify({pi, ti})); }
+    function drop(e, target) {
+        const d = JSON.parse(e.dataTransfer.getData("text"));
+        const t = currentPoules[d.pi].teams.splice(d.ti, 1)[0];
+        currentPoules[target].teams.push(t);
+        renderBoard();
+    }
+
+    // FIREBASE DEPLOY
+    async function deployCurrentCat() {
+        const year = document.getElementById('config-year').value;
+        const updates = {};
+        const basePath = `t3n/${year}/${currentCat}/matches`;
+        let globalMatchOrder = 1; // Ordre global pour le flux terrains
+
+        currentPoules.forEach(p => {
+            if(p.teams.length === p.target) {
+                MATRICES[p.target].forEach((m, idx) => {
+                    updates[`${basePath}/P${p.letter}_M${idx+1}`] = { 
+                        t1: p.teams[m.a-1].name, 
+                        t2: p.teams[m.b-1].name, 
+                        arb: p.teams[m.arb-1].name, 
+                        s1:0, s2:0, 
+                        terrain: `Terrain ${p.terrain}`, 
+                        status:'en_attente', 
+                        poule: p.letter, 
+                        ordre: globalMatchOrder++ // Incrémentation globale
+                    };
+                });
+            }
+        });
+        await db.ref().update(updates);
+        alert(`✅ Catégorie ${currentCat} envoyée aux terrains !`);
+    }
+
+    // MAINTENANCE
+    async function purge(type) {
+        const year = document.getElementById('config-year').value;
+        const cat = document.getElementById('maint-cat').value;
+        if(!confirm("Êtes-vous sûr de vouloir effectuer cette action ?")) return;
+
+        if(type === 'ALL') {
+            await db.ref(`t3n/${year}`).remove();
+        } else if(type === 'scores') {
+            const snap = await db.ref(`t3n/${year}/${cat}/matches`).once('value');
+            if(!snap.exists()) return alert("Aucun match trouvé.");
+            const ups = {};
+            snap.forEach(c => { 
+                ups[c.key + '/s1'] = 0; 
+                ups[c.key + '/s2'] = 0; 
+                ups[c.key + '/status'] = 'en_attente'; 
             });
-            renderBoard();
-            document.getElementById('deploy-zone').classList.remove('hidden');
+            await db.ref(`t3n/${year}/${cat}/matches`).update(ups);
+        } else {
+            await db.ref(`t3n/${year}/${cat}/${type}`).remove();
         }
-
-        function renderBoard() {
-            updateTerrainCounter(currentPoules.reduce((s, p) => s + p.tUsed, 0));
-            document.getElementById('match-board').innerHTML = currentPoules.map((p, i) => {
-                const conflict = p.teams.map(t => t.club).some((c, idx, arr) => arr.indexOf(c) !== idx);
-                const teamsHtml = `<div class="space-y-1 min-h-[100px]">` + p.teams.map((t, ti) => `<div draggable="true" ondragstart="drag(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-[10px] font-bold flex justify-between cursor-move"><span>${t.name}${t.foreign?' 🌍':''}</span><span class="opacity-20">N.${t.level}</span></div>`).join('') + `</div>`;
-                const matchesHtml = p.teams.length === p.target ? `<div class="space-y-1">` + MATRICES[p.target].map(m => `<div class="p-1 bg-slate-50 border rounded text-[9px] flex justify-between font-bold"><span>${p.teams[m.a-1].name} <span class="opacity-10">vs</span> ${p.teams[m.b-1].name}</span><span class="text-orange-600">Arb: ${p.teams[m.arb-1].name}</span></div>`).join('') + `</div>` : `<p class="text-[10px] opacity-20 italic">En attente...</p>`;
-                return `<div class="bg-white p-5 rounded-[2rem] border-2 ${conflict ? 'conflict' : 'border-slate-100'}" ondragover="event.preventDefault()" ondrop="drop(event, ${i})">
-                    <div class="flex justify-between items-start mb-4">
-                        <h3 class="font-black italic uppercase text-sm">Poule ${p.letter} <span class="text-[10px] opacity-20">(${p.teams.length}/${p.target})</span></h3>
-                        <select onchange="currentPoules[${i}].tUsed=parseInt(this.value);renderBoard()" class="text-[10px] font-bold bg-slate-100 p-1 rounded outline-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Ter.</option><option value="2" ${p.tUsed===2?'selected':''}>2 Ter.</option></select>
-                    </div>
-                    <div class="flex gap-1 mb-4 bg-slate-100 p-1 rounded-xl">
-                        <button onclick="currentPoules[${i}].tab='teams';renderBoard()" class="flex-1 py-1 text-[9px] font-black uppercase rounded ${p.tab==='teams'?'bg-white shadow':''}">Équipes</button>
-                        <button onclick="currentPoules[${i}].tab='match';renderBoard()" class="flex-1 py-1 text-[9px] font-black uppercase rounded ${p.tab==='match'?'bg-white shadow':''}">Matchs</button>
-                    </div>
-                    ${p.tab==='teams' ? teamsHtml : matchesHtml}
-                </div>`;
-            }).join('');
-        }
-
-        function drag(e, pi, ti) { e.dataTransfer.setData("text", JSON.stringify({pi, ti})); }
-        function drop(e, target) {
-            const d = JSON.parse(e.dataTransfer.getData("text"));
-            const t = currentPoules[d.pi].teams.splice(d.ti, 1)[0];
-            currentPoules[target].teams.push(t);
-            renderBoard();
-        }
-
-        async function deployCurrentCat() {
-            const year = document.getElementById('config-year').value;
-            const updates = {};
-            currentPoules.forEach(p => {
-                if(p.teams.length === p.target) {
-                    MATRICES[p.target].forEach((m, idx) => {
-                        updates[`t3n/${year}/${currentCat}/matches/P${p.letter}_M${idx+1}`] = { t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name, s1:0, s2:0, terrain: `Terrain ${p.terrain}`, status:'en_attente', poule: p.letter, ordre: idx+1 };
-                    });
-                }
-            });
-            await db.ref().update(updates);
-            alert("✅ Catégorie déployée avec succès !");
-        }
-
-        async function purge(type) {
-            const year = document.getElementById('config-year').value;
-            const cat = document.getElementById('maint-cat').value;
-            if(!confirm("Confirmer la purge ?")) return;
-            if(type === 'ALL') await db.ref(`t3n/${year}`).remove();
-            else if(type === 'scores') {
-                const snap = await db.ref(`t3n/${year}/${cat}/matches`).once('value');
-                const ups = {}; snap.forEach(c => { ups[`${c.key}/s1`] = 0; ups[`${child.key}/s2`] = 0; ups[`${child.key}/status`] = 'en_attente'; });
-                await db.ref(`t3n/${year}/${cat}/matches`).update(ups);
-            } else await db.ref(`t3n/${year}/${cat}/${type}`).remove();
-            alert("Purge terminée.");
-        }
-    </script>
+        alert("Action terminée.");
+    }
+</script>
 </body>
 </html>
