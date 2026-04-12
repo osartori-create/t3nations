@@ -170,38 +170,70 @@
 
     // --- IMPORTATION ROBUSTE ---
     function processMasterImport() {
-        const raw = document.getElementById('csv-input').value;
-        let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+        let raw = document.getElementById('csv-input').value;
         
+        // 1. Nettoyage de l'en-tête collé s'il existe
+        raw = raw.replace(/NomU6U8U10U12/i, '');
+        raw = raw.replace(/Nom U6 U8 U10 U12/i, '');
+
         masterData = [];
-        lines.forEach((line, idx) => {
-            if(line.toLowerCase().includes('nom')) return; // Ignore l'en-tête
-            
-            // Transforme les virgules/points-virgules en espaces pour parer au format CSV
-            const cleanLine = line.replace(/[,;]/g, ' ').trim();
-            const p = cleanLine.split(/\s+/);
-            
-            if(p.length >= 5) {
-                const u12 = parseInt(p.pop()) || 0;
-                const u10 = parseInt(p.pop()) || 0;
-                const u8  = parseInt(p.pop()) || 0;
-                const u6  = parseInt(p.pop()) || 0;
-                const name = p.join(' ').trim(); // Reconstitue le nom (ex: "S C Riedberg")
-                
-                masterData.push({ 
-                    id:`club_${idx}`, 
-                    name: name, 
-                    foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null, 
-                    u6, u8, u10, u12 
+        let idx = 0;
+
+        // 2. Le Scanner Intelligent : Cherche [Des Lettres/Espaces] suivies de [4 Chiffres exacts]
+        // Exemple : "S C Riedberg0010" -> Nom: "S C Riedberg", U6:0, U8:0, U10:1, U12:0
+        const regex = /([a-zA-ZÀ-ÿ\s]+)(\d)(\d)(\d)(\d)/g;
+        let match;
+
+        while ((match = regex.exec(raw)) !== null) {
+            const name = match[1].trim();
+            const u6 = parseInt(match[2]);
+            const u8 = parseInt(match[3]);
+            const u10 = parseInt(match[4]);
+            const u12 = parseInt(match[5]);
+
+            if (name.length > 0) {
+                masterData.push({
+                    id: `club_${idx++}`,
+                    name: name,
+                    // Identification automatique des étrangers
+                    foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null,
+                    u6: u6,
+                    u8: u8,
+                    u10: u10,
+                    u12: u12
                 });
             }
-        });
-        
+        }
+
+        // 3. Fallback (Si tu as collé un vrai tableau Excel avec des espaces)
+        if (masterData.length === 0) {
+            let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+            lines.forEach(line => {
+                if(line.toLowerCase().includes('nom')) return;
+                const p = line.replace(/[,;]/g, ' ').split(/\s+/);
+                if(p.length >= 5) {
+                    const u12 = parseInt(p.pop()) || 0;
+                    const u10 = parseInt(p.pop()) || 0;
+                    const u8 = parseInt(p.pop()) || 0;
+                    const u6 = parseInt(p.pop()) || 0;
+                    const name = p.join(' ').trim();
+                    if (name) {
+                        masterData.push({ 
+                            id:`club_${idx++}`, name, 
+                            foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null, 
+                            u6, u8, u10, u12 
+                        });
+                    }
+                }
+            });
+        }
+
+        // 4. Affichage du résultat
         if(masterData.length > 0) {
             document.getElementById('import-badge').classList.remove('hidden');
             renderMasterTable();
         } else {
-            alert("Aucune donnée valide trouvée. Vérifiez le format (Nom U6 U8 U10 U12).");
+            alert("Aucune donnée reconnue. L'algorithme cherche un Nom suivi de 4 chiffres (ex: Mulhouse2322).");
         }
     }
 
