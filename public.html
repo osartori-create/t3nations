@@ -10,17 +10,13 @@
     <style>
         body { -webkit-tap-highlight-color: transparent; background-color: #0f172a; color: #f8fafc; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .active-tab { background: #f59e0b !important; color: #000 !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+        .tab-btn { color: #94a3b8; transition: all 0.2s; }
         .active-u8 { background: #3b82f6 !important; color: white !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
         .active-u10 { background: #f8fafc !important; color: #0f172a !important; box-shadow: 0 0 15px rgba(248, 250, 252, 0.4); }
         .active-u12 { background: #ef4444 !important; color: white !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
-        
+        ::-webkit-scrollbar { width: 4px; height: 4px; } ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
         .form-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 2px; }
-        .bg-win { background-color: #22c55e; }
-        .bg-draw { background-color: #94a3b8; }
-        .bg-loss { background-color: #ef4444; }
+        .bg-win { background-color: #22c55e; } .bg-draw { background-color: #94a3b8; } .bg-loss { background-color: #ef4444; }
     </style>
 </head>
 <body class="font-sans min-h-screen flex flex-col" onload="initApp()">
@@ -30,39 +26,26 @@
             <div>
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white">T3N <span class="text-amber-500">LIVE</span></h1>
                 <div class="flex items-center gap-2 mt-1">
-                    <span class="relative flex h-2.5 w-2.5">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
-                    </span>
-                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Temps Réel</span>
+                    <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span></span>
+                    <span id="live-info" class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Temps Réel</span>
                 </div>
             </div>
-            <select id="config-year" onchange="loadData()" class="bg-slate-800 text-slate-300 text-xs font-bold p-2 rounded-lg border border-slate-700 outline-none">
-                <option value="2026">Édition 2026</option>
-            </select>
         </div>
 
-        <div class="max-w-7xl mx-auto mt-4 flex flex-col sm:flex-row gap-3 justify-between items-center">
-            <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl w-full sm:w-auto overflow-x-auto">
-                <button onclick="setCat('U8')" id="tab-U8" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400 hover:text-white transition-all">U8</button>
-                <button onclick="setCat('U10')" id="tab-U10" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400 hover:text-white transition-all">U10</button>
-                <button onclick="setCat('U12')" id="tab-U12" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400 hover:text-white transition-all">U12</button>
-            </nav>
-            <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl w-full sm:w-auto">
-                <button onclick="setPhase('PHASE1')" id="tab-PHASE1" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase active-tab">Matin</button>
-                <button onclick="setPhase('PHASE2')" id="tab-PHASE2" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400 hover:text-white transition-all">Après-Midi</button>
+        <div class="max-w-7xl mx-auto mt-4">
+            <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl overflow-x-auto w-full">
+                <button onclick="setCat('U8')" id="tab-U8" class="tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase">U8</button>
+                <button onclick="setCat('U10')" id="tab-U10" class="tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase">U10</button>
+                <button onclick="setCat('U12')" id="tab-U12" class="tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase">U12</button>
             </nav>
         </div>
     </header>
 
     <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-8 mt-4" id="poules-container">
-        <div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">
-            Connexion au stade...
-        </div>
+        <div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">Connexion au stade...</div>
     </main>
 
 <script>
-    // --- FIREBASE ---
     const firebaseConfig = {
         // --- COLLE TES CLES ICI ---
         apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
@@ -77,46 +60,43 @@
     const db = firebase.apps.length ? firebase.database() : null;
 
     let activeCat = 'U10';
-    let activePhase = 'PHASE1';
-    let currentRef = null;
+    let globalSettings = {};
+    let matchesRef = null;
 
     function initApp() {
-        setCat('U10');
+        if(!db) return;
+        // Ecoute des paramètres du Maitre
+        db.ref('t3n/settings').on('value', snap => {
+            if(snap.exists()) {
+                globalSettings = snap.val();
+                setCat(activeCat); // Recharge avec les nouveaux paramètres
+            }
+        });
     }
 
     function setCat(cat) {
         activeCat = cat;
-        document.querySelectorAll('[id^="tab-U"]').forEach(b => b.className = 'tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400 hover:text-white transition-all');
+        document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase');
         let btn = document.getElementById(`tab-${cat}`);
         btn.classList.add(`active-${cat.toLowerCase()}`);
         loadData();
     }
 
-    function setPhase(phase) {
-        activePhase = phase;
-        document.getElementById('tab-PHASE1').className = `tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase ${phase==='PHASE1'?'active-tab':'text-slate-400 hover:text-white transition-all'}`;
-        document.getElementById('tab-PHASE2').className = `tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase ${phase==='PHASE2'?'active-tab':'text-slate-400 hover:text-white transition-all'}`;
-        loadData();
-    }
-
     function loadData() {
-        if (!db) return;
-        const year = document.getElementById('config-year').value;
-        const path = `t3n/${year}/${activeCat}_${activePhase}/matches`;
+        if (!db || !globalSettings.activeYear) return;
+        
+        const year = globalSettings.activeYear;
+        const phase = globalSettings[`activePhase_${activeCat}`] || 'PHASE1';
+        const path = `t3n/${year}/${activeCat}_${phase}/matches`;
 
-        if (currentRef) currentRef.off();
+        document.getElementById('live-info').innerText = `Édition ${year} • ${phase === 'PHASE1' ? 'Matin' : 'Après-Midi'}`;
 
-        document.getElementById('poules-container').innerHTML = `<div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">Synchronisation des données...</div>`;
-
-        currentRef = db.ref(path);
-        currentRef.on('value', snap => {
+        if (matchesRef) matchesRef.off();
+        matchesRef = db.ref(path);
+        
+        matchesRef.on('value', snap => {
             if (!snap.exists()) {
-                document.getElementById('poules-container').innerHTML = `
-                    <div class="glass-panel p-10 rounded-3xl text-center text-slate-400">
-                        <span class="text-4xl block mb-4">🏟️</span>
-                        <p class="font-bold text-lg uppercase">Aucun match programmé</p>
-                        <p class="text-sm">La compétition n'a pas encore débuté pour cette catégorie.</p>
-                    </div>`;
+                document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-3xl text-center text-slate-400"><span class="text-4xl block mb-4">🏟️</span><p class="font-bold text-lg uppercase">Aucun match programmé</p><p class="text-sm">La compétition n'a pas encore débuté pour cette catégorie.</p></div>`;
                 return;
             }
 
@@ -139,98 +119,48 @@
             let matches = matchesByPoule[pLetter];
             matches.sort((a, b) => a.ordre - b.ordre);
 
-            // Extraction des équipes et calcul du classement
             let teamsObj = {};
             matches.forEach(m => {
                 if(!teamsObj[m.t1]) teamsObj[m.t1] = { name: m.t1, pts: 0, diff: 0, played: 0, form: [] };
                 if(!teamsObj[m.t2]) teamsObj[m.t2] = { name: m.t2, pts: 0, diff: 0, played: 0, form: [] };
                 
                 let s1 = parseInt(m.s1), s2 = parseInt(m.s2);
-                if (s1 > 0 || s2 > 0 || m.locked) { // Match joué
+                if (s1 > 0 || s2 > 0 || m.locked) { 
                     teamsObj[m.t1].played++; teamsObj[m.t2].played++;
                     teamsObj[m.t1].diff += (s1 - s2); teamsObj[m.t2].diff += (s2 - s1);
-                    
-                    if (s1 > s2) { 
-                        teamsObj[m.t1].pts += 3; teamsObj[m.t2].pts += 1; 
-                        teamsObj[m.t1].form.push('W'); teamsObj[m.t2].form.push('L');
-                    } else if (s1 < s2) { 
-                        teamsObj[m.t1].pts += 1; teamsObj[m.t2].pts += 3; 
-                        teamsObj[m.t1].form.push('L'); teamsObj[m.t2].form.push('W');
-                    } else { 
-                        teamsObj[m.t1].pts += 2; teamsObj[m.t2].pts += 2; 
-                        teamsObj[m.t1].form.push('D'); teamsObj[m.t2].form.push('D');
-                    }
+                    if (s1 > s2) { teamsObj[m.t1].pts+=3; teamsObj[m.t2].pts+=1; teamsObj[m.t1].form.push('W'); teamsObj[m.t2].form.push('L'); } 
+                    else if (s1 < s2) { teamsObj[m.t1].pts+=1; teamsObj[m.t2].pts+=3; teamsObj[m.t1].form.push('L'); teamsObj[m.t2].form.push('W'); } 
+                    else { teamsObj[m.t1].pts+=2; teamsObj[m.t2].pts+=2; teamsObj[m.t1].form.push('D'); teamsObj[m.t2].form.push('D'); }
                 }
             });
 
             let ranking = Object.values(teamsObj).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
 
-            // Génération HTML du Classement
             let classRows = ranking.map((r, idx) => {
                 let formHtml = r.form.slice(-3).map(f => `<span class="form-dot ${f==='W'?'bg-win':(f==='L'?'bg-loss':'bg-draw')}"></span>`).join('');
-                return `
-                <tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors">
-                    <td class="py-3 px-2 text-center text-slate-400 font-bold">${idx+1}</td>
-                    <td class="py-3 px-2 font-bold text-white text-sm">${r.name}</td>
-                    <td class="py-3 px-2 text-center font-black text-amber-400 text-lg">${r.pts}</td>
-                    <td class="py-3 px-2 text-center font-bold ${r.diff > 0 ? 'text-green-400' : (r.diff < 0 ? 'text-red-400' : 'text-slate-400')}">${r.diff > 0 ? '+'+r.diff : r.diff}</td>
-                    <td class="py-3 px-2 text-center whitespace-nowrap">${formHtml}</td>
-                </tr>`;
+                return `<tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors"><td class="py-3 px-2 text-center text-slate-400 font-bold">${idx+1}</td><td class="py-3 px-2 font-bold text-white text-sm">${r.name}</td><td class="py-3 px-2 text-center font-black text-amber-400 text-lg">${r.pts}</td><td class="py-3 px-2 text-center font-bold ${r.diff>0?'text-green-400':(r.diff<0?'text-red-400':'text-slate-400')}">${r.diff>0?'+'+r.diff:r.diff}</td><td class="py-3 px-2 text-center whitespace-nowrap">${formHtml}</td></tr>`;
             }).join('');
 
-            // Génération HTML des Matchs
             let matchRows = matches.map((m, idx) => {
                 let isPlayed = m.s1 > 0 || m.s2 > 0 || m.locked;
                 let scoreClass = isPlayed ? 'text-white' : 'text-slate-600';
                 return `
                 <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-xl mb-2 border border-slate-700/50">
                     <div class="flex-1 text-right font-bold text-xs sm:text-sm text-slate-300 pr-3">${m.t2}</div>
-                    <div class="bg-slate-900 px-4 py-1.5 rounded-lg border border-slate-700 font-black tracking-widest ${scoreClass} text-lg w-20 text-center shadow-inner">
+                    <div class="bg-slate-900 px-4 py-1.5 rounded-lg border border-slate-700 font-black tracking-widest ${scoreClass} text-lg w-24 min-w-[80px] text-center shadow-inner whitespace-nowrap">
                         ${m.s2} - ${m.s1}
                     </div>
                     <div class="flex-1 text-left font-bold text-xs sm:text-sm text-slate-300 pl-3">${m.t1}</div>
-                    <div class="hidden sm:block text-[9px] text-slate-500 font-bold uppercase w-20 text-right opacity-60">
-                        ${m.terrain}
-                    </div>
+                    <div class="hidden sm:block text-[9px] text-slate-500 font-bold uppercase w-20 text-right opacity-60">${m.terrain}</div>
                 </div>`;
             }).join('');
 
-            // Grille Responsive (Tableau à gauche, Matchs à droite sur grand écran)
             html += `
             <div class="mb-10">
-                <div class="flex items-center gap-4 mb-4 pl-2">
-                    <h2 class="text-3xl font-black italic uppercase text-white">Poule ${pLetter}</h2>
-                    <div class="h-[2px] flex-1 bg-gradient-to-r from-slate-700 to-transparent"></div>
-                </div>
-
+                <div class="flex items-center gap-4 mb-4 pl-2"><h2 class="text-3xl font-black italic uppercase text-white">Poule ${pLetter}</h2><div class="h-[2px] flex-1 bg-gradient-to-r from-slate-700 to-transparent"></div></div>
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div class="lg:col-span-5">
-                        <div class="glass-panel rounded-[2rem] overflow-hidden shadow-lg">
-                            <table class="w-full text-left text-xs sm:text-sm">
-                                <thead class="bg-slate-900/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                    <tr>
-                                        <th class="py-4 px-2 text-center">R.</th>
-                                        <th class="py-4 px-2">Équipe</th>
-                                        <th class="py-4 px-2 text-center">Pts</th>
-                                        <th class="py-4 px-2 text-center">Diff</th>
-                                        <th class="py-4 px-2 text-center" title="Forme sur les 3 derniers matchs">Série</th>
-                                    </tr>
-                                </thead>
-                                <tbody>${classRows}</tbody>
-                            </table>
-                        </div>
-                        <div class="mt-3 px-4 flex justify-between text-[10px] text-slate-500 font-bold uppercase">
-                            <span>V = 3pts, N = 2pts, D = 1pt</span>
-                            <span>🟢 Victoire 🔴 Défaite</span>
-                        </div>
-                    </div>
-
-                    <div class="lg:col-span-7">
-                        <div class="glass-panel p-4 sm:p-6 rounded-[2rem] shadow-lg max-h-[400px] overflow-y-auto">
-                            <h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-4">Calendrier & Résultats</h3>
-                            ${matchRows}
-                        </div>
-                    </div>
+                    <div class="lg:col-span-5"><div class="glass-panel rounded-[2rem] overflow-hidden shadow-lg"><table class="w-full text-left text-xs sm:text-sm"><thead class="bg-slate-900/80 text-[10px] font-black uppercase tracking-widest text-slate-400"><tr><th class="py-4 px-2 text-center">R.</th><th class="py-4 px-2">Équipe</th><th class="py-4 px-2 text-center">Pts</th><th class="py-4 px-2 text-center">Diff</th><th class="py-4 px-2 text-center" title="Forme sur les 3 derniers matchs">Série</th></tr></thead><tbody>${classRows}</tbody></table></div><div class="mt-3 px-4 flex justify-between text-[10px] text-slate-500 font-bold uppercase"><span>V = 3pts, N = 2pts, D = 1pt</span><span>🟢 Victoire 🔴 Défaite</span></div></div>
+                    <div class="lg:col-span-7"><div class="glass-panel p-4 sm:p-6 rounded-[2rem] shadow-lg max-h-[400px] overflow-y-auto"><h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-4">Calendrier & Résultats</h3>${matchRows}</div></div>
                 </div>
             </div>`;
         });
