@@ -2,16 +2,25 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v14 - Orchestrateur</title>
+    <title>T3N Master v15 - Orchestrateur</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
         .active-tab { background: #f59e0b !important; color: #000 !important; }
+        .active-format { border-color: #f59e0b !important; background-color: #fffbeb !important; transform: scale(1.02); box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2); }
         .conflict { animation: shake 0.5s; border-color: #ef4444 !important; background: #fef2f2 !important; }
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
         .drag-over { border: 2px dashed #f59e0b !important; background: #fffbeb !important; }
-        ::-webkit-scrollbar{width:6px;} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+        ::-webkit-scrollbar{width:6px; height:6px;} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
+        
+        /* Styles spécifiques pour le tableau Excel */
+        .excel-table { border-collapse: collapse; width: 100%; text-align: center; font-size: 10px; }
+        .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 4px; }
+        .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; }
+        .excel-yellow { background-color: #fef08a; font-weight: 900; }
+        .excel-blue { background-color: #e0f2fe; }
+        .excel-empty { background-color: #f8fafc; color: #94a3b8; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen">
@@ -62,9 +71,10 @@
                         </div>
                     </div>
                     
+                    <h3 class="text-[10px] font-black uppercase opacity-40 mb-2 tracking-widest">Formats (Poules Phase 1)</h3>
                     <div id="format-suggestions" class="space-y-2 mb-6"></div>
                     
-                    <hr class="mb-4">
+                    <hr class="mb-4 border-slate-100">
                     
                     <h3 class="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest flex justify-between">
                         📦 Réserve
@@ -79,9 +89,9 @@
             <div class="xl:col-span-9 space-y-6">
                 <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                     <nav class="flex gap-2">
-                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg active-tab bg-amber-500 text-black">Poules Matin</button>
-                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed" title="En développement">Classement Live</button>
-                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed" title="En développement">Phase 2</button>
+                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg active-tab bg-amber-500 text-black">Phase 1 (Matin)</button>
+                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed">Classement Live</button>
+                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed">Phase 2 (Après-Midi)</button>
                     </nav>
                     <div class="text-right px-4 border-l">
                         <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
@@ -89,11 +99,11 @@
                     </div>
                 </div>
 
-                <div id="match-board" class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6"></div>
+                <div id="match-board" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"></div>
                 
                 <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-2xl flex justify-between items-center border-b-4 border-amber-500">
                     <div>
-                        <p class="text-amber-500 font-black uppercase italic text-sm">Prêt pour le déploiement</p>
+                        <p class="text-amber-500 font-black uppercase italic text-sm">Prêt pour le déploiement Phase 1</p>
                         <p class="text-[10px] opacity-50">Ceci écrasera les matchs existants pour cette catégorie sur Firebase.</p>
                     </div>
                     <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-10 py-4 rounded-2xl font-black uppercase transition-all shadow-lg active:scale-95">Envoyer aux Terrains</button>
@@ -116,7 +126,6 @@
                 </div>
                 <div class="bg-red-600 p-6 rounded-3xl text-white flex flex-col justify-between shadow-lg">
                     <h3 class="font-black uppercase text-xl italic">Reset Global</h3>
-                    <p class="text-xs opacity-70 mb-4 font-bold">Action irréversible. Efface l'intégralité des données Firebase.</p>
                     <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase shadow-xl hover:scale-105 transition-all">Purger l'Année</button>
                 </div>
             </div>
@@ -169,33 +178,26 @@
         }
     }
 
-    // --- IMPORTATION RESTAURÉE (MÉTHODE V10/V12) ---
+    // --- IMPORTATION ---
     function processMasterImport() {
         const raw = document.getElementById('csv-input').value;
         let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
-        
-        // Supprime la ligne d'en-tête
-        if (lines.length > 0 && lines[0].toLowerCase().includes('nom')) {
-            lines.shift();
-        }
+        if (lines.length > 0 && lines[0].toLowerCase().includes('nom')) lines.shift();
 
         masterData = [];
         lines.forEach((line, idx) => {
-            // Remplace les tabulations (Excel) et les points-virgules/virgules (CSV) par des espaces
             let cleanLine = line.replace(/[\t;,]/g, ' ').trim();
             const p = cleanLine.split(/\s+/);
-            
             if(p.length >= 5) {
                 const u12 = parseInt(p.pop()) || 0;
                 const u10 = parseInt(p.pop()) || 0;
                 const u8  = parseInt(p.pop()) || 0;
                 const u6  = parseInt(p.pop()) || 0;
-                const name = p.join(' ').trim(); // Reconstitue le nom (ex: "S C Riedberg")
+                const name = p.join(' ').trim();
                 
                 if (name) {
                     masterData.push({ 
-                        id:`club_${idx}`, 
-                        name: name, 
+                        id:`club_${idx}`, name: name, 
                         foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null, 
                         u6, u8, u10, u12 
                     });
@@ -207,7 +209,7 @@
             document.getElementById('import-badge').classList.remove('hidden');
             renderMasterTable();
         } else {
-            alert("Aucune donnée reconnue. Assurez-vous de coller depuis Excel ou un fichier CSV formaté.");
+            alert("Aucune donnée reconnue. Assurez-vous de coller depuis Excel.");
         }
     }
 
@@ -243,7 +245,6 @@
         const total = teams.length;
         if(total < 3) return;
 
-        // Calculateur de Formats
         let count = 0;
         for(let p6=0; p6<=total/6; p6++) {
             for(let p5=0; p5<=total/5; p5++) {
@@ -255,11 +256,13 @@
                             const sizes = [p6?6:0, p5?5:0, p4?4:0, p3?3:0].filter(x=>x);
                             const diff = Math.max(...sizes) - Math.min(...sizes);
                             
-                            let color = diff <= 1 ? 'bg-green-50 border-green-300' : (diff === 2 ? 'bg-yellow-50 border-yellow-300' : 'bg-orange-50 border-orange-300');
+                            let color = diff <= 1 ? 'border-green-300' : (diff === 2 ? 'border-yellow-300' : 'border-orange-300');
                             const btn = document.createElement('button');
-                            btn.className = `w-full p-3 rounded-xl border-2 text-left text-[10px] font-black uppercase mb-2 hover:scale-[1.02] transition-all shadow-sm ${color}`;
+                            btn.className = `format-btn w-full p-3 rounded-xl border-2 bg-white text-left text-[10px] font-black uppercase mb-2 hover:bg-slate-50 transition-all shadow-sm ${color}`;
                             btn.innerHTML = `<span>${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}</span> <span class="float-right opacity-50">${nbP} Poules</span>`;
-                            btn.onclick = () => ventiler(teams, {p6,p5,p4,p3});
+                            btn.onclick = function() { 
+                                ventiler(teams, {p6,p5,p4,p3}, this); 
+                            };
                             list.appendChild(btn);
                             count++;
                         }
@@ -271,7 +274,13 @@
         updateTerrainCounter(0);
     }
 
-    function ventiler(teams, c) {
+    // --- VENTILATION & SURBRILLANCE ---
+    function ventiler(teams, c, btnElement) {
+        // Retire la classe 'active-format' de tous les boutons
+        document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active-format'));
+        // Ajoute la classe au bouton cliqué
+        btnElement.classList.add('active-format');
+
         currentPoules = [];
         reserveTeams = [];
         let tIdx = 1;
@@ -296,26 +305,97 @@
         el.className = `text-xl font-black ${used > max ? 'text-red-600' : 'text-green-600'}`;
     }
 
+    // --- GENERATEUR DE FEUILLE EXCEL ---
+    function generateExcelHTML(p) {
+        if(p.teams.length !== p.target) return `<div class="text-center py-10 opacity-30 italic">Ajustement des équipes requis pour générer la feuille.</div>`;
+        
+        const matrix = MATRICES[p.target];
+        
+        // 1. Tableau des Matchs
+        let matchesRows = matrix.map((m, idx) => {
+            return `
+            <tr>
+                <td>Ter. ${p.terrain}</td>
+                <td>--:--</td><td>--:--</td>
+                <td class="excel-yellow">${p.teams[m.b-1].name}</td>
+                <td class="excel-empty"></td>
+                <td>${p.teams[m.a-1].name}</td>
+                <td class="excel-empty"></td>
+                <td>${p.teams[m.arb-1].name}</td>
+                <td>0:00</td>
+            </tr>`;
+        }).join('');
+
+        // 2. Tableau du Classement (Vide pour Phase 1)
+        let classRows = p.teams.map((t, idx) => {
+            let ptsCols = matrix.map(m => (m.a === idx+1 || m.b === idx+1) ? `<td class="excel-empty"></td>` : `<td class="bg-slate-200"></td>`).join('');
+            return `
+            <tr>
+                <td class="excel-yellow">1</td>
+                <td class="${idx%2===0 ? 'excel-blue' : ''} font-bold">${t.name}</td>
+                ${ptsCols}
+                <td class="excel-yellow">0</td>
+                <td>0</td>
+                <td>OK</td>
+            </tr>`;
+        }).join('');
+
+        return `
+        <div class="overflow-x-auto pb-4">
+            <table class="excel-table mb-4">
+                <thead class="excel-header">
+                    <tr><th rowspan="2">Terrain</th><th colspan="2">HORAIRE</th><th rowspan="2" class="excel-yellow">EQUIPE 2</th><th rowspan="2" class="excel-yellow">SCORES</th><th rowspan="2">EQUIPE 1</th><th rowspan="2">SCORES</th><th rowspan="2">Arbitres</th><th rowspan="2" style="font-size:6px;">Intercaler pausses</th></tr>
+                    <tr><th>Début</th><th>Fin</th></tr>
+                </thead>
+                <tbody>${matchesRows}</tbody>
+            </table>
+            
+            <div class="text-[8px] text-center italic mb-4">5 essais d'écart à n'importe quel moment : score acquis définitivement pour l'équipe vainqueur.</div>
+            
+            <table class="excel-table mb-4">
+                <thead class="excel-header">
+                    <tr><th>Classement</th><th>Equipes:</th><th colspan="${matrix.length}">Points par match</th><th>TOTAL</th><th>Goal Average +/-</th><th>Validation</th></tr>
+                </thead>
+                <tbody>${classRows}</tbody>
+            </table>
+
+            <div class="flex gap-4">
+                <table class="excel-table w-1/2">
+                    <thead class="excel-header"><tr><th colspan="4">Barème Points</th></tr></thead>
+                    <tbody><tr><td>Victoire</td><td class="font-bold">3</td><td>Match nul</td><td class="font-bold">2</td><td>Défaite</td><td class="font-bold">1</td></tr></tbody>
+                </table>
+                <table class="excel-table w-1/4">
+                    <thead class="excel-header"><tr><th colspan="2">Détails</th></tr></thead>
+                    <tbody><tr><td>Essais</td><td class="font-bold">1</td></tr></tbody>
+                </table>
+            </div>
+        </div>`;
+    }
+
     function renderBoard() {
         updateTerrainCounter(currentPoules.reduce((s, p) => s + p.tUsed, 0));
+        
+        // Gère la grille : Si une poule est en vue Excel, on lui donne toute la largeur
+        const hasExcelOpen = currentPoules.some(p => p.tab === 'excel');
+        const gridClass = hasExcelOpen ? 'grid grid-cols-1 gap-6 items-start' : 'grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 items-start';
+        document.getElementById('match-board').className = gridClass;
+
         document.getElementById('match-board').innerHTML = currentPoules.map((p, i) => {
             const conflict = p.teams.map(t => t.club).some((c, idx, arr) => arr.indexOf(c) !== idx);
+            
             const teamsHtml = `<div class="space-y-2 min-h-[100px]">` + p.teams.map((t, ti) => `
                 <div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold flex justify-between cursor-move shadow-sm hover:border-amber-400 transition-all">
                     <span>${t.name}${t.foreign?' <span title="Étranger">🌍</span>':''}</span>
                     <span class="opacity-40 bg-slate-200 px-2 py-0.5 rounded-full text-[9px]">Niv.${t.level}</span>
                 </div>`).join('') + `</div>`;
             
-            const matchesHtml = p.teams.length === p.target ? `<div class="space-y-1">` + MATRICES[p.target].map((m, mIdx) => `
-                <div class="p-2 bg-slate-50 border rounded-lg text-[9px] flex justify-between items-center font-bold">
-                    <span class="w-2/5 text-right truncate">${p.teams[m.a-1].name}</span>
-                    <span class="opacity-20 px-1">vs</span>
-                    <span class="w-2/5 truncate">${p.teams[m.b-1].name}</span>
-                    <span class="text-orange-600 ml-2">Arb: ${p.teams[m.arb-1].name}</span>
-                </div>`).join('') + `</div>` : `<div class="text-center py-6 opacity-30 text-[10px] font-bold uppercase italic">Ajustement Requis (${p.teams.length}/${p.target})</div>`;
+            const excelHtml = generateExcelHTML(p);
             
+            // On élargit la carte si l'onglet Excel est actif
+            const cardClass = p.tab === 'excel' ? 'col-span-1 lg:col-span-2 2xl:col-span-3' : '';
+
             return `
-            <div class="bg-white p-6 rounded-[2.5rem] border-2 ${conflict ? 'conflict' : 'border-slate-100'} shadow-sm flex flex-col transition-all" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
+            <div class="bg-white p-6 rounded-[2.5rem] border-2 ${conflict ? 'conflict' : 'border-slate-100'} shadow-sm flex flex-col transition-all ${cardClass}" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="font-black italic uppercase text-lg">Poule ${p.letter} <span class="text-[10px] opacity-30 non-italic ml-1">(${p.teams.length}/${p.target})</span></h3>
                     <select onchange="currentPoules[${i}].tUsed=parseInt(this.value);renderBoard()" class="text-[10px] font-bold bg-slate-100 p-2 rounded-lg outline-none border-none">
@@ -324,10 +404,10 @@
                     </select>
                 </div>
                 <div class="flex gap-2 mb-4 bg-slate-100 p-1.5 rounded-xl">
-                    <button onclick="currentPoules[${i}].tab='teams';renderBoard()" class="flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg ${p.tab==='teams'?'bg-white shadow':''}">Équipes</button>
-                    <button onclick="currentPoules[${i}].tab='match';renderBoard()" class="flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg ${p.tab==='match'?'bg-white shadow text-amber-600':''}">Rencontres</button>
+                    <button onclick="currentPoules[${i}].tab='teams';renderBoard()" class="flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg ${p.tab==='teams'?'bg-white shadow':''}">Équipes</button>
+                    <button onclick="currentPoules[${i}].tab='excel';renderBoard()" class="flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg ${p.tab==='excel'?'bg-white shadow text-amber-600':''}">Feuille de Match</button>
                 </div>
-                ${p.tab==='teams' ? teamsHtml : matchesHtml}
+                ${p.tab==='teams' ? teamsHtml : excelHtml}
             </div>`;
         }).join('');
     }
@@ -341,23 +421,16 @@
         `).join('') || `<div class="h-full flex items-center justify-center opacity-20 text-xs font-bold uppercase italic text-center px-4 mt-10">Glissez une équipe ici</div>`;
     }
 
-    // --- DRAG & DROP UNIFIÉ ---
+    // --- DRAG & DROP ---
     function allowDrop(e) { e.preventDefault(); }
-
-    function dragFromPoule(e, pIdx, tIdx) {
-        e.dataTransfer.setData("application/json", JSON.stringify({ source: 'poule', pIdx, tIdx }));
-    }
-
-    function dragFromReserve(e, tIdx) {
-        e.dataTransfer.setData("application/json", JSON.stringify({ source: 'reserve', tIdx }));
-    }
+    function dragFromPoule(e, pIdx, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ source: 'poule', pIdx, tIdx })); }
+    function dragFromReserve(e, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ source: 'reserve', tIdx })); }
 
     function dropToPoule(e, targetPIdx) {
         e.preventDefault();
         const dataStr = e.dataTransfer.getData("application/json");
         if (!dataStr) return;
         const data = JSON.parse(dataStr);
-        
         let team;
         if (data.source === 'poule') {
             if (data.pIdx === targetPIdx) return;
@@ -365,10 +438,8 @@
         } else if (data.source === 'reserve') {
             team = reserveTeams.splice(data.tIdx, 1)[0];
         }
-        
         if (team) currentPoules[targetPIdx].teams.push(team);
-        renderBoard();
-        renderReserve();
+        renderBoard(); renderReserve();
     }
 
     function dropToReserve(e) {
@@ -376,16 +447,14 @@
         const dataStr = e.dataTransfer.getData("application/json");
         if (!dataStr) return;
         const data = JSON.parse(dataStr);
-        
         if (data.source === 'poule') {
             const team = currentPoules[data.pIdx].teams.splice(data.tIdx, 1)[0];
             reserveTeams.push(team);
-            renderBoard();
-            renderReserve();
+            renderBoard(); renderReserve();
         }
     }
 
-    // --- FIREBASE DÉPLOIEMENT ---
+    // --- FIREBASE DÉPLOIEMENT & PURGE ---
     async function deployCategory() {
         if (!db) return alert("⚠️ Attention : Firebase n'est pas configuré.");
         const year = document.getElementById('config-year').value;
@@ -410,33 +479,19 @@
         }
     }
 
-    // --- MAINTENANCE ---
     async function purge(type) {
-        if(!db) return alert("⚠️ Firebase non configuré.");
+        if(!db) return;
         const year = document.getElementById('config-year').value; 
         const cat = document.getElementById('maint-cat').value;
-        
-        if(type==='ALL') {
-            if(confirm("DANGER : Supprimer TOUTE LA BASE pour l'année " + year + " ?")) {
-                await db.ref(`t3n/${year}`).remove();
-                alert("Année purgée.");
+        if(type==='ALL' && confirm("DANGER : Supprimer TOUTE LA BASE ?")) await db.ref(`t3n/${year}`).remove();
+        else if(type==='scores' && confirm(`Réinitialiser les scores ?`)) {
+            const snap = await db.ref(`t3n/${year}/${cat}/matches`).once('value');
+            if(snap.exists()) {
+                const ups = {}; snap.forEach(c => { ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; });
+                await db.ref(`t3n/${year}/${cat}/matches`).update(ups);
             }
-        } else if(type==='scores') {
-            if(confirm(`Réinitialiser les scores des ${cat} ?`)) {
-                const snap = await db.ref(`t3n/${year}/${cat}/matches`).once('value');
-                if(snap.exists()) {
-                    const ups = {};
-                    snap.forEach(c => { ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; });
-                    await db.ref(`t3n/${year}/${cat}/matches`).update(ups);
-                    alert("Scores réinitialisés.");
-                }
-            }
-        } else {
-            if(confirm(`Supprimer [${type}] pour ${cat} ?`)) {
-                await db.ref(`t3n/${year}/${cat}/${type}`).remove();
-                alert(`Action ${type} terminée.`);
-            }
-        }
+        } else if (confirm(`Supprimer [${type}] ?`)) await db.ref(`t3n/${year}/${cat}/${type}`).remove();
+        alert("Terminé.");
     }
 </script>
 </body>
