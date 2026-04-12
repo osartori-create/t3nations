@@ -3,111 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>T3N - Interface Terrain</title>
+    <title>T3N Terrain - Saisie Scores</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .match-card { transition: all 0.2s ease-in-out; }
+    </style>
 </head>
-<body class="bg-slate-950 text-white font-sans overflow-x-hidden select-none">
+<body class="bg-slate-100 font-sans text-slate-800">
 
-    <header class="bg-slate-900 border-b border-white/10 p-4 sticky top-0 z-50 flex justify-between items-center">
-        <div>
-            <h1 id="display-terrain" class="text-2xl font-black text-amber-500 uppercase italic leading-none">Terrain ...</h1>
-            <p id="display-cat" class="text-[10px] font-bold opacity-50 uppercase tracking-widest mt-1">Chargement...</p>
-        </div>
-        <div id="connection-status" class="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_red]"></div>
+    <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
+        <h1 class="text-xl font-black italic uppercase tracking-tighter text-center">T3N <span class="text-amber-500">TERRAIN</span></h1>
     </header>
 
-    <main id="app" class="p-4 space-y-6">
-        <div class="flex flex-col items-center justify-center py-20 opacity-20 italic">
-            Récupération des matchs sur Firebase...
+    <main class="p-4 max-w-md mx-auto space-y-4">
+        
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <select id="sel-year" class="p-3 bg-slate-100 rounded-xl font-bold outline-none"><option value="2026">2026</option></select>
+                <select id="sel-cat" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
+                    <option value="U6">U6</option><option value="U8">U8</option><option value="U10" selected>U10</option><option value="U12">U12</option>
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <select id="sel-phase" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
+                    <option value="PHASE1">Phase 1 (Matin)</option><option value="PHASE2">Phase 2 (A-Midi)</option>
+                </select>
+                <select id="sel-ter" class="p-3 bg-amber-100 text-amber-900 rounded-xl font-black outline-none text-center">
+                    <option value="Terrain 1">Terrain 1</option><option value="Terrain 2">Terrain 2</option><option value="Terrain 3">Terrain 3</option>
+                    <option value="Terrain 4">Terrain 4</option><option value="Terrain 5">Terrain 5</option><option value="Terrain 6">Terrain 6</option>
+                    <option value="Terrain 7">Terrain 7</option><option value="Terrain 8">Terrain 8</option>
+                </select>
+            </div>
+            <button onclick="loadMatches()" class="w-full bg-slate-900 text-white font-black uppercase py-3 rounded-xl hover:bg-slate-800 active:scale-95 transition-all shadow-md">Charger les matchs</button>
         </div>
+
+        <div id="matches-container" class="space-y-4 pb-10">
+            <p class="text-center text-slate-400 font-bold text-sm italic mt-10">Veuillez charger un terrain.</p>
+        </div>
+
     </main>
 
-    <script>
-        // Extraction des paramètres URL
-        const params = new URLSearchParams(window.location.search);
-        const year = params.get('year') || '2026';
-        const cat = params.get('cat') || 'U10';
-        const terrain = params.get('terrain') || 'A';
+<script>
+    // --- FIREBASE (REMPLACE PAR TES CLES) ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
+        authDomain: "t3nations.firebaseapp.com",
+        databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "t3nations",
+        storageBucket: "t3nations.firebasestorage.app",
+        messagingSenderId: "368081588642",
+        appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
+    };
+    if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") firebase.initializeApp(firebaseConfig);
+    const db = firebase.apps.length ? firebase.database() : null;
 
-        document.getElementById('display-terrain').innerText = `Terrain ${terrain}`;
-        document.getElementById('display-cat').innerText = `${cat} • SAISON ${year}`;
+    let currentRef = null;
 
-        // Configuration Firebase (À compléter avec vos clés)
-        const firebaseConfig = { /* Vos clés ici */ };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // Listener des matchs pour ce terrain spécifique
-        const matchRef = db.ref(`t3n/${year}/${cat}/matches`).orderByChild('terrain').equalTo(terrain);
+    function loadMatches() {
+        if (!db) return alert("Firebase non configuré.");
         
-        matchRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            document.getElementById('connection-status').classList.replace('bg-red-500', 'bg-green-500');
-            document.getElementById('connection-status').style.boxShadow = "0 0 10px green";
-            renderMatches(data);
-        });
+        const year = document.getElementById('sel-year').value;
+        const cat = document.getElementById('sel-cat').value;
+        const phase = document.getElementById('sel-phase').value;
+        const terrain = document.getElementById('sel-ter').value;
+        
+        if (currentRef) currentRef.off(); // Stoppe l'écoute précédente
 
-        function renderMatches(data) {
-            const container = document.getElementById('app');
-            if(!data) {
-                container.innerHTML = "<p class='text-center opacity-50'>Aucun match programmé pour ce terrain.</p>";
+        const path = `t3n/${year}/${cat}_${phase}/matches`;
+        currentRef = db.ref(path);
+        
+        document.getElementById('matches-container').innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10 animate-pulse">Recherche des matchs...</p>`;
+
+        currentRef.orderByChild('terrain').equalTo(terrain).on('value', snap => {
+            const container = document.getElementById('matches-container');
+            if (!snap.exists()) {
+                container.innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10">Aucun match prévu ici.</p>`;
                 return;
             }
 
-            const matches = Object.entries(data)
-                .map(([id, val]) => ({ id, ...val }))
-                .filter(m => m.status !== 'termine')
-                .sort((a, b) => a.ordre - b.ordre);
+            let matches = [];
+            snap.forEach(child => { matches.push({ id: child.key, ...child.val() }); });
+            matches.sort((a, b) => a.ordre - b.ordre); // Tri chronologique
 
-            container.innerHTML = matches.map((m, idx) => `
-                <div class="bg-slate-900 border border-white/10 rounded-[2.5rem] p-6 ${idx === 0 ? 'ring-2 ring-amber-500/50 shadow-2xl scale-100' : 'opacity-40 scale-95'} transition-all">
-                    <div class="flex justify-between items-start mb-6">
-                        <span class="bg-white/10 px-3 py-1 rounded-full text-[10px] font-black uppercase">Match n°${m.ordre}</span>
-                        <button onclick="setHold('${m.id}')" class="text-[10px] font-black uppercase text-amber-500 border border-amber-500/30 px-3 py-1 rounded-full">Attendre</button>
+            container.innerHTML = matches.map((m, index) => {
+                const isLocked = m.locked;
+                const lockBadge = isLocked ? `<span class="bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black uppercase">Verrouillé par Master</span>` : '';
+                const opacity = isLocked ? 'opacity-70' : '';
+
+                return `
+                <div class="match-card bg-white p-5 rounded-[2rem] shadow-sm border-2 ${isLocked ? 'border-red-200' : 'border-slate-100'} ${opacity}">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="bg-amber-100 text-amber-800 font-black text-[10px] px-3 py-1 rounded-full">Match ${index + 1}</span>
+                        ${lockBadge}
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4 items-center mb-8">
-                        <div class="text-center space-y-4">
-                            <h2 class="text-xl font-black uppercase leading-tight h-12 flex items-center justify-center">${m.t1}</h2>
-                            <div class="flex flex-col items-center gap-2">
-                                <button onclick="updateScore('${m.id}', 's1', 1)" class="bg-amber-500 text-slate-950 w-full py-8 rounded-3xl text-6xl font-black shadow-lg active:scale-95 transition-transform">+</button>
-                                <button onclick="updateScore('${m.id}', 's1', -1)" class="text-white/20 font-bold p-2">-1</button>
+                    
+                    <div class="grid grid-cols-3 items-center gap-2 mb-4">
+                        <div class="text-center">
+                            <p class="font-black text-sm leading-tight text-slate-700">${m.t2}</p>
+                            <div class="flex justify-center items-center gap-2 mt-3">
+                                <button onclick="updateScore('${m.id}', 's2', -1, ${isLocked})" class="w-8 h-8 rounded-full bg-slate-100 font-black text-slate-500 hover:bg-slate-200 active:scale-90">-</button>
+                                <span class="text-2xl font-black text-slate-900 w-6">${m.s2 || 0}</span>
+                                <button onclick="updateScore('${m.id}', 's2', 1, ${isLocked})" class="w-8 h-8 rounded-full bg-amber-500 font-black text-white hover:bg-amber-600 active:scale-90">+</button>
                             </div>
-                            <div class="text-7xl font-black italic tracking-tighter">${m.s1}</div>
                         </div>
                         
-                        <div class="text-center space-y-4">
-                            <h2 class="text-xl font-black uppercase leading-tight h-12 flex items-center justify-center">${m.t2}</h2>
-                            <div class="flex flex-col items-center gap-2">
-                                <button onclick="updateScore('${m.id}', 's2', 1)" class="bg-white text-slate-950 w-full py-8 rounded-3xl text-6xl font-black shadow-lg active:scale-95 transition-transform">+</button>
-                                <button onclick="updateScore('${m.id}', 's2', -1)" class="text-white/20 font-bold p-2">-1</button>
+                        <div class="text-center text-slate-300 font-black text-sm">VS</div>
+                        
+                        <div class="text-center">
+                            <p class="font-black text-sm leading-tight text-slate-700">${m.t1}</p>
+                            <div class="flex justify-center items-center gap-2 mt-3">
+                                <button onclick="updateScore('${m.id}', 's1', -1, ${isLocked})" class="w-8 h-8 rounded-full bg-slate-100 font-black text-slate-500 hover:bg-slate-200 active:scale-90">-</button>
+                                <span class="text-2xl font-black text-slate-900 w-6">${m.s1 || 0}</span>
+                                <button onclick="updateScore('${m.id}', 's1', 1, ${isLocked})" class="w-8 h-8 rounded-full bg-amber-500 font-black text-white hover:bg-amber-600 active:scale-90">+</button>
                             </div>
-                            <div class="text-7xl font-black italic tracking-tighter">${m.s2}</div>
                         </div>
                     </div>
+                    
+                    <div class="bg-slate-50 p-2 rounded-xl text-center text-[10px] font-bold text-slate-500 uppercase">
+                        Arbitre : <span class="text-orange-600">${m.arb}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        });
+    }
 
-                    <button onclick="finishMatch('${m.id}')" class="w-full bg-green-600 py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl">Valider & Clôturer</button>
-                </div>
-            `).join('');
-        }
-
-        function updateScore(matchId, scoreKey, val) {
-            const ref = db.ref(`t3n/${year}/${cat}/matches/${matchId}/${scoreKey}`);
-            ref.transaction(current => Math.max(0, (current || 0) + val));
-        }
-
-        function setHold(matchId) {
-            // Logique : on augmente l'index 'ordre' pour le mettre à la fin
-            db.ref(`t3n/${year}/${cat}/matches/${matchId}`).update({ ordre: Date.now() });
-        }
-
-        function finishMatch(matchId) {
-            if(confirm("Confirmer le score final ? Le match disparaîtra de votre liste.")) {
-                db.ref(`t3n/${year}/${cat}/matches/${matchId}`).update({ status: 'termine' });
-            }
-        }
-    </script>
+    function updateScore(matchId, field, delta, isLocked) {
+        if (isLocked) return alert("Le Master a verrouillé ce score. Contactez la table de marque.");
+        
+        const year = document.getElementById('sel-year').value;
+        const cat = document.getElementById('sel-cat').value;
+        const phase = document.getElementById('sel-phase').value;
+        const path = `t3n/${year}/${cat}_${phase}/matches/${matchId}/${field}`;
+        
+        // Transaction Firebase pour éviter les conflits si plusieurs cliquent en même temps
+        db.ref(path).transaction(currentScore => {
+            let newVal = (currentScore || 0) + delta;
+            return newVal < 0 ? 0 : newVal; // Pas de score négatif
+        });
+    }
+</script>
 </body>
 </html>
