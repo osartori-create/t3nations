@@ -2,13 +2,13 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v16 - Orchestrateur Pro</title>
+    <title>T3N Master v17 - Orchestrateur Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
         .active-tab { background: #f59e0b !important; color: #000 !important; }
-        .active-format { border-color: #f59e0b !important; background-color: #fffbeb !important; transform: scale(1.02); box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.3); }
+        .active-poule-tab { background: #1e293b !important; color: #fff !important; }
         .conflict { animation: shake 0.5s; border-color: #ef4444 !important; background: #fef2f2 !important; }
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
         .drag-over { border: 2px dashed #f59e0b !important; background: #fffbeb !important; }
@@ -20,7 +20,6 @@
         .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
         .excel-yellow { background-color: #fef08a; font-weight: 900; }
         .excel-blue { background-color: #e0f2fe; }
-        .excel-empty { background-color: #f8fafc; color: #94a3b8; }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 </head>
@@ -36,10 +35,13 @@
             <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
             <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
             <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
-            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/20 hover:bg-red-500/10" id="tab-MAINTENANCE">Maintenance</button>
+            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/20 hover:bg-red-500/10" id="tab-MAINTENANCE">Purge</button>
         </nav>
     </div>
-    <div id="save-indicator" class="text-[10px] text-slate-400 font-bold italic mr-4 transition-opacity duration-500 opacity-0">💾 Sauvegardé</div>
+    <div class="flex gap-4 items-center">
+        <div id="save-indicator" class="text-[10px] text-slate-400 font-bold italic transition-opacity duration-500 opacity-0">💾 Sauvegardé</div>
+        <button onclick="simulateScores()" class="text-[9px] bg-indigo-600 text-white font-black uppercase px-3 py-1 rounded hover:bg-indigo-700">Test Factice</button>
+    </div>
 </header>
 
 <main class="p-6 max-w-[1900px] mx-auto">
@@ -68,59 +70,82 @@
                     <div class="flex justify-between items-end mb-4">
                         <div>
                             <h2 class="text-3xl font-black uppercase text-amber-500" id="active-cat-title">...</h2>
-                            <p class="text-[10px] font-black opacity-40 uppercase"><span id="active-cat-count">0</span> équipes détectées</p>
+                            <p class="text-[10px] font-black opacity-40 uppercase"><span id="active-cat-count">0</span> équipes</p>
                         </div>
                     </div>
                     
-                    <h3 class="text-[10px] font-black uppercase opacity-40 mb-2 tracking-widest">Formats (Poules Matin)</h3>
-                    <div id="format-suggestions" class="space-y-2 mb-6"></div>
+                    <div id="format-container">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-[10px] font-black uppercase opacity-40 tracking-widest">Formats (Phase 1)</h3>
+                            <button onclick="toggleFormats()" id="btn-edit-format" class="text-[9px] text-blue-500 font-bold hidden">Modifier</button>
+                        </div>
+                        <div id="format-suggestions" class="space-y-2 mb-6 max-h-[30vh] overflow-y-auto"></div>
+                        <div id="format-summary" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl text-center text-xs font-black text-amber-700 uppercase mb-6 shadow-sm"></div>
+                    </div>
                     
                     <hr class="mb-4 border-slate-100">
                     
                     <h3 class="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest flex justify-between">
-                        📦 Réserve
-                        <span id="reserve-count" class="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full">0</span>
+                        📦 Réserve <span id="reserve-count" class="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full">0</span>
                     </h3>
-                    <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" 
-                         class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-4 min-h-[300px] flex flex-col gap-2 transition-all">
-                    </div>
+                    <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-4 min-h-[150px] flex flex-col gap-2 transition-all"></div>
                 </div>
             </div>
 
-            <div class="xl:col-span-9 space-y-6">
-                <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                    <nav class="flex gap-2">
-                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg active-tab bg-amber-500 text-black">Phase 1 (Matin)</button>
+            <div class="xl:col-span-9 space-y-4">
+                
+                <div class="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
+                    <nav class="flex gap-2" id="main-sub-nav">
+                        <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab bg-amber-500 text-black">Phase 1 (Matin)</button>
+                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200">Phase 2 (Après-Midi)</button>
                     </nav>
                     <div class="text-right px-4 border-l">
-                        <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
-                        <span id="terrain-counter" class="text-xl font-black">0 / 0</span>
+                        <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Phase Active</span><br>
+                        <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
                     </div>
                 </div>
 
-                <div id="match-board" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"></div>
-                
-                <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-2xl flex justify-between items-center border-b-4 border-amber-500">
-                    <div>
-                        <p class="text-amber-500 font-black uppercase italic text-sm" id="deploy-title">Prêt pour le déploiement</p>
-                        <p class="text-[10px] opacity-50">L'ordre sera envoyé aux téléphones des terrains.</p>
+                <div id="view-phase1" class="space-y-4">
+                    <div id="poule-tabs" class="flex gap-2 overflow-x-auto bg-slate-200 p-2 rounded-xl">
+                        </div>
+                    
+                    <div id="match-board" class="w-full">
+                        </div>
+
+                    <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-xl flex justify-between items-center border-b-4 border-amber-500">
+                        <div>
+                            <p class="text-amber-500 font-black uppercase italic text-sm" id="deploy-title">Prêt pour le déploiement Phase 1</p>
+                            <p class="text-[10px] opacity-50">Transmet l'ordre des matchs aux terrains.</p>
+                        </div>
+                        <button onclick="deployCategory('PHASE1')" class="bg-amber-500 hover:bg-amber-600 text-black px-8 py-3 rounded-xl font-black uppercase transition-all shadow-lg active:scale-95">Envoyer Phase 1 (Firebase)</button>
                     </div>
-                    <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-10 py-4 rounded-2xl font-black uppercase transition-all shadow-lg active:scale-95">Synchroniser avec Firebase</button>
                 </div>
+
+                <div id="view-phase2" class="hidden space-y-4 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm text-center">
+                    <h3 class="text-2xl font-black uppercase text-slate-800 mb-2">Génération Phase 2</h3>
+                    <p class="text-xs text-slate-500 mb-8 max-w-2xl mx-auto">Aspire le classement de la Phase 1, ajoute le parcours au nom du club et regroupe automatiquement par niveaux selon le nombre de terrains disponibles.</p>
+                    
+                    <button onclick="generatePhase2()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-2xl font-black uppercase shadow-xl transition-all active:scale-95 text-sm mb-8">
+                        Lancer le calcul des Poules (Après-midi)
+                    </button>
+
+                    <div id="phase2-board" class="text-left w-full"></div>
+                </div>
+
             </div>
         </div>
     </section>
 
     <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
-        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl max-w-4xl mx-auto">
-            <h2 class="text-2xl font-black uppercase text-red-600 mb-6 flex items-center gap-3">🛠️ Base de données</h2>
-            <button onclick="purge('ALL')" class="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase shadow-xl hover:scale-[1.02] transition-all">Purger l'intégralité de l'Année Firebase</button>
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl max-w-2xl mx-auto text-center">
+            <h2 class="text-2xl font-black uppercase text-red-600 mb-6">🛠️ Purge Totale</h2>
+            <p class="text-xs text-slate-500 mb-6">Attention, cela supprime toute la configuration, les scores et la base Firebase pour l'année.</p>
+            <button onclick="purge('ALL')" class="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase shadow-xl hover:scale-[1.02] transition-all">Purger l'Année et le Cache</button>
         </div>
     </section>
 </main>
 
 <script>
-    // --- CONFIG & MATRICES (V=3, N=2, D=1) ---
     const MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     const MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
@@ -143,51 +168,26 @@
     if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") firebase.initializeApp(firebaseConfig);
     const db = firebase.apps.length ? firebase.database() : null;
 
-    // --- ETAT GLOBAL (PERSISTANCE) ---
     let appState = {
-        masterData: [],
-        activeCat: 'U10',
-        activeFormatBtnId: null,
-        cats: {
-            'U6': { poules: [], reserve: [], deployed: false },
-            'U8': { poules: [], reserve: [], deployed: false },
-            'U10': { poules: [], reserve: [], deployed: false },
-            'U12': { poules: [], reserve: [], deployed: false }
-        }
+        masterData: [], activeCat: 'U10', activeFormatStr: null, currentPhase: 'PHASE1', activePouleTab: 'A',
+        cats: { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() }
     };
+    function initCatState() { return { poules: [], reserve: [], deployed: false, phase2: [] }; }
+    let curCat = () => appState.cats[appState.activeCat];
 
-    // Raccourcis pour lisibilité
-    let currentCat = 'U10';
-    let currentPoules = [];
-    let reserveTeams = [];
-
-    // --- INITIALISATION & SAUVEGARDE ---
     function initApp() {
-        let saved = localStorage.getItem('t3n_master_state');
+        let saved = localStorage.getItem('t3n_master_v17');
         if (saved) {
             appState = JSON.parse(saved);
-            currentCat = appState.activeCat;
-            if(appState.masterData.length > 0) {
-                document.getElementById('master-table-container').classList.remove('hidden');
-                document.getElementById('master-tbody').innerHTML = appState.masterData.map((c, i) => `<tr><td class="p-3 font-bold uppercase text-xs">${c.name}</td><td class="p-3 text-center"><input type="checkbox" ${c.foreign ? 'checked':''} onchange="appState.masterData[${i}].foreign=this.checked;saveState()" class="accent-amber-500 w-4 h-4 cursor-pointer"></td><td class="p-3 text-center font-bold text-amber-600">${c.u6}</td><td class="p-3 text-center font-bold text-amber-600">${c.u8}</td><td class="p-3 text-center font-bold text-amber-600">${c.u10}</td><td class="p-3 text-center font-bold text-amber-600">${c.u12}</td></tr>`).join('');
-            }
+            if(appState.masterData.length > 0) renderMasterTable();
         }
-        showTab(currentCat);
-        listenToFirebase(); // Active la synchronisation
+        showTab(appState.activeCat || 'IMPORT');
     }
 
     function saveState() {
-        localStorage.setItem('t3n_master_state', JSON.stringify(appState));
+        localStorage.setItem('t3n_master_v17', JSON.stringify(appState));
         let ind = document.getElementById('save-indicator');
-        ind.classList.remove('opacity-0');
-        setTimeout(() => ind.classList.add('opacity-0'), 2000);
-    }
-
-    function loadCatRefs() {
-        currentCat = appState.activeCat;
-        if (!appState.cats[currentCat]) appState.cats[currentCat] = { poules: [], reserve: [], deployed: false };
-        currentPoules = appState.cats[currentCat].poules;
-        reserveTeams = appState.cats[currentCat].reserve;
+        ind.classList.remove('opacity-0'); setTimeout(() => ind.classList.add('opacity-0'), 2000);
     }
 
     // --- NAVIGATION ---
@@ -200,9 +200,25 @@
             document.getElementById(`content-${id}`).classList.remove('hidden');
         } else {
             appState.activeCat = id;
-            loadCatRefs();
             document.getElementById('content-CAT').classList.remove('hidden');
             initCategoryUI();
+        }
+        saveState();
+    }
+
+    function switchCatPhase(phase) {
+        appState.currentPhase = phase;
+        document.getElementById('tab-phase1').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE1'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
+        document.getElementById('tab-phase2').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE2'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
+        
+        if (phase === 'PHASE1') {
+            document.getElementById('view-phase1').classList.remove('hidden');
+            document.getElementById('view-phase2').classList.add('hidden');
+            renderPouleTabs();
+        } else {
+            document.getElementById('view-phase1').classList.add('hidden');
+            document.getElementById('view-phase2').classList.remove('hidden');
+            renderPhase2Board();
         }
         saveState();
     }
@@ -218,53 +234,43 @@
             let cleanLine = line.replace(/[\t;,]/g, ' ').trim();
             const p = cleanLine.split(/\s+/);
             if(p.length >= 5) {
-                const u12 = parseInt(p.pop()) || 0, u10 = parseInt(p.pop()) || 0, u8 = parseInt(p.pop()) || 0, u6 = parseInt(p.pop()) || 0;
-                const name = p.join(' ').trim();
-                if (name) appState.masterData.push({ id:`club_${idx}`, name: name, foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null, u6, u8, u10, u12 });
+                const u12=parseInt(p.pop())||0, u10=parseInt(p.pop())||0, u8=parseInt(p.pop())||0, u6=parseInt(p.pop())||0, name=p.join(' ').trim();
+                if (name) appState.masterData.push({ id:`club_${idx}`, name, foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null, u6, u8, u10, u12 });
             }
         });
         
-        if(appState.masterData.length > 0) {
-            saveState();
-            initApp(); // Re-render
-            alert("Liste importée et sauvegardée avec succès !");
-        }
+        if(appState.masterData.length > 0) { saveState(); renderMasterTable(); alert("Liste importée !"); }
     }
 
-    // --- GESTION CATEGORIE ---
+    function renderMasterTable() {
+        document.getElementById('master-tbody').innerHTML = appState.masterData.map((c, i) => `<tr><td class="p-3 font-bold uppercase text-xs">${c.name}</td><td class="p-3 text-center"><input type="checkbox" ${c.foreign ? 'checked':''} onchange="appState.masterData[${i}].foreign=this.checked;saveState()" class="accent-amber-500"></td><td class="p-3 text-center font-bold text-amber-600">${c.u6}</td><td class="p-3 text-center font-bold text-amber-600">${c.u8}</td><td class="p-3 text-center font-bold text-amber-600">${c.u10}</td><td class="p-3 text-center font-bold text-amber-600">${c.u12}</td></tr>`).join('');
+        document.getElementById('master-table-container').classList.remove('hidden');
+    }
+
+    // --- INITIALISATION UI CATEGORIE ---
     function initCategoryUI() {
-        document.getElementById('active-cat-title').innerText = currentCat;
-        
+        document.getElementById('active-cat-title').innerText = appState.activeCat;
         let teamsList = [];
-        appState.masterData.forEach(c => { 
-            for(let i=1; i<=c[currentCat.toLowerCase()]; i++) teamsList.push({ id: `${c.id}_${i}`, club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign });
-        });
+        appState.masterData.forEach(c => { for(let i=1; i<=c[appState.activeCat.toLowerCase()]; i++) teamsList.push({ id: `${c.id}_${i}`, club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign }); });
         document.getElementById('active-cat-count').innerText = teamsList.length;
         
-        const list = document.getElementById('format-suggestions');
-        list.innerHTML = "";
+        const list = document.getElementById('format-suggestions'); list.innerHTML = "";
         const total = teamsList.length;
-        if(total < 3) return;
-
-        let formatId = 0;
+        
         for(let p6=0; p6<=total/6; p6++) {
             for(let p5=0; p5<=total/5; p5++) {
                 for(let p4=0; p4<=total/4; p4++) {
                     for(let p3=0; p3<=total/3; p3++) {
                         if(p6*6 + p5*5 + p4*4 + p3*3 === total) {
                             const nbP = p6+p5+p4+p3;
-                            if(nbP > MAX_TERRAINS[currentCat] * 2) continue;
+                            if(nbP > MAX_TERRAINS[appState.activeCat] * 2) continue;
                             const diff = Math.max(...[p6?6:0,p5?5:0,p4?4:0,p3?3:0].filter(x=>x)) - Math.min(...[p6?6:0,p5?5:0,p4?4:0,p3?3:0].filter(x=>x));
-                            
                             let color = diff <= 1 ? 'border-green-300' : (diff === 2 ? 'border-yellow-300' : 'border-orange-300');
+                            let str = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`;
                             const btn = document.createElement('button');
-                            const myId = `fmt_${formatId++}`;
-                            btn.id = myId;
-                            btn.className = `format-btn w-full p-3 rounded-xl border-2 bg-white text-left text-[10px] font-black uppercase mb-2 hover:bg-slate-50 transition-all shadow-sm ${color}`;
-                            if(appState.activeFormatBtnId === myId) btn.classList.add('active-format');
-                            
-                            btn.innerHTML = `<span>${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}</span> <span class="float-right opacity-50">${nbP} Poules</span>`;
-                            btn.onclick = () => { ventiler(teamsList, {p6,p5,p4,p3}, myId); };
+                            btn.className = `w-full p-2 rounded-xl border-2 bg-white text-left text-[10px] font-black uppercase mb-1 hover:bg-slate-50 transition-all ${color}`;
+                            btn.innerHTML = `<span>${str}</span> <span class="float-right opacity-50">${nbP} Poules</span>`;
+                            btn.onclick = () => { ventiler(teamsList, {p6,p5,p4,p3}, str); };
                             list.appendChild(btn);
                         }
                     }
@@ -272,180 +278,168 @@
             }
         }
         
-        if (currentPoules.length > 0) {
-            renderBoard();
-            renderReserve();
-            document.getElementById('deploy-zone').classList.remove('hidden');
-            if(appState.cats[currentCat].deployed) document.getElementById('deploy-title').innerText = "Catégorie en Ligne (Synchronisée)";
+        toggleFormats(!!appState.activeFormatStr);
+        switchCatPhase(appState.currentPhase);
+        renderReserve();
+    }
+
+    function toggleFormats(forceHide = false) {
+        if(forceHide && appState.activeFormatStr) {
+            document.getElementById('format-suggestions').classList.add('hidden');
+            let sum = document.getElementById('format-summary');
+            sum.innerText = `Actif : ${appState.activeFormatStr}`; sum.classList.remove('hidden');
+            document.getElementById('btn-edit-format').classList.remove('hidden');
+        } else {
+            document.getElementById('format-suggestions').classList.remove('hidden');
+            document.getElementById('format-summary').classList.add('hidden');
+            document.getElementById('btn-edit-format').classList.add('hidden');
+            appState.activeFormatStr = null;
         }
     }
 
-    function ventiler(teams, c, btnId) {
-        document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active-format'));
-        document.getElementById(btnId).classList.add('active-format');
-        appState.activeFormatBtnId = btnId;
+    function ventiler(teams, c, formatStr) {
+        appState.activeFormatStr = formatStr;
+        toggleFormats(true);
 
-        // Reset poules pour cette cat
-        appState.cats[currentCat].poules = [];
-        appState.cats[currentCat].reserve = [];
-        loadCatRefs();
-
-        const make = (n, s) => { for(let i=0; i<n; i++) currentPoules.push({ letter: String.fromCharCode(65+currentPoules.length), target: s, tUsed: 1, teams: [], tab: 'teams', scores: {} }); };
+        curCat().poules = []; curCat().reserve = [];
+        let tIdx = 1;
+        const make = (n, s) => { for(let i=0; i<n; i++) curCat().poules.push({ letter: String.fromCharCode(65+curCat().poules.length), target: s, tUsed: 1, teams: [], tab: 'teams', scores: {}, adjustments: {} }); };
         make(c.p6, 6); make(c.p5, 5); make(c.p4, 4); make(c.p3, 3);
 
         const sorted = [...teams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
         sorted.forEach(t => {
-            const best = currentPoules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
-            if(best) best.teams.push(t); else reserveTeams.push(t);
+            const best = curCat().poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
+            if(best) best.teams.push(t); else curCat().reserve.push(t);
         });
         
-        saveState();
-        renderBoard();
-        renderReserve();
+        appState.activePouleTab = 'A';
+        saveState(); renderPouleTabs(); renderReserve();
         document.getElementById('deploy-zone').classList.remove('hidden');
-        document.getElementById('deploy-title').innerText = "Prêt pour le déploiement";
-        appState.cats[currentCat].deployed = false;
     }
 
-    // --- SCORES & CLASSEMENT (V=3, N=2, D=1) ---
-    function updateScore(pIdx, mIdx, field, val) {
-        let p = currentPoules[pIdx];
-        if(!p.scores) p.scores = {};
-        if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false};
-        p.scores[mIdx][field] = val;
-        saveState();
-        renderBoard();
+    // --- ONGLETS POULES ---
+    function renderPouleTabs() {
+        if(curCat().poules.length === 0) { document.getElementById('match-board').innerHTML = ''; return; }
+        
+        document.getElementById('poule-tabs').innerHTML = curCat().poules.map(p => 
+            `<button onclick="appState.activePouleTab='${p.letter}';saveState();renderPouleTabs()" class="px-6 py-2 rounded-lg font-black text-xs transition-all ${appState.activePouleTab === p.letter ? 'active-poule-tab shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'}">Poule ${p.letter}</button>`
+        ).join('');
+        
+        renderBoard(); // Rendu de la poule active
+    }
 
-        if (appState.cats[currentCat].deployed && db) {
-            db.ref(`t3n/${document.getElementById('config-year').value}/${currentCat}/matches/P${p.letter}_M${mIdx+1}`).update({ [field]: parseInt(val)||0 });
-        }
+    // --- SCORES & CLASSEMENT (AVEC AJUSTEMENT) ---
+    function updateScore(pIdx, mIdx, field, val) {
+        let p = curCat().poules[pIdx];
+        if(!p.scores) p.scores = {}; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false};
+        p.scores[mIdx][field] = val; saveState(); renderBoard();
+    }
+    
+    function updateAdjustment(pIdx, tId, val) {
+        let p = curCat().poules[pIdx];
+        if(!p.adjustments) p.adjustments = {};
+        p.adjustments[tId] = parseInt(val) || 0;
+        saveState(); renderBoard();
     }
 
     function toggleLock(pIdx, mIdx, isLocked) {
-        let p = currentPoules[pIdx];
-        if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false};
-        p.scores[mIdx].locked = isLocked;
-        saveState();
-        if (appState.cats[currentCat].deployed && db) {
-            db.ref(`t3n/${document.getElementById('config-year').value}/${currentCat}/matches/P${p.letter}_M${mIdx+1}`).update({ locked: isLocked });
-        }
+        let p = curCat().poules[pIdx]; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false};
+        p.scores[mIdx].locked = isLocked; saveState(); renderBoard();
     }
 
     function computeRanking(p) {
-        let stats = p.teams.map((t, idx) => ({ id: idx, name: t.name, pts: 0, diff: 0, played: 0 }));
+        let stats = p.teams.map((t, idx) => ({ id: idx, ogTeam: t, name: t.name, pts: 0, diff: 0 }));
         if(p.teams.length !== p.target) return stats;
 
         MATRICES[p.target].forEach((m, mIdx) => {
             if(p.scores && p.scores[mIdx] && p.scores[mIdx].s1 !== '' && p.scores[mIdx].s2 !== '') {
-                let sA = parseInt(p.scores[mIdx].s1); // Eq 1
-                let sB = parseInt(p.scores[mIdx].s2); // Eq 2
+                let sA = parseInt(p.scores[mIdx].s1); let sB = parseInt(p.scores[mIdx].s2);
                 let tA = stats[m.a - 1]; let tB = stats[m.b - 1];
-                
-                tA.played++; tB.played++;
                 tA.diff += (sA - sB); tB.diff += (sB - sA);
-                
-                if(sA > sB) { tA.pts += 3; tB.pts += 1; }
-                else if (sA < sB) { tA.pts += 1; tB.pts += 3; }
-                else { tA.pts += 2; tB.pts += 2; }
+                if(sA > sB) { tA.pts += 3; tB.pts += 1; } else if (sA < sB) { tA.pts += 1; tB.pts += 3; } else { tA.pts += 2; tB.pts += 2; }
             }
         });
+        
+        // Ajout Ajustements manuels
+        stats.forEach(s => { s.pts += (p.adjustments && p.adjustments[s.id] ? p.adjustments[s.id] : 0); });
         return stats.sort((a,b) => b.pts - a.pts || b.diff - a.diff);
     }
 
-    // --- HTML GENERATOR (EXCEL & TERRAINS) ---
-    function generateExcelHTML(p, pIdx) {
-        if(p.teams.length !== p.target) return `<div class="text-center py-10 opacity-30 italic">Poule incomplète.</div>`;
-        const matrix = MATRICES[p.target];
-        
-        let matchesRows = matrix.map((m, mIdx) => {
-            let tStr = p.terrainStart;
-            if (p.tUsed === 2) tStr = (mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1;
-            
-            let sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
-            
-            return `
-            <tr>
-                <td class="font-bold text-slate-500">Ter. ${tStr}</td>
-                <td class="excel-yellow">${p.teams[m.b-1].name}</td>
-                <td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td>
-                <td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td>
-                <td>${p.teams[m.a-1].name}</td>
-                <td class="text-orange-600">${p.teams[m.arb-1].name}</td>
-                <td><input type="checkbox" title="Lock Master" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer"></td>
-            </tr>`;
-        }).join('');
+    function simulateScores() {
+        if(!confirm("🧪 Remplir les poules actuelles avec des scores aléatoires ?")) return;
+        curCat().poules.forEach(p => {
+            if(p.teams.length === p.target) {
+                if(!p.scores) p.scores = {};
+                MATRICES[p.target].forEach((m, idx) => {
+                    p.scores[idx] = { s1: Math.floor(Math.random()*4), s2: Math.floor(Math.random()*4), locked: false };
+                });
+            }
+        });
+        saveState(); renderPouleTabs();
+    }
 
-        let ranking = computeRanking(p);
-        let classRows = ranking.map((r, idx) => `
-            <tr>
-                <td class="excel-yellow">${idx+1}</td>
-                <td class="${idx%2===0?'excel-blue':''} font-bold text-left px-2">${r.name}</td>
-                <td class="font-black">${r.pts}</td>
-                <td class="${r.diff > 0 ? 'text-green-600' : (r.diff < 0 ? 'text-red-600' : '')} font-bold">${r.diff > 0 ? '+'+r.diff : r.diff}</td>
-            </tr>
-        `).join('');
+    // --- HTML BOARD ---
+    function renderBoard() {
+        let pIdx = curCat().poules.findIndex(x => x.letter === appState.activePouleTab);
+        if (pIdx === -1) pIdx = 0;
+        let p = curCat().poules[pIdx];
+        if (!p) return;
 
-        return `
-        <div class="overflow-x-auto pb-4">
-            <table class="excel-table mb-4 shadow-sm">
-                <thead class="excel-header">
-                    <tr><th>Terrain</th><th class="excel-yellow w-1/4">EQUIPE 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">EQUIPE 1</th><th>ARBITRE</th><th>Lock</th></tr>
-                </thead>
-                <tbody>${matchesRows}</tbody>
-            </table>
-            <div class="flex gap-4 items-start">
-                <table class="excel-table flex-1 shadow-sm">
-                    <thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Points</th><th>Goal Average</th></tr></thead>
-                    <tbody>${classRows}</tbody>
-                </table>
-                <div class="text-[9px] text-slate-400 italic w-1/3 text-left">
-                    <b>Barème :</b> Victoire (3), Nul (2), Défaite (1)<br>
-                    Cocher <b>Lock</b> empêche la modif depuis les téléphones.
-                </div>
+        let currentT = 1; curCat().poules.forEach((x, i) => { if(i < pIdx) currentT += x.tUsed; });
+        p.terrainStart = currentT;
+        document.getElementById('terrain-counter').innerText = `${curCat().poules.reduce((s, x) => s + x.tUsed, 0)} / ${MAX_TERRAINS[appState.activeCat]}`;
+
+        let content = '';
+        if(p.tab === 'teams' || !p.tab) {
+            content = `<div class="space-y-2 min-h-[150px]">` + p.teams.map((t, ti) => `
+                <div draggable="true" ondragstart="dragFromPoule(event, ${pIdx}, ${ti})" class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold flex justify-between cursor-move shadow-sm hover:border-amber-400 transition-all">
+                    <span>${t.name}${t.foreign?' <span title="Étranger">🌍</span>':''}</span>
+                    <span class="opacity-40 bg-slate-200 px-3 py-1 rounded-full text-[10px]">Niv.${t.level}</span>
+                </div>`).join('') + `</div>`;
+        } else {
+            // Vue EXCEL
+            if(p.teams.length !== p.target) content = `<div class="text-center py-10 opacity-30 italic">Ajustez les équipes d'abord.</div>`;
+            else {
+                let matchesRows = MATRICES[p.target].map((m, mIdx) => {
+                    let tStr = p.tUsed === 2 ? ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                    let sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
+                    return `<tr><td class="font-bold text-slate-500">T.${tStr}</td><td class="excel-yellow">${p.teams[m.b-1].name}</td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td><td>${p.teams[m.a-1].name}</td><td class="text-orange-600">${p.teams[m.arb-1].name}</td><td><input type="checkbox" title="Lock Master" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer"></td></tr>`;
+                }).join('');
+
+                let ranking = computeRanking(p);
+                let classRows = ranking.map((r, idx) => `<tr><td class="excel-yellow">${idx+1}</td><td class="${idx%2===0?'excel-blue':''} font-bold text-left px-2">${r.name}</td><td class="font-black">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-0"><input type="number" title="Ajustement Manuel" value="${p.adjustments&&p.adjustments[r.id]?p.adjustments[r.id]:''}" class="w-full text-center font-bold outline-none bg-slate-50 text-[10px]" onchange="updateAdjustment(${pIdx}, ${r.id}, this.value)" placeholder="+/-"></td></tr>`).join('');
+
+                content = `
+                <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
+                    <table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table>
+                    <div class="flex-1 w-full space-y-3">
+                        <table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th title="Ajustement Manuel">Ajust.</th></tr></thead><tbody>${classRows}</tbody></table>
+                        <div class="text-[9px] text-slate-500 bg-slate-50 p-3 rounded border"><b>Barème :</b> V(3), N(2), D(1)<br><b>Départage :</b> 1.Pts, 2.Diff, 3.Confrontation Directe, 4.Équipe Étrangère.<br><i>-> Saisissez +/- dans Ajust. pour forcer manuellement le classement en cas d'égalité parfaite.</i></div>
+                    </div>
+                </div>`;
+            }
+        }
+
+        document.getElementById('match-board').innerHTML = `
+        <div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full flex flex-col transition-all" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${pIdx})">
+            <div class="flex justify-between items-center mb-4 border-b pb-4">
+                <h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[10px] opacity-30 non-italic ml-2">(${p.teams.length}/${p.target})</span></h3>
+                <select onchange="curCat().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none cursor-pointer"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select>
             </div>
+            <div class="flex gap-2 mb-6 bg-slate-100 p-1.5 rounded-xl w-64">
+                <button onclick="curCat().poules[${pIdx}].tab='teams';saveState();renderBoard()" class="flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg ${p.tab==='teams'||!p.tab?'bg-white shadow':'text-slate-500 hover:bg-slate-200'}">Équipes</button>
+                <button onclick="curCat().poules[${pIdx}].tab='excel';saveState();renderBoard()" class="flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg ${p.tab==='excel'?'bg-white shadow text-amber-600':'text-slate-500 hover:bg-slate-200'}">Feuille Match</button>
+            </div>
+            ${content}
         </div>`;
     }
 
-    function renderBoard() {
-        let currentT = 1;
-        currentPoules.forEach(p => { p.terrainStart = currentT; currentT += p.tUsed; });
-        
-        document.getElementById('terrain-counter').innerText = `${currentT - 1} / ${MAX_TERRAINS[currentCat]}`;
-        const hasExcelOpen = currentPoules.some(p => p.tab === 'excel');
-        document.getElementById('match-board').className = hasExcelOpen ? 'grid grid-cols-1 gap-6 items-start' : 'grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 items-start';
-
-        document.getElementById('match-board').innerHTML = currentPoules.map((p, i) => {
-            const conflict = p.teams.map(t => t.club).some((c, idx, arr) => arr.indexOf(c) !== idx);
-            const teamsHtml = `<div class="space-y-2 min-h-[100px]">` + p.teams.map((t, ti) => `
-                <div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold flex justify-between cursor-move shadow-sm hover:border-amber-400 transition-all">
-                    <span>${t.name}${t.foreign?' <span title="Étranger">🌍</span>':''}</span>
-                    <span class="opacity-40 bg-slate-200 px-2 py-0.5 rounded-full text-[9px]">Niv.${t.level}</span>
-                </div>`).join('') + `</div>`;
-            
-            return `
-            <div class="bg-white p-6 rounded-[2.5rem] border-2 ${conflict ? 'conflict' : 'border-slate-100'} shadow-sm flex flex-col transition-all ${p.tab === 'excel' ? 'col-span-1 lg:col-span-2' : ''}" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="font-black italic uppercase text-lg">Poule ${p.letter} <span class="text-[10px] opacity-30 non-italic ml-1">(${p.teams.length}/${p.target})</span></h3>
-                    <select onchange="currentPoules[${i}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-[10px] font-bold bg-slate-100 p-2 rounded-lg outline-none border-none cursor-pointer">
-                        <option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option>
-                    </select>
-                </div>
-                <div class="flex gap-2 mb-4 bg-slate-100 p-1.5 rounded-xl">
-                    <button onclick="currentPoules[${i}].tab='teams';saveState();renderBoard()" class="flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg ${p.tab==='teams'?'bg-white shadow':''}">Équipes</button>
-                    <button onclick="currentPoules[${i}].tab='excel';saveState();renderBoard()" class="flex-1 py-1.5 text-[9px] font-black uppercase rounded-lg ${p.tab==='excel'?'bg-white shadow text-amber-600':''}">Feuille de Match (Scores)</button>
-                </div>
-                ${p.tab==='teams' ? teamsHtml : generateExcelHTML(p, i)}
-            </div>`;
-        }).join('');
-    }
-
     function renderReserve() {
-        document.getElementById('reserve-count').innerText = reserveTeams.length;
-        document.getElementById('reserve-zone').innerHTML = reserveTeams.map((t, i) => `
-            <div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold shadow-sm cursor-move hover:border-amber-400 transition-all">
-                ${t.name} ${t.foreign?'🌍':''} <span class="float-right opacity-30 text-[9px]">Niv.${t.level}</span>
-            </div>
-        `).join('') || `<div class="h-full flex items-center justify-center opacity-20 text-xs font-bold uppercase italic text-center px-4 mt-10">Glissez une équipe ici</div>`;
+        document.getElementById('reserve-count').innerText = curCat().reserve.length;
+        document.getElementById('reserve-zone').innerHTML = curCat().reserve.map((t, i) => `
+            <div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move hover:border-amber-400">
+                ${t.name} ${t.foreign?'🌍':''}
+            </div>`).join('') || `<div class="h-full flex items-center justify-center opacity-20 text-[10px] font-bold uppercase italic text-center">Glissez une équipe ici</div>`;
     }
 
     // --- DRAG & DROP ---
@@ -455,80 +449,84 @@
 
     function dropToPoule(e, targetPIdx) {
         e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json"));
-        let team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? currentPoules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : reserveTeams.splice(d.tIdx, 1)[0];
-        if (team) { currentPoules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); }
+        let team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? curCat().poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : curCat().reserve.splice(d.tIdx, 1)[0];
+        if (team) { curCat().poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); renderPouleTabs(); }
     }
-
     function dropToReserve(e) {
         e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json"));
-        if (d.src === 'poule') { reserveTeams.push(currentPoules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); }
+        if (d.src === 'poule') { curCat().reserve.push(curCat().poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); renderPouleTabs(); }
     }
 
-    // --- FIREBASE SYNC ---
-    async function deployCategory() {
-        if (!db) return alert("Firebase non configuré.");
-        const year = document.getElementById('config-year').value;
-        const updates = {};
-        let globalOrder = 1;
+    // --- PHASE 2 ---
+    function generatePhase2() {
+        let incomplete = curCat().poules.some(p => p.teams.length !== p.target);
+        if(incomplete && !confirm("Certaines poules du matin sont incomplètes. Continuer ?")) return;
 
-        currentPoules.forEach(p => {
+        let p2Teams = [];
+        curCat().poules.forEach(p => {
+            let rank = computeRanking(p);
+            rank.forEach((r, i) => { p2Teams.push({ ...r.ogTeam, name: `${r.ogTeam.name} (${i+1}e P.${p.letter})`, level: i+1 }); }); // Level devient le rang du matin !
+        });
+
+        if(p2Teams.length === 0) return alert("Aucune équipe qualifiable.");
+        
+        // Ventiler la Phase 2 : on regroupe par le rang ("level" nouvellement attribué)
+        curCat().phase2 = [];
+        const total = p2Teams.length;
+        
+        // Création simplifiée pour l'exemple : Des poules équilibrées en taille, triées par niveau
+        let nbPoules = Math.ceil(total / 5); // Base = poules de 5
+        let baseSize = Math.floor(total / nbPoules);
+        let extra = total % nbPoules;
+        
+        p2Teams.sort((a,b) => a.level - b.level); // Les 1ers en haut, les derniers en bas
+
+        let currentIndex = 0;
+        for(let i=0; i<nbPoules; i++) {
+            let targetSize = baseSize + (i < extra ? 1 : 0);
+            let subTeams = p2Teams.slice(currentIndex, currentIndex + targetSize);
+            currentIndex += targetSize;
+            curCat().phase2.push({
+                letter: String.fromCharCode(65+i),
+                title: i===0 ? 'Poule Titre' : `Poule de Classement ${i+1}`,
+                target: targetSize, tUsed: 1, tab: 'teams', scores: {}, adjustments: {}, teams: subTeams
+            });
+        }
+        
+        saveState(); renderPhase2Board();
+    }
+
+    function renderPhase2Board() {
+        if(!curCat().phase2 || curCat().phase2.length === 0) {
+            document.getElementById('phase2-board').innerHTML = `<p class="text-center opacity-30 italic">Aucune poule générée.</p>`; return;
+        }
+
+        document.getElementById('phase2-board').innerHTML = curCat().phase2.map((p, i) => {
+            let teamsHtml = p.teams.map(t => `<div class="p-2 bg-slate-50 border rounded text-xs font-bold">${t.name}</div>`).join('');
+            return `<div class="mb-6 p-6 bg-slate-50 border-2 border-slate-200 rounded-[2rem]"><h4 class="font-black italic text-lg mb-4">${p.title} (Poule ${p.letter})</h4><div class="space-y-2">${teamsHtml}</div></div>`;
+        }).join('');
+    }
+
+    // --- DEPLOY & PURGE ---
+    async function deployCategory(phase) {
+        if (!db) return alert("Simulation mode : Pas de Firebase.");
+        const year = document.getElementById('config-year').value;
+        const updates = {}; let globalOrder = 1;
+
+        curCat().poules.forEach(p => {
             if (p.teams.length === p.target) {
                 MATRICES[p.target].forEach((m, idx) => {
-                    let tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
-                    let sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:0, s2:0, locked:false};
-                    updates[`t3n/${year}/${currentCat}/matches/P${p.letter}_M${idx+1}`] = { 
-                        t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name,
-                        s1: sc.s1||0, s2: sc.s2||0, locked: sc.locked||false, terrain: `Terrain ${tStr}`, status:'en_attente', poule: p.letter, ordre: globalOrder++
-                    };
+                    updates[`t3n/${year}/${appState.activeCat}/matches/P${p.letter}_M${idx+1}`] = { t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name, s1:0, s2:0, terrain: `Terrain ${p.terrainStart}`, status:'en_attente', poule: p.letter, ordre: globalOrder++ };
                 });
             }
         });
         
-        if(Object.keys(updates).length > 0) {
-            await db.ref().update(updates);
-            appState.cats[currentCat].deployed = true;
-            saveState();
-            document.getElementById('deploy-title').innerText = "Catégorie en Ligne (Synchronisée)";
-            alert(`✅ ${currentCat} synchronisée avec Firebase !`);
-        }
-    }
-
-    // Listener Live Firebase -> Master
-    let isListening = false;
-    function listenToFirebase() {
-        if (!db || isListening) return;
-        const year = document.getElementById('config-year').value;
-        db.ref(`t3n/${year}`).on('child_changed', (snapCat) => {
-            let cat = snapCat.key; // U8, U10...
-            if(appState.cats[cat] && appState.cats[cat].deployed) {
-                db.ref(`t3n/${year}/${cat}/matches`).once('value', matches => {
-                    matches.forEach(m => {
-                        let matchId = m.key; let data = m.val();
-                        let pLetter = matchId.split('_')[0].replace('P', '');
-                        let mIdx = parseInt(matchId.split('_')[1].replace('M', '')) - 1;
-                        let pIdx = appState.cats[cat].poules.findIndex(p => p.letter === pLetter);
-                        
-                        if (pIdx > -1) {
-                            let p = appState.cats[cat].poules[pIdx];
-                            if(!p.scores) p.scores = {};
-                            if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false};
-                            // Met à jour le local SI le master n'a pas verrouillé la case
-                            if (!p.scores[mIdx].locked) {
-                                p.scores[mIdx].s1 = data.s1; p.scores[mIdx].s2 = data.s2;
-                            }
-                        }
-                    });
-                    saveState();
-                    if(currentCat === cat) renderBoard();
-                });
-            }
-        });
-        isListening = true;
+        if(Object.keys(updates).length > 0) { await db.ref().update(updates); alert(`✅ ${appState.activeCat} synchronisée !`); }
     }
 
     async function purge(type) {
         if(!db) return; const year = document.getElementById('config-year').value; 
-        if(type==='ALL' && confirm("DANGER : Supprimer TOUTE LA BASE ?")) { await db.ref(`t3n/${year}`).remove(); localStorage.clear(); location.reload(); }
+        if(type==='ALL' && confirm("DANGER : Effacer la base " + year + " ?")) { await db.ref(`t3n/${year}`).remove(); localStorage.clear(); location.reload(); }
     }
 </script>
 </body>
