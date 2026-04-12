@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v22 - Orchestrateur Pro</title>
+    <title>T3N Master v23 - Architecte & Péréquation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -14,9 +14,9 @@
         .tab-btn.active-u10 { background: #ffffff !important; color: #0f172a !important; }
         .tab-btn.active-u12 { background: #dc2626 !important; color: white !important; }
         .active-poule-tab { background: #1e293b !important; color: #fff !important; }
-        .active-format { border-color: #f59e0b !important; background-color: #fffbeb !important; transform: scale(1.02); }
-        .conflict { animation: shake 0.5s; border-color: #ef4444 !important; background: #fef2f2 !important; }
-        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+        .scenario-card { transition: all 0.2s; cursor: pointer; }
+        .scenario-card:hover { transform: translateY(-2px); border-color: #f59e0b; box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.2); }
+        .scenario-active { border-color: #f59e0b !important; background-color: #fffbeb !important; }
         ::-webkit-scrollbar{width:6px; height:6px;} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
         .excel-table { border-collapse: collapse; width: 100%; text-align: center; font-size: 11px; }
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 6px 4px; }
@@ -70,13 +70,17 @@
                     <h2 class="text-4xl font-black uppercase" id="active-cat-title">...</h2>
                     <p class="text-[10px] font-black opacity-40 uppercase mb-4"><span id="active-cat-count">0</span> équipes détectées</p>
                     
-                    <div id="format-container">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-[10px] font-black uppercase opacity-40 tracking-widest">Formats Disponibles</h3>
-                            <button onclick="toggleFormats()" id="btn-edit-format" class="text-[9px] text-blue-500 font-bold hidden">Modifier</button>
+                    <div id="architect-container">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xs font-black uppercase tracking-widest text-indigo-600 flex items-center gap-2">📐 Architecte</h3>
+                            <button onclick="toggleArchitect()" id="btn-edit-architect" class="text-[9px] text-slate-400 font-bold hidden bg-slate-100 px-2 py-1 rounded">Modifier</button>
                         </div>
-                        <div id="format-suggestions" class="space-y-2 mb-6 max-h-[30vh] overflow-y-auto pr-2"></div>
-                        <div id="format-summary" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl text-center text-xs font-black text-amber-700 uppercase mb-6"></div>
+                        <div id="scenario-list" class="space-y-3 mb-6 max-h-[40vh] overflow-y-auto pr-2 pb-2"></div>
+                        <div id="scenario-summary" class="hidden bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl shadow-sm">
+                            <p class="text-[10px] font-black text-amber-800 uppercase mb-1">Scénario Actif</p>
+                            <p id="summary-format" class="text-lg font-black text-slate-800 leading-tight"></p>
+                            <p id="summary-time" class="text-xs font-bold text-amber-600 mt-2"></p>
+                        </div>
                     </div>
                     
                     <hr class="mb-4 border-slate-100">
@@ -89,7 +93,7 @@
                 <div class="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
                     <nav class="flex gap-2" id="main-sub-nav">
                         <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab">Phase 1 (Brassage)</button>
-                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500">Phase 2 (Classement)</button>
+                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all">Phase 2 (Classement)</button>
                     </nav>
                     <div class="text-right px-4 border-l">
                         <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
@@ -97,10 +101,15 @@
                     </div>
                 </div>
 
-                <div id="phase2-generator" class="hidden bg-indigo-50 border border-indigo-200 p-8 rounded-[2rem] text-center mb-4">
-                    <h3 class="font-black text-indigo-800 uppercase mb-2">Générateur Phase 2</h3>
-                    <p class="text-xs text-indigo-600/80 mb-6">Récupère les classements du matin, trie les équipes par niveau et les place dans la réserve pour structuration.</p>
-                    <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg">Générer le Classement Matin</button>
+                <div id="phase2-generator" class="hidden bg-indigo-50 border border-indigo-200 p-8 rounded-[2rem] shadow-sm mb-4 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚖️</div>
+                    <div class="relative z-10">
+                        <h3 class="font-black text-indigo-800 uppercase mb-2 text-xl">Génération Phase 2 par Péréquation</h3>
+                        <p class="text-xs text-indigo-600/80 mb-6 max-w-2xl">
+                            Le système va aspirer les résultats du matin. Pour garantir une équité parfaite entre des poules de tailles différentes (ex: poule de 4 vs poule de 5), <b>le classement inter-poules se fait au ratio (Points/Matchs joués)</b>.
+                        </p>
+                        <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">Calculer les Ratios & Trier</button>
+                    </div>
                 </div>
 
                 <div id="validation-zone" class="hidden bg-amber-100 border border-amber-300 p-6 rounded-[2rem] flex justify-between items-center shadow-inner">
@@ -108,7 +117,7 @@
                         <p class="font-black text-amber-800 uppercase">Ajustement Synthétique</p>
                         <p class="text-xs text-amber-700">Déplacez les équipes pour équilibrer. Validez pour accéder aux feuilles de match.</p>
                     </div>
-                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase shadow-md">Valider cette structure</button>
+                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase hover:bg-amber-600 shadow-md">Valider l'ossature</button>
                 </div>
 
                 <div id="poule-tabs" class="hidden flex gap-2 overflow-x-auto bg-slate-200 p-2 rounded-xl"></div>
@@ -117,9 +126,9 @@
                 <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-xl flex justify-between items-center border-b-4 border-amber-500 mt-4">
                     <div>
                         <p class="text-amber-500 font-black uppercase italic text-sm">Déploiement Firebase</p>
-                        <p class="text-[10px] opacity-50">Transmet l'ordre des matchs aux terrains de l'application mobile.</p>
+                        <p class="text-[10px] opacity-50">Transmet l'ordre des matchs aux téléphones des arbitres.</p>
                     </div>
-                    <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-8 py-3 rounded-xl font-black uppercase shadow-lg">Envoyer aux Terrains</button>
+                    <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-8 py-3 rounded-xl font-black uppercase shadow-lg active:scale-95 transition-all">Envoyer aux Terrains</button>
                 </div>
             </div>
         </div>
@@ -134,7 +143,7 @@
                     <select id="maint-cat" class="w-full p-3 rounded-xl bg-slate-100 font-bold border-none outline-none">
                         <option value="U6">U6</option><option value="U8">U8</option><option value="U10">U10</option><option value="U12">U12</option>
                     </select>
-                    <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold">Reset Scores Uniquement</button>
+                    <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50">Reset Scores Uniquement</button>
                     <button onclick="purge('matches')" class="w-full py-3 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold border border-orange-100">Effacer tous les Matchs</button>
                     <button onclick="purge('teams')" class="w-full py-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100">Effacer Equipes & Poules</button>
                 </div>
@@ -150,13 +159,14 @@
 
 <script>
     const MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
+    const MAX_TIME = { U6: 60, U8: 75, U10: 85, U12: 90 }; // Temps de jeu max par enfant en minutes
+    
     const MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
         4: [{a:1,b:2,arb:4},{a:3,b:4,arb:1},{a:1,b:3,arb:2},{a:2,b:4,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
         5: [{a:1,b:3,arb:5},{a:2,b:4,arb:3},{a:1,b:5,arb:2},{a:3,b:4,arb:1},{a:2,b:5,arb:4},{a:1,b:2,arb:4},{a:3,b:5,arb:2},{a:1,b:4,arb:5},{a:2,b:3,arb:1},{a:4,b:5,arb:3}],
         6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
     };
-    const PHASE_2_NAMES = ["Or", "Argent", "Bronze", "Cuivre", "Emeraude", "Saphir", "Rubis", "Platine"];
 
     const firebaseConfig = {
         // --- COLLE TES CLES ICI ---
@@ -172,38 +182,32 @@
     const db = firebase.apps.length ? firebase.database() : null;
 
     let appState = { masterData: [], activeCat: 'U10', currentPhase: 'PHASE1', activePouleTab: 'A', cats: { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() } };
-    function initCatState() { return { phase1: { poules: [], reserve: [], validated: false, formatStr: null, teams: [] }, phase2: { poules: [], reserve: [], validated: false, formatStr: null, teams: [] } }; }
+    function initCatState() { return { phase1: { poules: [], reserve: [], validated: false, formatStr: null, durationStr: null, teams: [] }, phase2: { poules: [], reserve: [], validated: false, formatStr: null, durationStr: null, teams: [] } }; }
     function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
 
     function initApp() {
-        let saved = localStorage.getItem('t3n_master_v22');
+        let saved = localStorage.getItem('t3n_master_v23');
         if (saved) { appState = JSON.parse(saved); if(appState.masterData.length > 0) renderMasterTable(); }
         if(db) document.getElementById('sync-status').classList.remove('hidden');
         showTab(appState.activeCat || 'IMPORT');
     }
 
     function saveState() {
-        localStorage.setItem('t3n_master_v22', JSON.stringify(appState));
+        localStorage.setItem('t3n_master_v23', JSON.stringify(appState));
         let ind = document.getElementById('save-indicator');
         ind.classList.remove('opacity-0'); setTimeout(() => ind.classList.add('opacity-0'), 2000);
     }
 
-    // --- DIFFUSION PARAMETRES GLOBAUX ---
     function broadcastSettings() {
         if(!db) return;
-        const year = document.getElementById('config-year').value;
-        db.ref(`t3n/settings`).update({
-            activeYear: year,
-            [`activePhase_${appState.activeCat}`]: appState.currentPhase
-        });
+        db.ref(`t3n/settings`).update({ activeYear: document.getElementById('config-year').value, [`activePhase_${appState.activeCat}`]: appState.currentPhase });
         saveState();
     }
 
     let syncListener = null;
     function attachFirebaseListener() {
         if (!db) return;
-        broadcastSettings(); // Mettre à jour Firebase avec la config actuelle
-        
+        broadcastSettings();
         const year = document.getElementById('config-year').value;
         const path = `t3n/${year}/${appState.activeCat}_${appState.currentPhase}/matches`;
 
@@ -236,7 +240,7 @@
     function switchCatPhase(phase) {
         appState.currentPhase = phase;
         document.getElementById('tab-phase1').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE1'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
-        document.getElementById('tab-phase2').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE2'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
+        document.getElementById('tab-phase2').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE2'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500 hover:bg-slate-200'}`;
         initCategoryUI(); attachFirebaseListener(); saveState();
     }
 
@@ -244,7 +248,6 @@
         const raw = document.getElementById('csv-input').value;
         let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
         if (lines.length > 0 && lines[0].toLowerCase().includes('nom')) lines.shift();
-
         appState.masterData = [];
         lines.forEach((line, idx) => {
             const p = line.replace(/[\t;,]/g, ' ').trim().split(/\s+/);
@@ -261,6 +264,7 @@
         document.getElementById('master-table-container').classList.remove('hidden');
     }
 
+    // --- LE MOTEUR ARCHITECTE ---
     function initCategoryUI() {
         let titleEl = document.getElementById('active-cat-title');
         titleEl.innerText = appState.activeCat;
@@ -274,61 +278,102 @@
             document.getElementById('phase2-generator').classList.add('hidden');
         } else {
             if(phase.teams.length === 0 && phase.reserve.length === 0 && phase.poules.length === 0) {
-                document.getElementById('phase2-generator').classList.remove('hidden'); document.getElementById('format-container').classList.add('hidden');
+                document.getElementById('phase2-generator').classList.remove('hidden'); document.getElementById('architect-container').classList.add('hidden');
                 document.getElementById('match-board').innerHTML = ''; document.getElementById('deploy-zone').classList.add('hidden');
                 document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden'); return;
             }
             document.getElementById('phase2-generator').classList.add('hidden');
         }
 
-        document.getElementById('format-container').classList.remove('hidden');
-        document.getElementById('active-cat-count').innerText = (phase.teams.length || (phase.reserve.length + phase.poules.reduce((s,p)=>s+p.teams.length,0)));
+        document.getElementById('architect-container').classList.remove('hidden');
+        let total = (phase.teams.length || (phase.reserve.length + phase.poules.reduce((s,p)=>s+p.teams.length,0)));
+        document.getElementById('active-cat-count').innerText = total;
         
-        const list = document.getElementById('format-suggestions'); list.innerHTML = "";
-        const total = parseInt(document.getElementById('active-cat-count').innerText);
+        renderArchitectScenarios(total, phase);
+        toggleArchitect(!!phase.formatStr); renderBoard(); renderReserve();
+    }
+
+    function renderArchitectScenarios(total, phase) {
+        const list = document.getElementById('scenario-list'); list.innerHTML = "";
+        let maxT = MAX_TERRAINS[appState.activeCat];
+        let maxTime = MAX_TIME[appState.activeCat];
         
+        let scenarios = [];
         for(let p6=0; p6<=total/6; p6++) {
             for(let p5=0; p5<=total/5; p5++) {
                 for(let p4=0; p4<=total/4; p4++) {
                     for(let p3=0; p3<=total/3; p3++) {
                         if(p6*6 + p5*5 + p4*4 + p3*3 === total) {
-                            const nbP = p6+p5+p4+p3;
-                            if(nbP > MAX_TERRAINS[appState.activeCat] * 2) continue;
-                            const diff = Math.max(...[p6?6:0,p5?5:0,p4?4:0,p3?3:0].filter(x=>x)) - Math.min(...[p6?6:0,p5?5:0,p4?4:0,p3?3:0].filter(x=>x));
-                            let str = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`;
-                            const btn = document.createElement('button');
-                            btn.className = `w-full p-2 rounded-xl border-2 bg-white text-left text-[10px] font-black uppercase mb-1 hover:bg-slate-50 transition-all ${diff <= 1 ? 'border-green-300' : (diff === 2 ? 'border-yellow-300' : 'border-orange-300')} ${phase.formatStr === str ? 'active-format' : ''}`;
-                            btn.innerHTML = `<span>${str}</span> <span class="float-right opacity-50">${nbP} Poules</span>`;
-                            btn.onclick = () => { ventiler(phase.teams.length ? phase.teams : [...phase.reserve, ...phase.poules.flatMap(p=>p.teams)], {p6,p5,p4,p3}, str); };
-                            list.appendChild(btn);
+                            let terrainsReq = p6*2 + p5*2 + p4*1 + p3*1;
+                            if(terrainsReq <= maxT) {
+                                let diff = Math.max(...[p6?6:0,p5?5:0,p4?4:0,p3?3:0].filter(x=>x)) - Math.min(...[p6?6:0,p5?5:0,p4?4:0,p3?3:0].filter(x=>x));
+                                let maxMatches = Math.max(p6?5:0, p5?4:0, p4?3:0, p3?2:0);
+                                let duration = Math.floor(maxTime / maxMatches);
+                                
+                                let title = diff === 0 ? "Le Symétrique" : (p6>0||p5>0 ? "Le Densifié" : "L'Hybride");
+                                let icon = diff === 0 ? "🥇" : (diff === 1 ? "🥈" : "🥉");
+                                let str = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`.trim();
+                                
+                                scenarios.push({ p6, p5, p4, p3, str, terrainsReq, duration, diff, title, icon, maxMatches });
+                            }
                         }
                     }
                 }
             }
         }
-        toggleFormats(!!phase.formatStr); renderBoard(); renderReserve();
+
+        // Tri : les plus équilibrés d'abord
+        scenarios.sort((a, b) => a.diff - b.diff || a.terrainsReq - b.terrainsReq);
+
+        if(scenarios.length === 0) { list.innerHTML = `<p class="text-xs text-red-500 font-bold">⚠️ Aucun scénario mathématiquement viable pour ${total} équipes avec ${maxT} terrains.</p>`; return; }
+
+        scenarios.forEach(s => {
+            let isActive = phase.formatStr === s.str;
+            let timeWarning = s.duration < 10 ? `<span class="text-red-500 bg-red-50 px-1 rounded">⚠️ Matchs courts</span>` : '';
+            
+            const div = document.createElement('div');
+            div.className = `scenario-card p-4 rounded-2xl border-2 bg-white ${isActive ? 'scenario-active' : 'border-slate-200'}`;
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-2">
+                    <h4 class="font-black text-sm text-slate-800">${s.icon} ${s.title}</h4>
+                    <span class="text-[9px] font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded-lg">${s.terrainsReq} Terrains requis</span>
+                </div>
+                <p class="text-lg font-black text-amber-600 mb-1">${s.str} <span class="text-[10px] font-bold text-slate-400">Poules</span></p>
+                <div class="flex justify-between items-end mt-3 border-t pt-2 border-slate-50">
+                    <div class="text-[10px] text-slate-500 leading-tight">
+                        Max <b class="text-slate-800">${s.maxMatches} matchs</b>/équipe<br>
+                        Durée max autorisée : <b class="text-indigo-600">${s.duration} min</b>/match ${timeWarning}
+                    </div>
+                </div>
+            `;
+            div.onclick = () => { ventiler(phase.teams.length ? phase.teams : [...phase.reserve, ...phase.poules.flatMap(p=>p.teams)], s, s.str, s.duration); };
+            list.appendChild(div);
+        });
     }
 
-    function toggleFormats(forceHide = false) {
+    function toggleArchitect(forceHide = false) {
         let phase = getActivePhase();
         if(forceHide && phase.formatStr) {
-            document.getElementById('format-suggestions').classList.add('hidden');
-            let sum = document.getElementById('format-summary'); sum.innerText = `Actif : ${phase.formatStr}`; sum.classList.remove('hidden');
-            document.getElementById('btn-edit-format').classList.remove('hidden');
+            document.getElementById('scenario-list').classList.add('hidden');
+            let sum = document.getElementById('scenario-summary');
+            document.getElementById('summary-format').innerText = phase.formatStr;
+            document.getElementById('summary-time').innerText = `⏱️ Max ${phase.durationStr} min / match`;
+            sum.classList.remove('hidden'); document.getElementById('btn-edit-architect').classList.remove('hidden');
         } else {
-            document.getElementById('format-suggestions').classList.remove('hidden'); document.getElementById('format-summary').classList.add('hidden');
-            document.getElementById('btn-edit-format').classList.add('hidden'); phase.formatStr = null;
+            document.getElementById('scenario-list').classList.remove('hidden'); document.getElementById('scenario-summary').classList.add('hidden');
+            document.getElementById('btn-edit-architect').classList.add('hidden'); phase.formatStr = null;
         }
     }
 
-    function ventiler(teams, c, formatStr) {
-        let phase = getActivePhase(); phase.formatStr = formatStr; phase.validated = false; toggleFormats(true);
+    function ventiler(teams, c, formatStr, durationStr) {
+        let phase = getActivePhase(); phase.formatStr = formatStr; phase.durationStr = durationStr; phase.validated = false; toggleArchitect(true);
         phase.poules = []; phase.reserve = [];
 
         const make = (n, s) => { 
             for(let i=0; i<n; i++) {
-                let pName = appState.currentPhase === 'PHASE1' ? String.fromCharCode(65+phase.poules.length) : PHASE_2_NAMES[phase.poules.length] || `Groupe ${phase.poules.length+1}`;
-                phase.poules.push({ letter: pName, target: s, tUsed: 1, teams: [], tab: 'teams', scores: {}, adjustments: {} }); 
+                let pName = String.fromCharCode(65+phase.poules.length); // Toujours A, B, C... même l'après-midi (demande user)
+                let tU = (s >= 5) ? 2 : 1; // 2 terrains pour les poules de 5 et 6
+                phase.poules.push({ letter: pName, target: s, tUsed: tU, teams: [], tab: 'teams', scores: {}, adjustments: {} }); 
             }
         };
         make(c.p6, 6); make(c.p5, 5); make(c.p4, 4); make(c.p3, 3);
@@ -342,7 +387,10 @@
         } else {
             const sorted = [...teams].sort((a,b) => a.level - b.level); 
             let tIndex = 0;
-            phase.poules.forEach(p => { p.placeRange = `Places ${tIndex+1} à ${tIndex+p.target}`; for(let i=0; i<p.target; i++) { if (tIndex < sorted.length) { p.teams.push(sorted[tIndex]); tIndex++; } } });
+            phase.poules.forEach(p => { 
+                p.placeRange = `Places ${tIndex+1} à ${tIndex+p.target}`; 
+                for(let i=0; i<p.target; i++) { if (tIndex < sorted.length) { p.teams.push(sorted[tIndex]); tIndex++; } } 
+            });
             for(let i=tIndex; i<sorted.length; i++) phase.reserve.push(sorted[i]);
         }
         
@@ -355,6 +403,7 @@
         phase.validated = true; saveState(); renderBoard();
     }
 
+    // --- LE MOTEUR PEREQUATION (PHASE 2) ---
     function generatePhase2() {
         let p1 = appState.cats[appState.activeCat].phase1;
         if(!p1.validated) return alert("Validez d'abord la Phase 1.");
@@ -362,19 +411,35 @@
         let allTeams = [];
         p1.poules.forEach(p => {
             let rank = computeRanking(p);
-            rank.forEach((r, i) => { allTeams.push({ id: r.ogTeam.id, club: r.ogTeam.club, name: r.ogTeam.name, mRank: i+1, mPts: r.pts, mDiff: r.diff, foreign: r.ogTeam.foreign, letter: p.letter }); });
+            rank.forEach((r, i) => { 
+                // Calcul exact des matchs joués par cette équipe
+                let teamPlayed = MATRICES[p.target].filter((m, mIdx) => {
+                   let isPlayed = p.scores && p.scores[mIdx] && p.scores[mIdx].s1 !== '' && p.scores[mIdx].s2 !== '';
+                   return isPlayed && (m.a === (r.id+1) || m.b === (r.id+1));
+                }).length;
+                if(teamPlayed === 0) teamPlayed = p.target - 1; // Fallback mathématique si bouton utilisé sans scores
+
+                allTeams.push({ 
+                    id: r.ogTeam.id, club: r.ogTeam.club, name: r.ogTeam.name, 
+                    mRank: i+1, mPts: r.pts, mDiff: r.diff, 
+                    avgPts: r.pts / teamPlayed, avgDiff: r.diff / teamPlayed, // LA PEREQUATION
+                    foreign: r.ogTeam.foreign, letter: p.letter 
+                }); 
+            });
         });
 
+        // Tri avec Péréquation
         allTeams.sort((a, b) => {
-            if(a.mRank !== b.mRank) return a.mRank - b.mRank;
-            if(a.mPts !== b.mPts) return b.mPts - a.mPts;
-            if(a.mDiff !== b.mDiff) return b.mDiff - a.mDiff;
-            return b.foreign - a.foreign;
+            if(a.mRank !== b.mRank) return a.mRank - b.mRank; // Les 1ers restent devant les 2èmes
+            if(Math.abs(a.avgPts - b.avgPts) > 0.01) return b.avgPts - a.avgPts; // Ratio Points
+            if(Math.abs(a.avgDiff - b.avgDiff) > 0.01) return b.avgDiff - a.avgDiff; // Ratio Goal Average
+            return b.foreign - a.foreign; // Equipe étrangère
         });
         
         let p2Teams = allTeams.map((t, idx) => {
             let suffix = t.mRank === 1 ? 'er' : 'e';
-            return { id: t.id, club: t.club, name: `${t.name} (${t.mRank}${suffix} Poule ${t.letter})`, level: idx+1, foreign: t.foreign, customNote: '' };
+            let pereqInfo = `Ratio: ${t.avgPts.toFixed(2)} pts/m | Diff: ${t.avgDiff.toFixed(2)}/m`;
+            return { id: t.id, club: t.club, name: `${t.name} (${t.mRank}${suffix} Poule ${t.letter})`, level: idx+1, foreign: t.foreign, customNote: pereqInfo };
         });
         
         let phase2 = appState.cats[appState.activeCat].phase2;
@@ -428,7 +493,7 @@
             document.getElementById('match-board').innerHTML = phase.poules.map((p, i) => `
                 <div class="bg-white p-4 rounded-2xl border-2 shadow-sm" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
                     <h3 class="font-black italic uppercase mb-2">Poule ${p.letter} <span class="text-[10px] opacity-40">(${p.teams.length}/${p.target})</span><br><span class="text-[9px] text-indigo-500">${p.placeRange||''}</span></h3>
-                    <div class="space-y-1 min-h-[50px]">${p.teams.map((t, ti) => `<div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-xs font-bold flex justify-between cursor-move shadow-sm"><span>${t.name} ${t.customNote?`<span title="${t.customNote}" class="text-red-500 font-black cursor-help">ℹ️</span>`:''}</span><span class="opacity-40 text-[9px]">N.${t.level}</span></div>`).join('')}</div>
+                    <div class="space-y-1 min-h-[50px]">${p.teams.map((t, ti) => `<div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-xs font-bold flex justify-between cursor-move shadow-sm hover:border-amber-400"><span>${t.name} ${t.customNote?`<span title="${t.customNote}" class="text-indigo-500 font-black cursor-help">ℹ️</span>`:''}</span><span class="opacity-40 text-[9px]">N.${t.level}</span></div>`).join('')}</div>
                 </div>`).join('');
         } else {
             document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('deploy-zone').classList.remove('hidden');
@@ -480,7 +545,7 @@
         let phase = getActivePhase(); document.getElementById('reserve-count').innerText = phase.reserve.length;
         document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `
             <div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move hover:border-amber-400">
-                ${t.name} ${t.foreign?'🌍':''} ${t.customNote?`<span title="${t.customNote}" class="text-red-500 font-black cursor-help">ℹ️</span>`:''}
+                ${t.name} ${t.foreign?'🌍':''} ${t.customNote?`<span title="${t.customNote}" class="text-indigo-500 font-black cursor-help">ℹ️</span>`:''}
             </div>`).join('') || `<div class="opacity-20 text-[10px] font-bold uppercase italic text-center">Glissez une équipe ici</div>`;
     }
 
