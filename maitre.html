@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N - Master Control v6</title>
+    <title>T3N Master Orchestrator v8</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -11,23 +11,21 @@
         .drag-over { border: 3px dashed #f59e0b !important; background: #fffbeb !important; }
         .conflict { animation: shake 0.5s; border: 2px solid #ef4444 !important; background: #fef2f2; }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen">
 
     <header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 border-amber-500 sticky top-0 z-50">
         <div class="flex items-center gap-6">
-            <h1 class="text-2xl font-black italic uppercase tracking-tighter">T3N <span class="text-amber-500">MASTER</span></h1>
-            <input type="number" id="config-year" value="2026" onchange="updateYearDisplays()" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
-            <nav class="flex gap-1 bg-white/5 p-1 rounded-xl" id="nav-tabs">
+            <h1 class="text-2xl font-black italic uppercase tracking-tighter">T3N <span class="text-amber-500 text-3xl">MASTER</span></h1>
+            <input type="number" id="config-year" value="2026" onchange="updateMaintDisplay()" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
+            <nav class="flex gap-1 bg-white/5 p-1 rounded-xl">
                 <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase active-tab" id="tab-IMPORT">Import</button>
                 <button onclick="showTab('U6')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U6">U6</button>
                 <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
                 <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
                 <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
-                <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 border border-red-500/30 text-red-400 hover:bg-red-500/10" id="tab-MAINTENANCE">Maintenance</button>
+                <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/30" id="tab-MAINTENANCE">Maintenance</button>
             </nav>
         </div>
     </header>
@@ -35,86 +33,72 @@
     <main class="p-6 max-w-[1800px] mx-auto">
         
         <section id="content-IMPORT" class="tab-content space-y-6">
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
-                <h2 class="text-xl font-black uppercase mb-2">Import CSV de la journée</h2>
-                <textarea id="csv-input" rows="6" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:ring-2 focus:ring-amber-500" placeholder="Coller les lignes Excel (Nom + U6 + U8 + U10 + U12)"></textarea>
-                <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-3 rounded-xl font-black uppercase hover:bg-slate-800">Analyser les équipes</button>
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
+                <h2 class="text-xl font-black uppercase mb-4 italic">1. Importation de la liste Sportive</h2>
+                <textarea id="csv-input" rows="8" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Colle ici tes lignes Excel (Nom + U6 + U8 + U10 + U12)"></textarea>
+                <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 transition-all">Analyser & Valider les Clubs</button>
             </div>
-            <div id="master-table-container" class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 hidden">
+            <div id="master-table-container" class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 hidden">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 text-[10px] uppercase font-black opacity-40">
-                        <tr><th class="p-3">Club</th><th class="p-3 text-center">Étranger</th><th class="p-3 text-center text-amber-600">U6</th><th class="p-3 text-center text-amber-600">U8</th><th class="p-3 text-center text-amber-600">U10</th><th class="p-3 text-center text-amber-600">U12</th></tr>
+                    <thead class="bg-slate-50 text-[10px] font-black uppercase opacity-40">
+                        <tr><th class="p-3">Club</th><th class="p-3 text-center">Étranger</th><th class="p-3 text-center">U6</th><th class="p-3 text-center">U8</th><th class="p-3 text-center">U10</th><th class="p-3 text-center">U12</th></tr>
                     </thead>
                     <tbody id="master-tbody" class="divide-y divide-slate-100"></tbody>
                 </table>
             </div>
         </section>
 
-        <section id="content-CAT" class="tab-content hidden space-y-6">
-            <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-                <div class="xl:col-span-3 space-y-6">
-                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
-                        <div class="flex justify-between items-end mb-4">
-                            <div>
-                                <h2 class="text-2xl font-black uppercase tracking-tight text-amber-500" id="active-cat-title">UXX</h2>
-                                <p class="text-[10px] font-black uppercase opacity-40"><span id="active-cat-count">0</span> Équipes détectées</p>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-xs font-bold uppercase text-slate-500">Terrains Libres</span><br>
-                                <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
-                            </div>
+        <section id="content-CAT" class="tab-content hidden grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <div class="xl:col-span-3 space-y-6">
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-200 sticky top-24">
+                    <div class="flex justify-between items-end mb-6">
+                        <div>
+                            <h2 class="text-3xl font-black uppercase text-amber-500" id="active-cat-title">...</h2>
+                            <p class="text-[10px] font-black opacity-40 uppercase"><span id="active-cat-count">0</span> équipes détectées</p>
                         </div>
-                        <div id="format-suggestions" class="space-y-2 max-h-[50vh] overflow-y-auto pr-2"></div>
+                        <div class="text-right">
+                            <span class="text-[10px] font-bold uppercase opacity-40">Terrains</span><br>
+                            <span id="terrain-counter" class="text-xl font-black">0 / 0</span>
+                        </div>
                     </div>
-                </div>
-
-                <div class="xl:col-span-9 relative">
-                    <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4" id="match-board">
-                        </div>
+                    <div id="format-suggestions" class="space-y-2"></div>
                 </div>
             </div>
-
-            <div class="sticky bottom-4 z-40 bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-200 flex justify-between items-center mt-8">
-                <p class="text-xs font-bold opacity-50 uppercase">Vérifiez les conflits avant de déployer l'architecture sur Firebase.</p>
-                <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-10 py-3 rounded-xl font-black uppercase shadow-lg transition-transform active:scale-95">
-                    Déployer <span id="deploy-cat-label">UXX</span>
-                </button>
+            <div class="xl:col-span-9 space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6" id="match-board"></div>
+                <div id="deploy-zone" class="hidden bg-white p-6 rounded-[2.5rem] shadow-xl border-t-4 border-amber-500 flex justify-between items-center">
+                    <p class="text-xs font-bold opacity-50 uppercase italic">Vérifiez les ordres de rencontre avant l'envoi.</p>
+                    <button onclick="deployCurrentCat()" class="bg-amber-500 hover:bg-amber-600 px-10 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-all">Déployer la catégorie <span id="deploy-label">...</span></button>
+                </div>
             </div>
         </section>
 
         <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border-2 border-red-100">
-                <h2 class="text-2xl font-black uppercase text-red-600 mb-2 flex items-center gap-3">🛠️ Base de données <span class="display-year-text text-black">2026</span></h2>
-                <p class="text-sm opacity-60 mb-8 font-bold">Actions directes sur Firebase. Soyez prudent.</p>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                        <h3 class="font-black uppercase mb-4">Interventions par Catégorie</h3>
-                        <select id="maint-cat-select" class="w-full mb-4 p-3 rounded-xl border border-slate-300 font-bold outline-none">
-                            <option value="U6">Catégorie U6</option><option value="U8">Catégorie U8</option><option value="U10">Catégorie U10</option><option value="U12">Catégorie U12</option>
+            <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl">
+                <h2 class="text-2xl font-black uppercase text-red-600 mb-6 flex items-center gap-2">🛠️ Maintenance <span id="maint-year-label">2026</span></h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="p-6 bg-slate-50 rounded-3xl border border-slate-200">
+                        <h3 class="font-black uppercase mb-4">Actions Ciblées</h3>
+                        <select id="maint-cat" class="w-full mb-4 p-3 rounded-xl font-bold bg-white border-none shadow-sm outline-none">
+                            <option>U6</option><option>U8</option><option>U10</option><option>U12</option>
                         </select>
-                        <div class="space-y-3">
-                            <button onclick="executeMaintenance('SCORES')" class="w-full py-3 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-all text-sm">1. Remettre les Scores à zéro (Tests)</button>
-                            <button onclick="executeMaintenance('MATCHES')" class="w-full py-3 bg-white border-2 border-orange-200 text-orange-600 font-bold rounded-xl hover:bg-orange-50 transition-all text-sm">2. Effacer le calendrier des Matchs</button>
-                            <button onclick="executeMaintenance('TEAMS')" class="w-full py-3 bg-white border-2 border-red-200 text-red-600 font-bold rounded-xl hover:bg-red-50 transition-all text-sm">3. Effacer les Poules & Équipes</button>
+                        <div class="space-y-2">
+                            <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-100">Réinitialiser les scores (Tests)</button>
+                            <button onclick="purge('matches')" class="w-full py-3 bg-white border-2 border-orange-200 rounded-xl text-xs font-bold text-orange-600 hover:bg-orange-50">Vider le calendrier des matchs</button>
+                            <button onclick="purge('teams')" class="w-full py-3 bg-white border-2 border-red-200 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">Vider équipes & poules</button>
                         </div>
                     </div>
-                    
-                    <div class="p-6 bg-red-50 rounded-2xl border border-red-200 flex flex-col justify-between">
-                        <div>
-                            <h3 class="font-black uppercase text-red-700 mb-2">Danger : Reset Total Année</h3>
-                            <p class="text-xs text-red-600/70 mb-4">Détruit l'intégralité du tournoi (toutes les catégories) pour l'année <span class="display-year-text font-bold">2026</span>.</p>
-                        </div>
-                        <button onclick="executeMaintenance('ALL')" class="w-full py-4 bg-red-600 text-white font-black uppercase rounded-xl hover:bg-red-700 shadow-lg transition-transform active:scale-95">Destruction Totale</button>
+                    <div class="p-6 bg-red-600 rounded-3xl text-white flex flex-col justify-between">
+                        <h3 class="font-black uppercase text-xl">Remise à zéro totale</h3>
+                        <p class="text-xs opacity-70 mb-6">Efface TOUTES les catégories de l'année en cours.</p>
+                        <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase active:scale-95 transition-all shadow-xl">Purge totale année</button>
                     </div>
                 </div>
             </div>
         </section>
-
     </main>
 
     <script>
-        // --- DONNÉES & MATRICES FFR ---
         const MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
         const MATRICES = {
             3: [{a:1, b:2, arb:3}, {a:2, b:3, arb:1}, {a:1, b:3, arb:2}],
@@ -123,36 +107,28 @@
             6: [{a:1, b:2, arb:5}, {a:3, b:4, arb:1}, {a:5, b:6, arb:3}, {a:1, b:3, arb:2}, {a:2, b:5, arb:4}, {a:4, b:6, arb:1}, {a:1, b:4, arb:6}, {a:2, b:6, arb:5}, {a:3, b:5, arb:2}, {a:1, b:5, arb:4}, {a:2, b:3, arb:6}, {a:4, b:5, arb:2}, {a:1, b:6, arb:3}, {a:2, b:4, arb:1}, {a:3, b:6, arb:5}]
         };
 
-        let masterData = [];
-        let currentTab = 'IMPORT';
-        let currentCatTeams = [];
-        let currentPoules = [];
-        let terrainsUsed = 0;
-
-        // --- CONFIGURATION FIREBASE ---
-        // ⚠️ N'OUBLIE PAS DE COLLER TES CLES ICI AVANT DE POUSSER SUR GITHUB ⚠️
+        // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
             apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
-  authDomain: "t3nations.firebaseapp.com",
-  databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "t3nations",
-  storageBucket: "t3nations.firebasestorage.app",
-  messagingSenderId: "368081588642",
-  appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
+            authDomain: "t3nations.firebaseapp.com",
+            databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "t3nations",
+            storageBucket: "t3nations.firebasestorage.app",
+            messagingSenderId: "368081588642",
+            appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
         };
-        if (!firebase.apps.length && Object.keys(firebaseConfig).length > 0) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const db = firebase.apps.length ? firebase.database() : null;
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-        function updateYearDisplays() {
-            const y = document.getElementById('config-year').value;
-            document.querySelectorAll('.display-year-text').forEach(el => el.innerText = y);
+        let masterData = [];
+        let currentCat = 'U10';
+        let currentPoules = [];
+
+        function updateMaintDisplay() {
+            document.getElementById('maint-year-label').innerText = document.getElementById('config-year').value;
         }
 
-        // --- NAVIGATION ---
         function showTab(id) {
-            currentTab = id;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
             document.getElementById(`tab-${id}`).classList.add('active-tab');
             document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
@@ -160,282 +136,151 @@
             if (id === 'IMPORT' || id === 'MAINTENANCE') {
                 document.getElementById(`content-${id}`).classList.remove('hidden');
             } else {
+                currentCat = id;
                 document.getElementById('content-CAT').classList.remove('hidden');
                 initCategory(id);
             }
         }
 
-        // --- PARSEUR & IMPORT ---
         function processMasterImport() {
             const raw = document.getElementById('csv-input').value;
             let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
-            
-            if (lines.length > 0 && (lines[0].toLowerCase().includes('nom') || lines[0].toLowerCase().includes('u6'))) {
-                lines.shift();
-            }
+            if (lines.length > 0 && (lines[0].toLowerCase().includes('nom') || lines[0].toLowerCase().includes('u6'))) lines.shift();
 
             masterData = [];
-            lines.forEach((line, index) => {
+            lines.forEach((line, idx) => {
                 const parts = line.split(/[\t\s]+/);
-                if (parts.length >= 5) {
-                    const u12 = parseInt(parts.pop()) || 0;
-                    const u10 = parseInt(parts.pop()) || 0;
-                    const u8 = parseInt(parts.pop()) || 0;
-                    const u6 = parseInt(parts.pop()) || 0;
-                    const name = parts.join(' ').trim();
-                    
-                    masterData.push({
-                        id: `club_${index}`, name: name,
-                        foreign: name.toLowerCase().match(/zug|frankfurt|heidelberg|riedberg|neuenheim/) !== null,
-                        u6: u6, u8: u8, u10: u10, u12: u12
-                    });
+                if(parts.length >= 5) {
+                    const u12=parts.pop(), u10=parts.pop(), u8=parts.pop(), u6=parts.pop(), name=parts.join(' ').trim();
+                    masterData.push({ id: `club_${idx}`, name, foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg/), u6:parseInt(u6)||0, u8:parseInt(u8)||0, u10:parseInt(u10)||0, u12:parseInt(u12)||0 });
                 }
             });
             renderMasterTable();
-        }
-
-        function toggleForeign(index, isChecked) {
-            masterData[index].foreign = isChecked;
         }
 
         function renderMasterTable() {
             document.getElementById('master-tbody').innerHTML = masterData.map((c, i) => `
                 <tr>
                     <td class="p-3 font-bold uppercase text-xs">${c.name}</td>
-                    <td class="p-3 text-center"><input type="checkbox" ${c.foreign ? 'checked' : ''} onchange="toggleForeign(${i}, this.checked)" class="w-4 h-4 accent-amber-500 cursor-pointer"></td>
-                    <td class="p-3 text-center font-bold ${c.u6 ? 'text-amber-600' : 'opacity-20'}">${c.u6}</td>
-                    <td class="p-3 text-center font-bold ${c.u8 ? 'text-amber-600' : 'opacity-20'}">${c.u8}</td>
-                    <td class="p-3 text-center font-bold ${c.u10 ? 'text-amber-600' : 'opacity-20'}">${c.u10}</td>
-                    <td class="p-3 text-center font-bold ${c.u12 ? 'text-amber-600' : 'opacity-20'}">${c.u12}</td>
+                    <td class="p-3 text-center"><input type="checkbox" ${c.foreign ? 'checked' : ''} onchange="masterData[${i}].foreign=this.checked" class="accent-amber-500"></td>
+                    <td class="p-3 text-center font-bold">${c.u6}</td><td class="p-3 text-center font-bold">${c.u8}</td><td class="p-3 text-center font-bold">${c.u10}</td><td class="p-3 text-center font-bold">${c.u12}</td>
                 </tr>
             `).join('');
             document.getElementById('master-table-container').classList.remove('hidden');
         }
 
-        // --- GESTION CATEGORIE ---
         function initCategory(cat) {
             document.getElementById('active-cat-title').innerText = cat;
-            document.getElementById('deploy-cat-label').innerText = cat;
+            document.getElementById('deploy-label').innerText = cat;
             document.getElementById('match-board').innerHTML = '';
-            currentCatTeams = [];
-            currentPoules = [];
-            updateTerrainCounter(cat, 0);
+            document.getElementById('deploy-zone').classList.add('hidden');
             
-            masterData.forEach(c => {
-                for(let i=1; i<=c[cat.toLowerCase()]; i++) {
-                    currentCatTeams.push({ id: `${c.id}_${i}`, club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign });
+            let teams = [];
+            masterData.forEach(c => { for(let i=1; i<=c[cat.toLowerCase()]; i++) teams.push({ club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign }); });
+            document.getElementById('active-cat-count').innerText = teams.length;
+            
+            const list = document.getElementById('format-suggestions');
+            list.innerHTML = "";
+            const total = teams.length;
+            if(total < 3) return;
+
+            for(let p6=0; p6<=total/6; p6++) {
+                for(let p5=0; p5<=total/5; p5++) {
+                    for(let p4=0; p4<=total/4; p4++) {
+                        for(let p3=0; p3<=total/3; p3++) {
+                            if(p6*6 + p5*5 + p4*4 + p3*3 === total) {
+                                const nbP = p6+p5+p4+p3;
+                                const sizes = [p6?6:0, p5?5:0, p4?4:0, p3?3:0].filter(x=>x);
+                                const diff = Math.max(...sizes) - Math.min(...sizes);
+                                if(nbP > MAX_TERRAINS[cat] * 2) continue; // On autorise jusqu'à 2 terrains par poule
+                                let color = diff <= 1 ? 'bg-green-50 border-green-200' : (diff === 2 ? 'bg-yellow-50 border-yellow-200' : 'bg-orange-50 border-orange-200');
+                                const btn = document.createElement('button');
+                                btn.className = `w-full p-3 rounded-xl border-2 text-left text-[10px] font-black uppercase mb-1 ${color}`;
+                                btn.innerText = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`;
+                                btn.onclick = () => ventiler(teams, {p6,p5,p4,p3});
+                                list.appendChild(btn);
+                            }
+                        }
+                    }
                 }
-            });
-            
-            document.getElementById('active-cat-count').innerText = currentCatTeams.length;
-            calculateFormats(currentCatTeams.length, cat);
+            }
+            updateTerrainCounter(0);
         }
 
-        function updateTerrainCounter(cat, used) {
-            terrainsUsed = used;
-            const max = MAX_TERRAINS[cat];
+        function updateTerrainCounter(used) {
+            const max = MAX_TERRAINS[currentCat];
             const el = document.getElementById('terrain-counter');
             el.innerText = `${used} / ${max}`;
             el.className = `text-xl font-black ${used > max ? 'text-red-600' : 'text-green-600'}`;
         }
 
-        function calculateFormats(total, cat) {
-            const list = document.getElementById('format-suggestions');
-            list.innerHTML = "";
-            if(total < 3) return;
-
-            let combos = [];
-            for(let p6=0; p6<=total/6; p6++) {
-                for(let p5=0; p5<=total/5; p5++) {
-                    for(let p4=0; p4<=total/4; p4++) {
-                        for(let p3=0; p3<=total/3; p3++) {
-                            if(p6*6 + p5*5 + p4*4 + p3*3 === total) combos.push({p6, p5, p4, p3});
-                        }
-                    }
-                }
-            }
-
-            const processedCombos = combos.map(c => {
-                const sizes = [];
-                if(c.p6) sizes.push(6); if(c.p5) sizes.push(5); if(c.p4) sizes.push(4); if(c.p3) sizes.push(3);
-                const diff = sizes.length > 0 ? Math.max(...sizes) - Math.min(...sizes) : 0;
-                const totalPoules = c.p6 + c.p5 + c.p4 + c.p3;
-                let theme = diff <= 1 ? "bg-green-50 border-green-300" : (diff === 2 ? "bg-yellow-50 border-yellow-300" : "bg-orange-50 border-orange-300");
-                return { ...c, diff, totalPoules, theme };
-            }).sort((a, b) => a.diff - b.diff).slice(0, 6);
-
-            list.innerHTML = processedCombos.map(c => {
-                let desc = [];
-                if(c.p6) desc.push(`${c.p6}x6`); if(c.p5) desc.push(`${c.p5}x5`); if(c.p4) desc.push(`${c.p4}x4`); if(c.p3) desc.push(`${c.p3}x3`);
-                if (c.totalPoules > MAX_TERRAINS[cat]) {
-                    return `<div class="p-3 mb-2 rounded-xl border border-red-200 bg-red-50 opacity-60 flex justify-between">
-                        <span class="font-bold text-xs line-through">${desc.join(' + ')}</span>
-                        <span class="text-[9px] font-black text-red-600">Terrains Insuffisants</span>
-                    </div>`;
-                }
-                return `<button onclick='ventiler(${JSON.stringify(c)})' class="w-full mb-2 p-3 rounded-xl border ${c.theme} text-left text-xs font-bold hover:scale-[1.02] transition-transform flex justify-between">
-                    <span>${desc.join(' + ')}</span><span class="opacity-50">${c.totalPoules} Terr.</span>
-                </button>`;
-            }).join('');
-        }
-
-        // --- VENTILATION ---
-        function ventiler(c) {
+        function ventiler(teams, c) {
             currentPoules = [];
-            let terrain = 1;
-            const add = (n, size) => { 
-                for(let i=0; i<n; i++) currentPoules.push({ 
-                    id: `P${currentPoules.length}`, letter: String.fromCharCode(65+currentPoules.length), 
-                    teams: [], target: size, activeTab: 'teams', terrainsAllocated: 1 
-                }); 
-            };
-            add(c.p6, 6); add(c.p5, 5); add(c.p4, 4); add(c.p3, 3);
-
-            const sorted = [...currentCatTeams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
+            let tIdx = 1;
+            const make = (n, s) => { for(let i=0; i<n; i++) currentPoules.push({ letter: String.fromCharCode(65+currentPoules.length), target: s, terrain: tIdx++, tUsed: 1, teams: [], tab: 'teams' }); };
+            make(c.p6, 6); make(c.p5, 5); make(c.p4, 4); make(c.p3, 3);
+            const sorted = [...teams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
             sorted.forEach(t => {
-                const best = currentPoules.filter(p => p.teams.length < p.target)
-                    .sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
+                const best = currentPoules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
                 if(best) best.teams.push(t);
             });
-            recalcTerrains();
             renderBoard();
-        }
-
-        function setPouleTerrain(pIdx, qty) {
-            currentPoules[pIdx].terrainsAllocated = parseInt(qty);
-            recalcTerrains();
-        }
-
-        function recalcTerrains() {
-            const used = currentPoules.reduce((sum, p) => sum + p.terrainsAllocated, 0);
-            updateTerrainCounter(currentTab, used);
-        }
-
-        function togglePouleTab(pIdx, tab) {
-            currentPoules[pIdx].activeTab = tab;
-            renderBoard();
+            document.getElementById('deploy-zone').classList.remove('hidden');
         }
 
         function renderBoard() {
-            document.getElementById('match-board').innerHTML = currentPoules.map((p, pIdx) => {
-                const hasConflict = p.teams.map(t => t.club).some((c, i, arr) => arr.indexOf(c) !== i);
-                const isReady = p.teams.length === p.target;
-
-                let contentTeams = `<div class="space-y-1 min-h-[100px]">` + p.teams.map((t, tIdx) => `
-                    <div draggable="true" ondragstart="drag(event, ${pIdx}, ${tIdx})" class="p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold flex justify-between items-center cursor-move hover:bg-amber-50">
-                        <span>${t.name} ${t.foreign ? '🌍' : ''}</span><span class="text-[9px] opacity-40">Niv.${t.level}</span>
-                    </div>`).join('') + `</div>`;
-
-                let contentMatches = `<div class="text-xs italic opacity-50 p-4 text-center">Poule incomplète. Ajustez les équipes.</div>`;
-                if (isReady && MATRICES[p.target]) {
-                    contentMatches = `<div class="space-y-1 max-h-[200px] overflow-y-auto">` + MATRICES[p.target].map((m, mIdx) => {
-                        return `
-                        <div class="p-2 bg-slate-50 border border-slate-100 rounded text-[10px] flex justify-between items-center">
-                            <span class="font-bold w-2/5 text-right truncate">${p.teams[m.a - 1].name}</span>
-                            <span class="opacity-30 px-1">vs</span>
-                            <span class="font-bold w-2/5 truncate">${p.teams[m.b - 1].name}</span>
-                            <span class="w-1/5 text-right text-orange-600 font-bold ml-2 truncate">Arb: ${p.teams[m.arb - 1].name}</span>
-                        </div>`;
-                    }).join('') + `</div>`;
-                }
-
-                return `
-                <div class="bg-white p-4 rounded-3xl border-2 ${hasConflict ? 'conflict' : 'border-slate-200'} shadow-sm flex flex-col"
-                     ondragover="allowDrop(event)" ondrop="drop(event, ${pIdx})">
-                    <div class="flex justify-between items-start mb-3">
-                        <h3 class="font-black italic uppercase text-lg">Poule ${p.letter} <span class="text-xs opacity-40 non-italic">(${p.teams.length}/${p.target})</span></h3>
-                        <select onchange="setPouleTerrain(${pIdx}, this.value)" class="text-[10px] font-bold bg-slate-100 border border-slate-200 rounded p-1 outline-none">
-                            <option value="1" ${p.terrainsAllocated===1?'selected':''}>1 Terrain</option>
-                            ${p.target >= 5 ? `<option value="2" ${p.terrainsAllocated===2?'selected':''}>2 Terrains</option>` : ''}
-                        </select>
+            updateTerrainCounter(currentPoules.reduce((s, p) => s + p.tUsed, 0));
+            document.getElementById('match-board').innerHTML = currentPoules.map((p, i) => {
+                const conflict = p.teams.map(t => t.club).some((c, idx, arr) => arr.indexOf(c) !== idx);
+                const teamsHtml = `<div class="space-y-1 min-h-[100px]">` + p.teams.map((t, ti) => `<div draggable="true" ondragstart="drag(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-[10px] font-bold flex justify-between cursor-move"><span>${t.name}${t.foreign?' 🌍':''}</span><span class="opacity-20">N.${t.level}</span></div>`).join('') + `</div>`;
+                const matchesHtml = p.teams.length === p.target ? `<div class="space-y-1">` + MATRICES[p.target].map(m => `<div class="p-1 bg-slate-50 border rounded text-[9px] flex justify-between font-bold"><span>${p.teams[m.a-1].name} <span class="opacity-10">vs</span> ${p.teams[m.b-1].name}</span><span class="text-orange-600">Arb: ${p.teams[m.arb-1].name}</span></div>`).join('') + `</div>` : `<p class="text-[10px] opacity-20 italic">En attente...</p>`;
+                return `<div class="bg-white p-5 rounded-[2rem] border-2 ${conflict ? 'conflict' : 'border-slate-100'}" ondragover="event.preventDefault()" ondrop="drop(event, ${i})">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-black italic uppercase text-sm">Poule ${p.letter} <span class="text-[10px] opacity-20">(${p.teams.length}/${p.target})</span></h3>
+                        <select onchange="currentPoules[${i}].tUsed=parseInt(this.value);renderBoard()" class="text-[10px] font-bold bg-slate-100 p-1 rounded outline-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Ter.</option><option value="2" ${p.tUsed===2?'selected':''}>2 Ter.</option></select>
                     </div>
-                    <div class="flex gap-1 mb-3 bg-slate-100 p-1 rounded-lg">
-                        <button onclick="togglePouleTab(${pIdx}, 'teams')" class="w-1/2 py-1 text-[10px] font-black uppercase rounded ${p.activeTab === 'teams' ? 'bg-white shadow' : 'opacity-50'}">Équipes</button>
-                        <button onclick="togglePouleTab(${pIdx}, 'matches')" class="w-1/2 py-1 text-[10px] font-black uppercase rounded ${p.activeTab === 'matches' ? 'bg-white shadow text-amber-600' : 'opacity-50'}">Rencontres</button>
+                    <div class="flex gap-1 mb-4 bg-slate-100 p-1 rounded-xl">
+                        <button onclick="currentPoules[${i}].tab='teams';renderBoard()" class="flex-1 py-1 text-[9px] font-black uppercase rounded ${p.tab==='teams'?'bg-white shadow':''}">Équipes</button>
+                        <button onclick="currentPoules[${i}].tab='match';renderBoard()" class="flex-1 py-1 text-[9px] font-black uppercase rounded ${p.tab==='match'?'bg-white shadow':''}">Matchs</button>
                     </div>
-                    <div class="flex-1">${p.activeTab === 'teams' ? contentTeams : contentMatches}</div>
+                    ${p.tab==='teams' ? teamsHtml : matchesHtml}
                 </div>`;
             }).join('');
         }
 
-        // --- DRAG & DROP HTML5 ---
-        function drag(e, pIdx, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ pIdx, tIdx })); }
-        function allowDrop(e) { e.preventDefault(); }
-        function drop(e, targetPIdx) {
-            e.preventDefault();
-            const dataStr = e.dataTransfer.getData("application/json");
-            if (!dataStr) return;
-            const data = JSON.parse(dataStr);
-            if (data.pIdx === targetPIdx) return;
-            const team = currentPoules[data.pIdx].teams.splice(data.tIdx, 1)[0];
-            currentPoules[targetPIdx].teams.push(team);
+        function drag(e, pi, ti) { e.dataTransfer.setData("text", JSON.stringify({pi, ti})); }
+        function drop(e, target) {
+            const d = JSON.parse(e.dataTransfer.getData("text"));
+            const t = currentPoules[d.pi].teams.splice(d.ti, 1)[0];
+            currentPoules[target].teams.push(t);
             renderBoard();
         }
 
-        // --- DEPLOIEMENT FIREBASE ---
-        async function deployCategory() {
-            if (!db) return alert("Firebase n'est pas configuré. Collez vos clés dans le code.");
-            if(terrainsUsed > MAX_TERRAINS[currentTab]) return alert("Bloqué : Trop de terrains utilisés.");
-            const isComplete = currentPoules.every(p => p.teams.length === p.target);
-            if(!isComplete && !confirm("Poules incomplètes. Déployer quand même ?")) return;
-
+        async function deployCurrentCat() {
             const year = document.getElementById('config-year').value;
             const updates = {};
-            const basePath = `t3n/${year}/${currentTab}/matches`;
-            let globalOrder = 1;
-
-            currentPoules.forEach(poule => {
-                const size = poule.teams.length;
-                if (MATRICES[size]) {
-                    MATRICES[size].forEach((m, idx) => {
-                        updates[`${basePath}/Poule${poule.letter}_M${idx+1}`] = {
-                            t1: poule.teams[m.a - 1].name, t2: poule.teams[m.b - 1].name,
-                            arb: poule.teams[m.arb - 1].name, s1: 0, s2: 0,
-                            terrain: `Terrain ${poule.terrain}`, ordre: globalOrder++,
-                            status: 'en_attente', poule: poule.letter
-                        };
+            currentPoules.forEach(p => {
+                if(p.teams.length === p.target) {
+                    MATRICES[p.target].forEach((m, idx) => {
+                        updates[`t3n/${year}/${currentCat}/matches/P${p.letter}_M${idx+1}`] = { t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name, s1:0, s2:0, terrain: `Terrain ${p.terrain}`, status:'en_attente', poule: p.letter, ordre: idx+1 };
                     });
                 }
             });
-
-            try {
-                await db.ref().update(updates);
-                alert(`✅ ${currentTab} en ligne ! (Année ${year})`);
-            } catch (err) { alert("❌ Erreur Firebase: " + err.message); }
+            await db.ref().update(updates);
+            alert("✅ Catégorie déployée avec succès !");
         }
 
-        // --- MAINTENANCE / PURGES (FIREBASE) ---
-        async function executeMaintenance(action) {
-            if (!db) return alert("Firebase non configuré.");
+        async function purge(type) {
             const year = document.getElementById('config-year').value;
-            const cat = document.getElementById('maint-cat-select').value;
-
-            if (action === 'SCORES') {
-                if(!confirm(`Remettre à zéro tous les scores des ${cat} ? (Les matchs restent)`)) return;
-                const ref = db.ref(`t3n/${year}/${cat}/matches`);
-                ref.once('value', snap => {
-                    const updates = {};
-                    snap.forEach(child => {
-                        updates[`${child.key}/s1`] = 0; updates[`${child.key}/s2`] = 0;
-                        updates[`${child.key}/status`] = 'en_attente';
-                    });
-                    ref.update(updates).then(() => alert(`✅ Scores ${cat} réinitialisés.`));
-                });
-            } else if (action === 'MATCHES') {
-                if(!confirm(`Effacer le calendrier des matchs ${cat} ?`)) return;
-                await db.ref(`t3n/${year}/${cat}/matches`).remove();
-                alert(`✅ Matchs ${cat} effacés.`);
-            } else if (action === 'TEAMS') {
-                if(!confirm(`Effacer les équipes et les poules des ${cat} ?`)) return;
-                await db.ref(`t3n/${year}/${cat}/teams`).remove();
-                alert(`✅ Équipes ${cat} effacées.`);
-            } else if (action === 'ALL') {
-                const conf = prompt(`DANGER: Tapez "CONFIRMER" pour supprimer toute la base de données ${year}.`);
-                if (conf === "CONFIRMER") {
-                    await db.ref(`t3n/${year}`).remove();
-                    alert(`✅ Année ${year} totalement purgée.`);
-                }
-            }
+            const cat = document.getElementById('maint-cat').value;
+            if(!confirm("Confirmer la purge ?")) return;
+            if(type === 'ALL') await db.ref(`t3n/${year}`).remove();
+            else if(type === 'scores') {
+                const snap = await db.ref(`t3n/${year}/${cat}/matches`).once('value');
+                const ups = {}; snap.forEach(c => { ups[`${c.key}/s1`] = 0; ups[`${child.key}/s2`] = 0; ups[`${child.key}/status`] = 'en_attente'; });
+                await db.ref(`t3n/${year}/${cat}/matches`).update(ups);
+            } else await db.ref(`t3n/${year}/${cat}/${type}`).remove();
+            alert("Purge terminée.");
         }
     </script>
 </body>
