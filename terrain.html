@@ -12,7 +12,7 @@
         .match-card { transition: all 0.2s ease-in-out; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800">
+<body class="bg-slate-100 font-sans text-slate-800" onload="loadMatches()">
 
     <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
         <h1 class="text-xl font-black italic uppercase tracking-tighter text-center">T3N <span class="text-amber-500">TERRAIN</span></h1>
@@ -22,26 +22,25 @@
         
         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
             <div class="grid grid-cols-2 gap-3 mb-3">
-                <select id="sel-year" class="p-3 bg-slate-100 rounded-xl font-bold outline-none"><option value="2026">2026</option></select>
-                <select id="sel-cat" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
+                <select id="sel-year" onchange="loadMatches()" class="p-3 bg-slate-100 rounded-xl font-bold outline-none"><option value="2026">2026</option></select>
+                <select id="sel-cat" onchange="loadMatches()" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
                     <option value="U6">U6</option><option value="U8">U8</option><option value="U10" selected>U10</option><option value="U12">U12</option>
                 </select>
             </div>
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <select id="sel-phase" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
+            <div class="grid grid-cols-2 gap-3">
+                <select id="sel-phase" onchange="loadMatches()" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
                     <option value="PHASE1">Phase 1 (Matin)</option><option value="PHASE2">Phase 2 (A-Midi)</option>
                 </select>
-                <select id="sel-ter" class="p-3 bg-amber-100 text-amber-900 rounded-xl font-black outline-none text-center">
+                <select id="sel-ter" onchange="loadMatches()" class="p-3 bg-amber-100 text-amber-900 rounded-xl font-black outline-none text-center">
                     <option value="Terrain 1">Terrain 1</option><option value="Terrain 2">Terrain 2</option><option value="Terrain 3">Terrain 3</option>
                     <option value="Terrain 4">Terrain 4</option><option value="Terrain 5">Terrain 5</option><option value="Terrain 6">Terrain 6</option>
                     <option value="Terrain 7">Terrain 7</option><option value="Terrain 8">Terrain 8</option>
                 </select>
             </div>
-            <button onclick="loadMatches()" class="w-full bg-slate-900 text-white font-black uppercase py-3 rounded-xl hover:bg-slate-800 active:scale-95 transition-all shadow-md">Charger les matchs</button>
         </div>
 
         <div id="matches-container" class="space-y-4 pb-10">
-            <p class="text-center text-slate-400 font-bold text-sm italic mt-10">Veuillez charger un terrain.</p>
+            <p class="text-center text-slate-400 font-bold text-sm italic mt-10">Chargement en cours...</p>
         </div>
 
     </main>
@@ -63,7 +62,7 @@
     let currentRef = null;
 
     function loadMatches() {
-        if (!db) return alert("Firebase non configuré.");
+        if (!db) return document.getElementById('matches-container').innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10">Firebase non configuré.</p>`;
         
         const year = document.getElementById('sel-year').value;
         const cat = document.getElementById('sel-cat').value;
