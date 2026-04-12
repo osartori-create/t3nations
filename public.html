@@ -11,6 +11,7 @@
         body { -webkit-tap-highlight-color: transparent; background-color: #0f172a; color: #f8fafc; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .tab-btn { color: #94a3b8; transition: all 0.2s; }
+        .active-tab { background: #f59e0b !important; color: #000 !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
         .active-u8 { background: #3b82f6 !important; color: white !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
         .active-u10 { background: #f8fafc !important; color: #0f172a !important; box-shadow: 0 0 15px rgba(248, 250, 252, 0.4); }
         .active-u12 { background: #ef4444 !important; color: white !important; box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
@@ -32,11 +33,15 @@
             </div>
         </div>
 
-        <div class="max-w-7xl mx-auto mt-4">
-            <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl overflow-x-auto w-full">
-                <button onclick="setCat('U8')" id="tab-U8" class="tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase">U8</button>
-                <button onclick="setCat('U10')" id="tab-U10" class="tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase">U10</button>
-                <button onclick="setCat('U12')" id="tab-U12" class="tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase">U12</button>
+        <div class="max-w-7xl mx-auto mt-4 flex flex-col sm:flex-row gap-3 justify-between items-center">
+            <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl w-full sm:w-auto overflow-x-auto">
+                <button onclick="setCat('U8')" id="tab-U8" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">U8</button>
+                <button onclick="setCat('U10')" id="tab-U10" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">U10</button>
+                <button onclick="setCat('U12')" id="tab-U12" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">U12</button>
+            </nav>
+            <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl w-full sm:w-auto">
+                <button onclick="setPhase('PHASE1')" id="tab-PHASE1" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase active-tab">Matin</button>
+                <button onclick="setPhase('PHASE2')" id="tab-PHASE2" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">Après-Midi</button>
             </nav>
         </div>
     </header>
@@ -60,25 +65,32 @@
     const db = firebase.apps.length ? firebase.database() : null;
 
     let activeCat = 'U10';
+    let localPhase = 'PHASE1'; // Indépendant du Maître
     let globalSettings = {};
     let matchesRef = null;
 
     function initApp() {
         if(!db) return;
-        // Ecoute des paramètres du Maitre
         db.ref('t3n/settings').on('value', snap => {
             if(snap.exists()) {
                 globalSettings = snap.val();
-                setCat(activeCat); // Recharge avec les nouveaux paramètres
+                setCat(activeCat); // Recharge avec l'année reçue
             }
         });
     }
 
     function setCat(cat) {
         activeCat = cat;
-        document.querySelectorAll('.tab-btn').forEach(b => b.className = 'tab-btn flex-1 px-6 py-3 rounded-lg font-black text-sm uppercase');
+        document.querySelectorAll('[id^="tab-U"]').forEach(b => b.className = 'tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400');
         let btn = document.getElementById(`tab-${cat}`);
         btn.classList.add(`active-${cat.toLowerCase()}`);
+        loadData();
+    }
+
+    function setPhase(phase) {
+        localPhase = phase;
+        document.getElementById('tab-PHASE1').className = `tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase ${phase==='PHASE1'?'active-tab':'text-slate-400'}`;
+        document.getElementById('tab-PHASE2').className = `tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase ${phase==='PHASE2'?'active-tab':'text-slate-400'}`;
         loadData();
     }
 
@@ -86,17 +98,18 @@
         if (!db || !globalSettings.activeYear) return;
         
         const year = globalSettings.activeYear;
-        const phase = globalSettings[`activePhase_${activeCat}`] || 'PHASE1';
-        const path = `t3n/${year}/${activeCat}_${phase}/matches`;
+        const path = `t3n/${year}/${activeCat}_${localPhase}/matches`;
 
-        document.getElementById('live-info').innerText = `Édition ${year} • ${phase === 'PHASE1' ? 'Matin' : 'Après-Midi'}`;
+        document.getElementById('live-info').innerText = `Édition ${year}`;
 
         if (matchesRef) matchesRef.off();
         matchesRef = db.ref(path);
         
+        document.getElementById('poules-container').innerHTML = `<div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">Chargement...</div>`;
+
         matchesRef.on('value', snap => {
             if (!snap.exists()) {
-                document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-3xl text-center text-slate-400"><span class="text-4xl block mb-4">🏟️</span><p class="font-bold text-lg uppercase">Aucun match programmé</p><p class="text-sm">La compétition n'a pas encore débuté pour cette catégorie.</p></div>`;
+                document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-3xl text-center text-slate-400"><span class="text-4xl block mb-4">🏟️</span><p class="font-bold text-lg uppercase">Aucun match programmé</p><p class="text-sm">Cette phase n'est pas encore déployée par l'organisation.</p></div>`;
                 return;
             }
 
