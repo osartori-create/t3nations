@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v13 - Orchestrateur</title>
+    <title>T3N Master v14 - Orchestrateur</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -19,6 +19,7 @@
 <header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 border-amber-500 sticky top-0 z-50">
     <div class="flex items-center gap-6">
         <h1 class="text-2xl font-black italic uppercase tracking-tighter">T3N <span class="text-amber-500 text-3xl">MASTER</span></h1>
+        <input type="number" id="config-year" value="2026" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
         <nav class="flex gap-1 bg-white/5 p-1 rounded-xl">
             <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase active-tab" id="tab-IMPORT">Import</button>
             <button onclick="showTab('U6')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U6">U6</button>
@@ -28,7 +29,7 @@
             <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/20 hover:bg-red-500/10" id="tab-MAINTENANCE">Maintenance</button>
         </nav>
     </div>
-    <div id="import-badge" class="hidden bg-green-500 text-white text-[10px] font-black px-4 py-1 rounded-full animate-pulse">LISTE VALIDÉE</div>
+    <div id="import-badge" class="hidden bg-green-500 text-white text-[10px] font-black px-4 py-1 rounded-full animate-pulse shadow-lg">LISTE VALIDÉE</div>
 </header>
 
 <main class="p-6 max-w-[1900px] mx-auto">
@@ -36,7 +37,7 @@
     <section id="content-IMPORT" class="tab-content space-y-6">
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <h2 class="text-xl font-black uppercase mb-4 italic">1. Importation Sportive</h2>
-            <textarea id="csv-input" rows="8" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Nom Club | U6 | U8 | U10 | U12 (Excel ou CSV)"></textarea>
+            <textarea id="csv-input" rows="8" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Copiez les colonnes Excel (Nom Club | U6 | U8 | U10 | U12)"></textarea>
             <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 transition-all">Valider la base clubs</button>
         </div>
         <div id="master-table-container" class="bg-white p-6 rounded-[2.5rem] border border-slate-200 hidden shadow-sm">
@@ -66,7 +67,7 @@
                     <hr class="mb-4">
                     
                     <h3 class="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest flex justify-between">
-                        📦 Réserve (Stockage)
+                        📦 Réserve
                         <span id="reserve-count" class="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full">0</span>
                     </h3>
                     <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" 
@@ -79,8 +80,8 @@
                 <div class="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                     <nav class="flex gap-2">
                         <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg active-tab bg-amber-500 text-black">Poules Matin</button>
-                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed">Classement Live</button>
-                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed">Phase 2</button>
+                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed" title="En développement">Classement Live</button>
+                        <button class="px-4 py-1 text-[10px] font-black uppercase rounded-lg bg-slate-100 opacity-50 cursor-not-allowed" title="En développement">Phase 2</button>
                     </nav>
                     <div class="text-right px-4 border-l">
                         <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
@@ -116,7 +117,7 @@
                 <div class="bg-red-600 p-6 rounded-3xl text-white flex flex-col justify-between shadow-lg">
                     <h3 class="font-black uppercase text-xl italic">Reset Global</h3>
                     <p class="text-xs opacity-70 mb-4 font-bold">Action irréversible. Efface l'intégralité des données Firebase.</p>
-                    <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase shadow-xl hover:scale-105 transition-all">Purger l'Année 2026</button>
+                    <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase shadow-xl hover:scale-105 transition-all">Purger l'Année</button>
                 </div>
             </div>
         </div>
@@ -136,7 +137,7 @@
     // --- FIREBASE ---
     const firebaseConfig = {
         // --- COLLE TES CLES ICI ---
-        apiKey: "VOTRE_API_KEY",
+        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
         authDomain: "t3nations.firebaseapp.com",
         databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "t3nations",
@@ -168,72 +169,45 @@
         }
     }
 
-    // --- IMPORTATION ROBUSTE ---
+    // --- IMPORTATION RESTAURÉE (MÉTHODE V10/V12) ---
     function processMasterImport() {
-        let raw = document.getElementById('csv-input').value;
+        const raw = document.getElementById('csv-input').value;
+        let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
         
-        // 1. Nettoyage de l'en-tête collé s'il existe
-        raw = raw.replace(/NomU6U8U10U12/i, '');
-        raw = raw.replace(/Nom U6 U8 U10 U12/i, '');
+        // Supprime la ligne d'en-tête
+        if (lines.length > 0 && lines[0].toLowerCase().includes('nom')) {
+            lines.shift();
+        }
 
         masterData = [];
-        let idx = 0;
-
-        // 2. Le Scanner Intelligent : Cherche [Des Lettres/Espaces] suivies de [4 Chiffres exacts]
-        // Exemple : "S C Riedberg0010" -> Nom: "S C Riedberg", U6:0, U8:0, U10:1, U12:0
-        const regex = /([a-zA-ZÀ-ÿ\s]+)(\d)(\d)(\d)(\d)/g;
-        let match;
-
-        while ((match = regex.exec(raw)) !== null) {
-            const name = match[1].trim();
-            const u6 = parseInt(match[2]);
-            const u8 = parseInt(match[3]);
-            const u10 = parseInt(match[4]);
-            const u12 = parseInt(match[5]);
-
-            if (name.length > 0) {
-                masterData.push({
-                    id: `club_${idx++}`,
-                    name: name,
-                    // Identification automatique des étrangers
-                    foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null,
-                    u6: u6,
-                    u8: u8,
-                    u10: u10,
-                    u12: u12
-                });
-            }
-        }
-
-        // 3. Fallback (Si tu as collé un vrai tableau Excel avec des espaces)
-        if (masterData.length === 0) {
-            let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
-            lines.forEach(line => {
-                if(line.toLowerCase().includes('nom')) return;
-                const p = line.replace(/[,;]/g, ' ').split(/\s+/);
-                if(p.length >= 5) {
-                    const u12 = parseInt(p.pop()) || 0;
-                    const u10 = parseInt(p.pop()) || 0;
-                    const u8 = parseInt(p.pop()) || 0;
-                    const u6 = parseInt(p.pop()) || 0;
-                    const name = p.join(' ').trim();
-                    if (name) {
-                        masterData.push({ 
-                            id:`club_${idx++}`, name, 
-                            foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null, 
-                            u6, u8, u10, u12 
-                        });
-                    }
+        lines.forEach((line, idx) => {
+            // Remplace les tabulations (Excel) et les points-virgules/virgules (CSV) par des espaces
+            let cleanLine = line.replace(/[\t;,]/g, ' ').trim();
+            const p = cleanLine.split(/\s+/);
+            
+            if(p.length >= 5) {
+                const u12 = parseInt(p.pop()) || 0;
+                const u10 = parseInt(p.pop()) || 0;
+                const u8  = parseInt(p.pop()) || 0;
+                const u6  = parseInt(p.pop()) || 0;
+                const name = p.join(' ').trim(); // Reconstitue le nom (ex: "S C Riedberg")
+                
+                if (name) {
+                    masterData.push({ 
+                        id:`club_${idx}`, 
+                        name: name, 
+                        foreign: name.toLowerCase().match(/zug|frankfurt|riedberg|heidelberg|neuenheim/) !== null, 
+                        u6, u8, u10, u12 
+                    });
                 }
-            });
-        }
-
-        // 4. Affichage du résultat
+            }
+        });
+        
         if(masterData.length > 0) {
             document.getElementById('import-badge').classList.remove('hidden');
             renderMasterTable();
         } else {
-            alert("Aucune donnée reconnue. L'algorithme cherche un Nom suivi de 4 chiffres (ex: Mulhouse2322).");
+            alert("Aucune donnée reconnue. Assurez-vous de coller depuis Excel ou un fichier CSV formaté.");
         }
     }
 
@@ -293,7 +267,7 @@
                 }
             }
         }
-        if(count === 0) list.innerHTML = `<p class="text-[10px] opacity-50">Aucun format parfait trouvé. Essayez de retirer une équipe vers la réserve.</p>`;
+        if(count === 0) list.innerHTML = `<p class="text-[10px] opacity-50">Aucun format parfait trouvé.</p>`;
         updateTerrainCounter(0);
     }
 
@@ -328,6 +302,142 @@
             const conflict = p.teams.map(t => t.club).some((c, idx, arr) => arr.indexOf(c) !== idx);
             const teamsHtml = `<div class="space-y-2 min-h-[100px]">` + p.teams.map((t, ti) => `
                 <div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold flex justify-between cursor-move shadow-sm hover:border-amber-400 transition-all">
-                    <span>${t.name}${t.foreign?' <span title="Équipe Étrangère">🌍</span>':''}</span>
+                    <span>${t.name}${t.foreign?' <span title="Étranger">🌍</span>':''}</span>
                     <span class="opacity-40 bg-slate-200 px-2 py-0.5 rounded-full text-[9px]">Niv.${t.level}</span>
-                </div>`).
+                </div>`).join('') + `</div>`;
+            
+            const matchesHtml = p.teams.length === p.target ? `<div class="space-y-1">` + MATRICES[p.target].map((m, mIdx) => `
+                <div class="p-2 bg-slate-50 border rounded-lg text-[9px] flex justify-between items-center font-bold">
+                    <span class="w-2/5 text-right truncate">${p.teams[m.a-1].name}</span>
+                    <span class="opacity-20 px-1">vs</span>
+                    <span class="w-2/5 truncate">${p.teams[m.b-1].name}</span>
+                    <span class="text-orange-600 ml-2">Arb: ${p.teams[m.arb-1].name}</span>
+                </div>`).join('') + `</div>` : `<div class="text-center py-6 opacity-30 text-[10px] font-bold uppercase italic">Ajustement Requis (${p.teams.length}/${p.target})</div>`;
+            
+            return `
+            <div class="bg-white p-6 rounded-[2.5rem] border-2 ${conflict ? 'conflict' : 'border-slate-100'} shadow-sm flex flex-col transition-all" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-black italic uppercase text-lg">Poule ${p.letter} <span class="text-[10px] opacity-30 non-italic ml-1">(${p.teams.length}/${p.target})</span></h3>
+                    <select onchange="currentPoules[${i}].tUsed=parseInt(this.value);renderBoard()" class="text-[10px] font-bold bg-slate-100 p-2 rounded-lg outline-none border-none">
+                        <option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option>
+                        <option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 mb-4 bg-slate-100 p-1.5 rounded-xl">
+                    <button onclick="currentPoules[${i}].tab='teams';renderBoard()" class="flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg ${p.tab==='teams'?'bg-white shadow':''}">Équipes</button>
+                    <button onclick="currentPoules[${i}].tab='match';renderBoard()" class="flex-1 py-1.5 text-[10px] font-black uppercase rounded-lg ${p.tab==='match'?'bg-white shadow text-amber-600':''}">Rencontres</button>
+                </div>
+                ${p.tab==='teams' ? teamsHtml : matchesHtml}
+            </div>`;
+        }).join('');
+    }
+
+    function renderReserve() {
+        document.getElementById('reserve-count').innerText = reserveTeams.length;
+        document.getElementById('reserve-zone').innerHTML = reserveTeams.map((t, i) => `
+            <div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold shadow-sm cursor-move hover:border-amber-400 transition-all">
+                ${t.name} ${t.foreign?'🌍':''} <span class="float-right opacity-30 text-[9px]">Niv.${t.level}</span>
+            </div>
+        `).join('') || `<div class="h-full flex items-center justify-center opacity-20 text-xs font-bold uppercase italic text-center px-4 mt-10">Glissez une équipe ici</div>`;
+    }
+
+    // --- DRAG & DROP UNIFIÉ ---
+    function allowDrop(e) { e.preventDefault(); }
+
+    function dragFromPoule(e, pIdx, tIdx) {
+        e.dataTransfer.setData("application/json", JSON.stringify({ source: 'poule', pIdx, tIdx }));
+    }
+
+    function dragFromReserve(e, tIdx) {
+        e.dataTransfer.setData("application/json", JSON.stringify({ source: 'reserve', tIdx }));
+    }
+
+    function dropToPoule(e, targetPIdx) {
+        e.preventDefault();
+        const dataStr = e.dataTransfer.getData("application/json");
+        if (!dataStr) return;
+        const data = JSON.parse(dataStr);
+        
+        let team;
+        if (data.source === 'poule') {
+            if (data.pIdx === targetPIdx) return;
+            team = currentPoules[data.pIdx].teams.splice(data.tIdx, 1)[0];
+        } else if (data.source === 'reserve') {
+            team = reserveTeams.splice(data.tIdx, 1)[0];
+        }
+        
+        if (team) currentPoules[targetPIdx].teams.push(team);
+        renderBoard();
+        renderReserve();
+    }
+
+    function dropToReserve(e) {
+        e.preventDefault();
+        const dataStr = e.dataTransfer.getData("application/json");
+        if (!dataStr) return;
+        const data = JSON.parse(dataStr);
+        
+        if (data.source === 'poule') {
+            const team = currentPoules[data.pIdx].teams.splice(data.tIdx, 1)[0];
+            reserveTeams.push(team);
+            renderBoard();
+            renderReserve();
+        }
+    }
+
+    // --- FIREBASE DÉPLOIEMENT ---
+    async function deployCategory() {
+        if (!db) return alert("⚠️ Attention : Firebase n'est pas configuré.");
+        const year = document.getElementById('config-year').value;
+        const updates = {};
+        const basePath = `t3n/${year}/${currentCat}/matches`;
+        let globalOrder = 1;
+
+        currentPoules.forEach(p => {
+            if (p.teams.length === p.target) {
+                MATRICES[p.target].forEach((m, idx) => {
+                    updates[`${basePath}/P${p.letter}_M${idx+1}`] = { 
+                        t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name,
+                        s1:0, s2:0, terrain: `Terrain ${p.terrain}`, status:'en_attente', poule: p.letter, ordre: globalOrder++
+                    };
+                });
+            }
+        });
+        
+        if(Object.keys(updates).length > 0 && db) {
+            await db.ref().update(updates);
+            alert(`✅ L'ordre des matchs pour ${currentCat} a été envoyé aux terrains !`);
+        }
+    }
+
+    // --- MAINTENANCE ---
+    async function purge(type) {
+        if(!db) return alert("⚠️ Firebase non configuré.");
+        const year = document.getElementById('config-year').value; 
+        const cat = document.getElementById('maint-cat').value;
+        
+        if(type==='ALL') {
+            if(confirm("DANGER : Supprimer TOUTE LA BASE pour l'année " + year + " ?")) {
+                await db.ref(`t3n/${year}`).remove();
+                alert("Année purgée.");
+            }
+        } else if(type==='scores') {
+            if(confirm(`Réinitialiser les scores des ${cat} ?`)) {
+                const snap = await db.ref(`t3n/${year}/${cat}/matches`).once('value');
+                if(snap.exists()) {
+                    const ups = {};
+                    snap.forEach(c => { ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; });
+                    await db.ref(`t3n/${year}/${cat}/matches`).update(ups);
+                    alert("Scores réinitialisés.");
+                }
+            }
+        } else {
+            if(confirm(`Supprimer [${type}] pour ${cat} ?`)) {
+                await db.ref(`t3n/${year}/${cat}/${type}`).remove();
+                alert(`Action ${type} terminée.`);
+            }
+        }
+    }
+</script>
+</body>
+</html>
