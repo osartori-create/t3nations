@@ -9,44 +9,54 @@
 </head>
 <body class="bg-slate-50 font-sans text-slate-900">
 
-    <header class="bg-slate-900 text-white p-6 shadow-2xl flex justify-between items-center border-b-4 border-amber-500">
+    <header class="bg-slate-900 text-white p-6 shadow-2xl flex justify-between items-center border-b-4 border-amber-500 sticky top-0 z-50">
         <div class="flex items-center gap-6">
             <div>
                 <h1 class="text-3xl font-black italic uppercase tracking-tighter">T3N <span class="text-amber-500" id="display-year">2026</span></h1>
                 <input type="number" id="config-year" value="2026" onchange="updateYear()" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
             </div>
             <nav class="flex gap-2 bg-slate-800 p-1 rounded-xl">
-                <button onclick="switchCat('U8')" class="cat-tab px-4 py-2 rounded-lg font-black text-xs uppercase transition-all">U8</button>
-                <button onclick="switchCat('U10')" class="cat-tab px-4 py-2 rounded-lg font-black text-xs uppercase transition-all active bg-amber-500 text-black">U10</button>
-                <button onclick="switchCat('U12')" class="cat-tab px-4 py-2 rounded-lg font-black text-xs uppercase transition-all">U12</button>
+                <button onclick="switchCat('U8')" class="cat-btn px-4 py-2 rounded-lg font-black text-xs uppercase" id="btn-U8">U8</button>
+                <button onclick="switchCat('U10')" class="cat-btn px-4 py-2 rounded-lg font-black text-xs uppercase bg-amber-500 text-black" id="btn-U10">U10</button>
+                <button onclick="switchCat('U12')" class="cat-btn px-4 py-2 rounded-lg font-black text-xs uppercase" id="btn-U12">U12</button>
             </nav>
         </div>
-        <button onclick="deployTournament()" class="bg-amber-500 hover:bg-amber-600 px-8 py-3 rounded-2xl text-slate-950 font-black uppercase shadow-xl transition-all scale-105">Lancer le Tournoi</button>
+        <button onclick="deployTournament()" class="bg-amber-500 hover:bg-amber-600 px-8 py-3 rounded-2xl text-slate-950 font-black uppercase shadow-xl transition-all scale-105 active:scale-95">Déployer le Tournoi</button>
     </header>
 
     <main class="p-8 max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8">
         
-        <div class="xl:col-span-1 space-y-6">
+        <section class="xl:col-span-1 space-y-6">
             <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
                 <h2 class="text-xl font-black uppercase mb-4 flex items-center gap-3">
-                    <span class="bg-amber-500 text-black w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                    Import Intelligent
+                    <span class="bg-amber-500 text-black w-8 h-8 rounded-full flex items-center justify-center text-sm italic">1</span>
+                    Import & Seeding
                 </h2>
-                <textarea id="raw-import" rows="6" placeholder="Ex: RCM3, STRASBOURG2, ZUG1..." 
-                    class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-sm focus:border-amber-500 outline-none transition-all"></textarea>
-                <button onclick="processImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 transition-all">Générer les Poules</button>
-                <p class="text-[10px] mt-2 opacity-50 font-bold uppercase italic text-center">L'algo évitera les doublons de club par poule</p>
+                <p class="text-[10px] font-bold opacity-50 uppercase mb-2">Syntaxe : Club[nb][*] (ex: ZUG2*)</p>
+                <textarea id="raw-import" rows="5" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-sm focus:border-amber-500 outline-none transition-all" placeholder="RCM3, ZUG2*, FRANKFURT1*"></textarea>
+                <button onclick="processImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800">Calculer Répartition</button>
             </div>
-        </div>
+        </section>
 
-        <div class="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6" id="poules-container">
-            </div>
+        <section class="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6" id="poules-container">
+            </section>
     </main>
 
     <script>
         let currentCat = "U10";
         let year = 2026;
-        let teams = [];
+        let finalPoules = [];
+
+        // Firebase - Remplacez par vos clés
+        const firebaseConfig = { /* VOS CLES */ };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function switchCat(cat) {
+            currentCat = cat;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('bg-amber-500', 'text-black'));
+            document.getElementById(`btn-${cat}`).classList.add('bg-amber-500', 'text-black');
+        }
 
         function updateYear() {
             year = document.getElementById('config-year').value;
@@ -56,67 +66,81 @@
         function processImport() {
             const raw = document.getElementById('raw-import').value;
             const items = raw.split(',').map(s => s.trim()).filter(s => s !== "");
-            teams = [];
-            
+            let teams = [];
+
             items.forEach(item => {
-                const match = item.match(/^([A-Za-z\s]+)(\d+)$/);
+                const isForeign = item.includes('*');
+                const clean = item.replace('*', '');
+                const match = clean.match(/^([A-Za-z\s]+)(\d+)$/);
+                
                 if(match) {
                     const club = match[1].trim();
                     const count = parseInt(match[2]);
-                    for(let i=1; i<=count; i++) teams.push({ club: club, level: i, fullName: `${club} ${i}` });
+                    for(let i=1; i<=count; i++) teams.push({ club, level: i, foreign: isForeign, name: `${club} ${i}` });
                 } else {
-                    teams.push({ club: item, level: 1, fullName: item });
+                    teams.push({ club: clean, level: 1, foreign: isForeign, name: clean });
                 }
             });
-            
-            dispatchTeams();
-        }
 
-        function dispatchTeams() {
-            // Algorithme de répartition équilibrée
-            const numPoules = Math.ceil(teams.length / 4.5); // Moyenne poules de 4 et 5
-            const poules = Array.from({ length: numPoules }, () => []);
-            
-            // 1. On trie par niveau pour répartir les "1" d'abord
-            const sorted = [...teams].sort((a,b) => a.level - b.level);
-            
-            sorted.forEach(team => {
-                // On cherche la poule la moins remplie qui n'a pas déjà ce club
-                let targetPoule = poules
-                    .map((p, idx) => ({ p, idx, len: p.length }))
-                    .sort((a,b) => a.len - b.len)
-                    .find(obj => !obj.p.some(t => t.club === team.club));
+            // Algo de répartition
+            const numPoules = Math.ceil(teams.length / 4.5);
+            finalPoules = Array.from({ length: numPoules }, () => []);
+
+            // Tri crucial : Niveau > Etranger (pour répartir les têtes de série étrangères)
+            const sortedTeams = teams.sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
+
+            sortedTeams.forEach(team => {
+                let bestPoule = finalPoules
+                    .map((p, i) => ({ 
+                        p, i, 
+                        score: p.length * 10 
+                               + (p.some(t => t.club === team.club) ? 100 : 0) // Eviter club
+                               + (p.filter(t => t.foreign).length * 5) // Equilibrer étrangers
+                    }))
+                    .sort((a,b) => a.score - b.score)[0];
                 
-                // Si collision inévitable (toutes les poules ont déjà le club), on prend la plus vide
-                if(!targetPoule) targetPoule = poules.map((p, idx) => ({ p, idx, len: p.length })).sort((a,b) => a.len - b.len)[0];
-                
-                poules[targetPoule.idx].push(team);
+                finalPoules[bestPoule.i].push(team);
             });
 
-            renderPoules(poules);
+            renderPoules();
         }
 
-        function renderPoules(poules) {
+        function renderPoules() {
             const container = document.getElementById('poules-container');
-            container.innerHTML = "";
-            poules.forEach((p, i) => {
-                container.innerHTML += `
-                    <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-black uppercase text-lg italic">Poule ${String.fromCharCode(65+i)}</h3>
-                            <span class="text-xs bg-slate-100 px-2 py-1 rounded-lg font-bold">${p.length} équipes</span>
-                        </div>
-                        <ul class="space-y-2">
-                            ${p.map(t => `
-                                <li class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    <span class="w-6 h-6 bg-slate-900 text-white rounded-md flex items-center justify-center text-[10px] font-bold">${t.level}</span>
-                                    <span class="font-bold uppercase text-sm">${t.club}</span>
-                                </li>
-                            `).join('')}
-                        </ul>
-                    </div>
-                `;
+            container.innerHTML = finalPoules.map((p, i) => `
+                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
+                    <h3 class="font-black uppercase italic mb-4">Poule ${String.fromCharCode(65+i)}</h3>
+                    <ul class="space-y-2">
+                        ${p.map(t => `
+                            <li class="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                                <span class="font-bold text-sm uppercase">${t.name}</span>
+                                <div class="flex gap-2">
+                                    ${t.foreign ? '<span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-black">🌍 INT</span>' : ''}
+                                    <span class="text-[10px] bg-slate-200 px-2 py-0.5 rounded-full font-black">Niv.${t.level}</span>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `).join('');
+        }
+
+        async function deployTournament() {
+            if(!finalPoules.length) return alert("Générez d'abord les poules !");
+            const updates = {};
+            const baseRef = `t3n/${year}/${currentCat}`;
+
+            finalPoules.forEach((poule, pIdx) => {
+                const letter = String.fromCharCode(65 + pIdx);
+                // On pourrait injecter ici la matrice relative à p.length (3, 4, 5 ou 6)
+                // Pour l'exemple, on initialise juste les métadonnées de poule
+                poule.forEach((team, tIdx) => {
+                    updates[`${baseRef}/teams/${team.name}`] = { ...team, poule: letter };
+                });
             });
+
+            await db.ref().update(updates);
+            alert("Tournoi déployé ! Les classements prendront en compte le statut étranger.");
         }
     </script>
 </body>
