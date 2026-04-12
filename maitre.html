@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v18 - Orchestrateur Pro</title>
+    <title>T3N Master v19 - Orchestrateur Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -13,8 +13,6 @@
         .conflict { animation: shake 0.5s; border-color: #ef4444 !important; background: #fef2f2 !important; }
         @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
         ::-webkit-scrollbar{width:6px; height:6px;} ::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:10px}
-        
-        /* Tableaux Excel */
         .excel-table { border-collapse: collapse; width: 100%; text-align: center; font-size: 11px; }
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 6px 4px; }
         .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
@@ -45,7 +43,6 @@
 </header>
 
 <main class="p-6 max-w-[1900px] mx-auto">
-    
     <section id="content-IMPORT" class="tab-content space-y-6">
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <h2 class="text-xl font-black uppercase mb-4 italic">1. Importation Sportive</h2>
@@ -64,7 +61,6 @@
 
     <section id="content-CAT" class="tab-content hidden">
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            
             <div class="xl:col-span-3 space-y-6">
                 <div class="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24">
                     <h2 class="text-3xl font-black uppercase text-amber-500" id="active-cat-title">...</h2>
@@ -88,7 +84,6 @@
             </div>
 
             <div class="xl:col-span-9 space-y-4">
-                
                 <div class="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
                     <nav class="flex gap-2" id="main-sub-nav">
                         <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab">Phase 1 (Brassage)</button>
@@ -102,8 +97,8 @@
 
                 <div id="phase2-generator" class="hidden bg-indigo-50 border border-indigo-200 p-8 rounded-[2rem] text-center mb-4">
                     <h3 class="font-black text-indigo-800 uppercase mb-2">Générateur Phase 2</h3>
-                    <p class="text-xs text-indigo-600/80 mb-6">Aspire les classements de la Phase 1 et renomme les équipes.</p>
-                    <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg">Générer les équipes</button>
+                    <p class="text-xs text-indigo-600/80 mb-6">Récupère les classements du matin, trie les équipes par niveau et les place dans la réserve pour structuration.</p>
+                    <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg">Générer le Classement Matin</button>
                 </div>
 
                 <div id="validation-zone" class="hidden bg-amber-100 border border-amber-300 p-6 rounded-[2rem] flex justify-between items-center shadow-inner">
@@ -115,13 +110,12 @@
                 </div>
 
                 <div id="poule-tabs" class="hidden flex gap-2 overflow-x-auto bg-slate-200 p-2 rounded-xl"></div>
-                
                 <div id="match-board" class="w-full"></div>
 
                 <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-xl flex justify-between items-center border-b-4 border-amber-500 mt-4">
                     <div>
                         <p class="text-amber-500 font-black uppercase italic text-sm">Déploiement Firebase</p>
-                        <p class="text-[10px] opacity-50">Transmet l'ordre des matchs aux terrains.</p>
+                        <p class="text-[10px] opacity-50">Transmet l'ordre des matchs aux terrains de l'application mobile.</p>
                     </div>
                     <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-8 py-3 rounded-xl font-black uppercase shadow-lg">Envoyer aux Terrains</button>
                 </div>
@@ -180,27 +174,23 @@
     };
 
     function initCatState() {
-        return {
-            phase1: { poules: [], reserve: [], validated: false, formatStr: null, teams: [] },
-            phase2: { poules: [], reserve: [], validated: false, formatStr: null, teams: [] }
-        };
+        return { phase1: { poules: [], reserve: [], validated: false, formatStr: null, teams: [] }, phase2: { poules: [], reserve: [], validated: false, formatStr: null, teams: [] } };
     }
-    
     function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
 
     function initApp() {
-        let saved = localStorage.getItem('t3n_master_v18');
+        let saved = localStorage.getItem('t3n_master_v19');
         if (saved) { appState = JSON.parse(saved); if(appState.masterData.length > 0) renderMasterTable(); }
         showTab(appState.activeCat || 'IMPORT');
     }
 
     function saveState() {
-        localStorage.setItem('t3n_master_v18', JSON.stringify(appState));
+        localStorage.setItem('t3n_master_v19', JSON.stringify(appState));
         let ind = document.getElementById('save-indicator');
         ind.classList.remove('opacity-0'); setTimeout(() => ind.classList.add('opacity-0'), 2000);
     }
 
-    // --- NAV ---
+    // --- NAVIGATION ---
     function showTab(id) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
         document.getElementById(`tab-${id}`).classList.add('active-tab');
@@ -214,11 +204,9 @@
         appState.currentPhase = phase;
         document.getElementById('tab-phase1').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE1'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
         document.getElementById('tab-phase2').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE2'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
-        initCategoryUI();
-        saveState();
+        initCategoryUI(); saveState();
     }
 
-    // --- IMPORT ---
     function processMasterImport() {
         const raw = document.getElementById('csv-input').value;
         let lines = raw.split('\n').map(l => l.trim()).filter(l => l);
@@ -240,18 +228,16 @@
         document.getElementById('master-table-container').classList.remove('hidden');
     }
 
-    // --- UI CATEGORIE ---
     function initCategoryUI() {
         document.getElementById('active-cat-title').innerText = appState.activeCat;
         let phase = getActivePhase();
         
-        // Populate base teams if needed
         if(appState.currentPhase === 'PHASE1') {
             phase.teams = [];
             appState.masterData.forEach(c => { for(let i=1; i<=c[appState.activeCat.toLowerCase()]; i++) phase.teams.push({ id: `${c.id}_${i}`, club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign, customNote: '' }); });
             document.getElementById('phase2-generator').classList.add('hidden');
         } else {
-            if(phase.teams.length === 0) {
+            if(phase.teams.length === 0 && phase.reserve.length === 0 && phase.poules.length === 0) {
                 document.getElementById('phase2-generator').classList.remove('hidden');
                 document.getElementById('format-container').classList.add('hidden');
                 document.getElementById('match-board').innerHTML = '';
@@ -264,10 +250,10 @@
         }
 
         document.getElementById('format-container').classList.remove('hidden');
-        document.getElementById('active-cat-count').innerText = phase.teams.length;
+        document.getElementById('active-cat-count').innerText = (phase.teams.length || (phase.reserve.length + phase.poules.reduce((s,p)=>s+p.teams.length,0)));
         
         const list = document.getElementById('format-suggestions'); list.innerHTML = "";
-        const total = phase.teams.length;
+        const total = parseInt(document.getElementById('active-cat-count').innerText);
         
         for(let p6=0; p6<=total/6; p6++) {
             for(let p5=0; p5<=total/5; p5++) {
@@ -281,7 +267,7 @@
                             const btn = document.createElement('button');
                             btn.className = `w-full p-2 rounded-xl border-2 bg-white text-left text-[10px] font-black uppercase mb-1 hover:bg-slate-50 transition-all ${diff <= 1 ? 'border-green-300' : (diff === 2 ? 'border-yellow-300' : 'border-orange-300')} ${phase.formatStr === str ? 'active-format' : ''}`;
                             btn.innerHTML = `<span>${str}</span> <span class="float-right opacity-50">${nbP} Poules</span>`;
-                            btn.onclick = () => { ventiler(phase.teams, {p6,p5,p4,p3}, str); };
+                            btn.onclick = () => { ventiler(phase.teams.length ? phase.teams : [...phase.reserve, ...phase.poules.flatMap(p=>p.teams)], {p6,p5,p4,p3}, str); };
                             list.appendChild(btn);
                         }
                     }
@@ -289,9 +275,7 @@
             }
         }
         
-        toggleFormats(!!phase.formatStr);
-        renderBoard();
-        renderReserve();
+        toggleFormats(!!phase.formatStr); renderBoard(); renderReserve();
     }
 
     function toggleFormats(forceHide = false) {
@@ -310,9 +294,7 @@
     }
 
     function ventiler(teams, c, formatStr) {
-        let phase = getActivePhase();
-        phase.formatStr = formatStr;
-        phase.validated = false;
+        let phase = getActivePhase(); phase.formatStr = formatStr; phase.validated = false;
         toggleFormats(true);
 
         phase.poules = []; phase.reserve = [];
@@ -320,126 +302,61 @@
         const make = (n, s) => { for(let i=0; i<n; i++) phase.poules.push({ letter: String.fromCharCode(65+phase.poules.length), target: s, tUsed: 1, teams: [], tab: 'teams', scores: {}, adjustments: {} }); };
         make(c.p6, 6); make(c.p5, 5); make(c.p4, 4); make(c.p3, 3);
 
-        const sorted = [...teams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
-        sorted.forEach(t => {
-            const best = phase.poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
-            if(best) best.teams.push(t); else phase.reserve.push(t);
-        });
+        if (appState.currentPhase === 'PHASE1') {
+            const sorted = [...teams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
+            sorted.forEach(t => {
+                const best = phase.poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
+                if(best) best.teams.push(t); else phase.reserve.push(t);
+            });
+        } else {
+            // PHASE 2 : Remplissage en Serpent (Top teams dans Poule A, etc.)
+            const sorted = [...teams].sort((a,b) => a.level - b.level); // Level correspond ici au classement global du matin
+            let tIndex = 0;
+            phase.poules.forEach(p => {
+                p.placeRange = `Places ${tIndex+1} à ${tIndex+p.target}`;
+                for(let i=0; i<p.target; i++) { if (tIndex < sorted.length) { p.teams.push(sorted[tIndex]); tIndex++; } }
+            });
+            for(let i=tIndex; i<sorted.length; i++) phase.reserve.push(sorted[i]);
+        }
         
         appState.activePouleTab = 'A'; saveState(); renderBoard(); renderReserve();
     }
 
     function validateFormat() {
         let phase = getActivePhase();
-        if(phase.poules.some(p => p.teams.length !== p.target)) {
-            if(!confirm("Certaines poules sont incomplètes. Continuer ?")) return;
-        }
+        if(phase.poules.some(p => p.teams.length !== p.target)) { if(!confirm("Certaines poules sont incomplètes. Continuer ?")) return; }
         phase.validated = true; saveState(); renderBoard();
     }
 
-    // --- PHASE 2 GENERATOR ---
     function generatePhase2() {
         let p1 = appState.cats[appState.activeCat].phase1;
         if(!p1.validated) return alert("Validez d'abord la Phase 1.");
         
-        let p2Teams = [];
+        let allTeams = [];
         p1.poules.forEach(p => {
             let rank = computeRanking(p);
-            rank.forEach((r, i) => { p2Teams.push({ id: r.ogTeam.id, club: r.ogTeam.club, name: `${r.name} (${i+1}e P.${p.letter})`, level: i+1, foreign: r.ogTeam.foreign, customNote: '' }); });
+            rank.forEach((r, i) => {
+                allTeams.push({ id: r.ogTeam.id, club: r.ogTeam.club, name: r.ogTeam.name, mRank: i+1, mPts: r.pts, mDiff: r.diff, foreign: r.ogTeam.foreign, letter: p.letter });
+            });
+        });
+
+        // Tri global : tous les 1ers, puis tous les 2èmes (départage : pts > diff > etranger)
+        allTeams.sort((a, b) => {
+            if(a.mRank !== b.mRank) return a.mRank - b.mRank;
+            if(a.mPts !== b.mPts) return b.mPts - a.mPts;
+            if(a.mDiff !== b.mDiff) return b.mDiff - a.mDiff;
+            return b.foreign - a.foreign;
         });
         
-        appState.cats[appState.activeCat].phase2.teams = p2Teams;
+        let p2Teams = allTeams.map((t, idx) => ({
+            id: t.id, club: t.club, name: `${t.name} (${t.mRank}e P.${t.letter})`, level: idx+1, foreign: t.foreign, customNote: ''
+        }));
+        
+        let phase2 = appState.cats[appState.activeCat].phase2;
+        phase2.teams = p2Teams; phase2.reserve = [...p2Teams]; phase2.poules = []; phase2.formatStr = null; phase2.validated = false;
         saveState(); initCategoryUI();
     }
 
-    // --- BOARD RENDER ---
-    function renderBoard() {
-        let phase = getActivePhase();
-        if(!phase.formatStr) {
-            document.getElementById('match-board').innerHTML = '';
-            document.getElementById('validation-zone').classList.add('hidden');
-            document.getElementById('deploy-zone').classList.add('hidden');
-            document.getElementById('poule-tabs').classList.add('hidden');
-            return;
-        }
-
-        let currentT = 1; phase.poules.forEach(p => { p.terrainStart = currentT; currentT += p.tUsed; });
-        document.getElementById('terrain-counter').innerText = `${currentT - 1} / ${MAX_TERRAINS[appState.activeCat]}`;
-
-        if(!phase.validated) {
-            // VUE SYNTHETIQUE
-            document.getElementById('validation-zone').classList.remove('hidden');
-            document.getElementById('deploy-zone').classList.add('hidden');
-            document.getElementById('poule-tabs').classList.add('hidden');
-            document.getElementById('match-board').className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
-            
-            document.getElementById('match-board').innerHTML = phase.poules.map((p, i) => `
-                <div class="bg-white p-4 rounded-2xl border-2 shadow-sm" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
-                    <h3 class="font-black italic uppercase mb-2">Poule ${p.letter} <span class="text-[10px] opacity-40">(${p.teams.length}/${p.target})</span></h3>
-                    <div class="space-y-1 min-h-[50px]">${p.teams.map((t, ti) => `<div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-xs font-bold flex justify-between cursor-move shadow-sm"><span>${t.name} ${t.customNote?`<span title="${t.customNote}" class="text-red-500 font-black cursor-help">ℹ️</span>`:''}</span><span class="opacity-40 text-[9px]">N.${t.level}</span></div>`).join('')}</div>
-                </div>
-            `).join('');
-        } else {
-            // VUE ONGLETS DETAILS
-            document.getElementById('validation-zone').classList.add('hidden');
-            document.getElementById('deploy-zone').classList.remove('hidden');
-            document.getElementById('poule-tabs').classList.remove('hidden');
-            
-            // Onglets
-            document.getElementById('poule-tabs').innerHTML = phase.poules.map(p => `<button onclick="appState.activePouleTab='${p.letter}';saveState();renderBoard()" class="px-6 py-2 rounded-lg font-black text-xs transition-all ${appState.activePouleTab === p.letter ? 'active-poule-tab shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'}">Poule ${p.letter}</button>`).join('');
-            
-            // Contenu Actif
-            let pIdx = phase.poules.findIndex(x => x.letter === appState.activePouleTab); if (pIdx === -1) pIdx = 0;
-            let p = phase.poules[pIdx];
-            if (!p) return;
-
-            document.getElementById('match-board').className = 'mt-4';
-            let content = '';
-            
-            if(p.teams.length !== p.target) content = `<div class="text-center py-10 opacity-30 italic">Ajustez les équipes dans la vue synthétique.</div>`;
-            else {
-                let matchesRows = MATRICES[p.target].map((m, mIdx) => {
-                    let tStr = p.tUsed === 2 ? ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
-                    let sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
-                    return `<tr><td class="font-bold text-slate-500">T.${tStr}</td><td class="excel-yellow">${p.teams[m.b-1].name}</td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td><td>${p.teams[m.a-1].name}</td><td class="text-orange-600">${p.teams[m.arb-1].name}</td><td><input type="checkbox" title="Lock Master" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer"></td></tr>`;
-                }).join('');
-
-                let ranking = computeRanking(p);
-                let classRows = ranking.map((r, idx) => {
-                    let adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : {val:'', note:''};
-                    return `<tr><td class="excel-yellow">${idx+1}</td><td class="${idx%2===0?'excel-blue':''} font-bold text-left px-2">${r.name}</td><td class="font-black">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-0"><input type="number" value="${adj.val}" class="w-10 text-center font-bold outline-none bg-slate-50 text-[10px]" onchange="updateAdjVal(${pIdx}, ${r.id}, this.value)" placeholder="+/-"></td><td class="p-0"><input type="text" value="${adj.note}" class="w-full text-left px-1 font-normal outline-none bg-slate-50 text-[10px]" onchange="updateAdjNote(${pIdx}, ${r.id}, this.value)" placeholder="Motif..."></td></tr>`;
-                }).join('');
-
-                content = `
-                <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
-                    <table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table>
-                    <div class="flex-1 w-full space-y-3">
-                        <table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajust.</th><th>Motif Départage</th></tr></thead><tbody>${classRows}</tbody></table>
-                    </div>
-                </div>`;
-            }
-
-            document.getElementById('match-board').innerHTML = `
-            <div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${pIdx})">
-                <div class="flex justify-between items-center mb-4 border-b pb-4">
-                    <h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600">Détacher / Modifier vue globale</button></h3>
-                    <select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select>
-                </div>
-                ${content}
-            </div>`;
-        }
-    }
-
-    function renderReserve() {
-        let phase = getActivePhase();
-        document.getElementById('reserve-count').innerText = phase.reserve.length;
-        document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `
-            <div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move hover:border-amber-400">
-                ${t.name} ${t.foreign?'🌍':''} ${t.customNote?`<span title="${t.customNote}" class="text-red-500 font-black cursor-help">ℹ️</span>`:''}
-            </div>`).join('') || `<div class="opacity-20 text-[10px] font-bold uppercase italic text-center">Glissez une équipe ici</div>`;
-    }
-
-    // --- SCORES & AJUSTEMENTS ---
     function updateScore(pIdx, mIdx, field, val) {
         let p = getActivePhase().poules[pIdx];
         if(!p.scores) p.scores = {}; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false};
@@ -475,55 +392,117 @@
         return stats.sort((a,b) => b.pts - a.pts || b.diff - a.diff);
     }
 
-    function simulateScores() {
-        if(!confirm("🧪 Injecter des scores aléatoires dans la vue active ?")) return;
-        getActivePhase().poules.forEach(p => {
-            if(p.teams.length === p.target) {
-                if(!p.scores) p.scores = {};
-                MATRICES[p.target].forEach((m, idx) => { p.scores[idx] = { s1: Math.floor(Math.random()*4), s2: Math.floor(Math.random()*4), locked: false }; });
+    function renderBoard() {
+        let phase = getActivePhase();
+        if(!phase.formatStr) {
+            document.getElementById('match-board').innerHTML = ''; document.getElementById('validation-zone').classList.add('hidden');
+            document.getElementById('deploy-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden'); return;
+        }
+
+        let currentT = 1; phase.poules.forEach(p => { p.terrainStart = currentT; currentT += p.tUsed; });
+        document.getElementById('terrain-counter').innerText = `${currentT - 1} / ${MAX_TERRAINS[appState.activeCat]}`;
+
+        if(!phase.validated) {
+            document.getElementById('validation-zone').classList.remove('hidden'); document.getElementById('deploy-zone').classList.add('hidden');
+            document.getElementById('poule-tabs').classList.add('hidden'); document.getElementById('match-board').className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
+            
+            document.getElementById('match-board').innerHTML = phase.poules.map((p, i) => `
+                <div class="bg-white p-4 rounded-2xl border-2 shadow-sm" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
+                    <h3 class="font-black italic uppercase mb-2">Poule ${p.letter} <span class="text-[10px] opacity-40">(${p.teams.length}/${p.target})</span><br><span class="text-[9px] text-indigo-500">${p.placeRange||''}</span></h3>
+                    <div class="space-y-1 min-h-[50px]">${p.teams.map((t, ti) => `<div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-xs font-bold flex justify-between cursor-move shadow-sm"><span>${t.name} ${t.customNote?`<span title="${t.customNote}" class="text-red-500 font-black cursor-help">ℹ️</span>`:''}</span><span class="opacity-40 text-[9px]">N.${t.level}</span></div>`).join('')}</div>
+                </div>`).join('');
+        } else {
+            document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('deploy-zone').classList.remove('hidden');
+            document.getElementById('poule-tabs').classList.remove('hidden');
+            
+            document.getElementById('poule-tabs').innerHTML = phase.poules.map(p => `<button onclick="appState.activePouleTab='${p.letter}';saveState();renderBoard()" class="px-6 py-2 rounded-lg font-black text-xs transition-all ${appState.activePouleTab === p.letter ? 'active-poule-tab shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'}">Poule ${p.letter}</button>`).join('');
+            
+            let pIdx = phase.poules.findIndex(x => x.letter === appState.activePouleTab); if (pIdx === -1) pIdx = 0;
+            let p = phase.poules[pIdx]; if (!p) return;
+
+            document.getElementById('match-board').className = 'mt-4';
+            let content = '';
+            
+            if(p.teams.length !== p.target) content = `<div class="text-center py-10 opacity-30 italic">Ajustez les équipes.</div>`;
+            else {
+                let matchesRows = MATRICES[p.target].map((m, mIdx) => {
+                    let tStr = p.tUsed === 2 ? ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                    let sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
+                    return `<tr><td class="font-bold text-slate-500">T.${tStr}</td><td class="excel-yellow">${p.teams[m.b-1].name}</td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td><td>${p.teams[m.a-1].name}</td><td class="text-orange-600">${p.teams[m.arb-1].name}</td><td><input type="checkbox" title="Lock Master" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer"></td></tr>`;
+                }).join('');
+
+                let ranking = computeRanking(p);
+                let classRows = ranking.map((r, idx) => {
+                    let adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : {val:'', note:''};
+                    return `<tr><td class="excel-yellow">${idx+1}</td><td class="${idx%2===0?'excel-blue':''} font-bold text-left px-2">${r.name}</td><td class="font-black">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-0"><input type="number" value="${adj.val}" class="w-10 text-center font-bold outline-none bg-slate-50 text-[10px]" onchange="updateAdjVal(${pIdx}, ${r.id}, this.value)" placeholder="+/-"></td><td class="p-0"><input type="text" value="${adj.note}" class="w-full text-left px-1 font-normal outline-none bg-slate-50 text-[10px]" onchange="updateAdjNote(${pIdx}, ${r.id}, this.value)" placeholder="Motif..."></td></tr>`;
+                }).join('');
+
+                content = `
+                <div class="flex flex-col lg:flex-row gap-6 items-start w-full">
+                    <table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table>
+                    <div class="flex-1 w-full space-y-3">
+                        <table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajust.</th><th>Motif Départage</th></tr></thead><tbody>${classRows}</tbody></table>
+                    </div>
+                </div>`;
             }
-        });
-        saveState(); renderBoard();
+
+            document.getElementById('match-board').innerHTML = `
+            <div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${pIdx})">
+                <div class="flex justify-between items-center mb-4 border-b pb-4">
+                    <h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[12px] text-indigo-500 ml-2">${p.placeRange||''}</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600">Détacher / Modifier vue globale</button></h3>
+                    <select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select>
+                </div>
+                ${content}
+            </div>`;
+        }
     }
 
-    // --- DRAG & DROP ---
+    function renderReserve() {
+        let phase = getActivePhase(); document.getElementById('reserve-count').innerText = phase.reserve.length;
+        document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `
+            <div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move hover:border-amber-400">
+                ${t.name} ${t.foreign?'🌍':''} ${t.customNote?`<span title="${t.customNote}" class="text-red-500 font-black cursor-help">ℹ️</span>`:''}
+            </div>`).join('') || `<div class="opacity-20 text-[10px] font-bold uppercase italic text-center">Glissez une équipe ici</div>`;
+    }
+
     function allowDrop(e) { e.preventDefault(); }
     function dragFromPoule(e, pIdx, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ src: 'poule', pIdx, tIdx })); }
     function dragFromReserve(e, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ src: 'reserve', tIdx })); }
 
     function dropToPoule(e, targetPIdx) {
-        e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json"));
-        let phase = getActivePhase();
+        e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json")); let phase = getActivePhase();
         let team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : phase.reserve.splice(d.tIdx, 1)[0];
-        
         if (team) { 
-            if (appState.currentPhase === 'PHASE2') {
-                let note = prompt("Motif du déplacement manuel (laissez vide si non applicable) :");
-                if (note) team.customNote = note;
-            }
+            if (appState.currentPhase === 'PHASE2') { let note = prompt("Motif du transfert manuel (laissez vide si non applicable) :"); if (note) team.customNote = note; }
             phase.poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); 
         }
     }
     function dropToReserve(e) {
-        e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json"));
-        let phase = getActivePhase();
+        e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json")); let phase = getActivePhase();
         if (d.src === 'poule') { phase.reserve.push(phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); }
     }
 
-    // --- FIREBASE DÉPLOIEMENT & PURGE ---
+    function simulateScores() {
+        if(!confirm("🧪 Injecter des scores aléatoires ?")) return;
+        getActivePhase().poules.forEach(p => { if(p.teams.length === p.target) { if(!p.scores) p.scores = {}; MATRICES[p.target].forEach((m, idx) => { p.scores[idx] = { s1: Math.floor(Math.random()*4), s2: Math.floor(Math.random()*4), locked: false }; }); } });
+        saveState(); renderBoard();
+    }
+
     async function deployCategory() {
         if (!db) return alert("Firebase non configuré.");
-        const year = document.getElementById('config-year').value;
-        const updates = {}; let globalOrder = 1;
-
+        const year = document.getElementById('config-year').value; const updates = {}; let globalOrder = 1;
         getActivePhase().poules.forEach(p => {
             if (p.teams.length === p.target) {
                 MATRICES[p.target].forEach((m, idx) => {
-                    updates[`t3n/${year}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name, s1:0, s2:0, terrain: `Terrain ${p.terrainStart}`, status:'en_attente', poule: p.letter, ordre: globalOrder++ };
+                    let tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                    let sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:0, s2:0, locked:false};
+                    updates[`t3n/${year}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
+                        t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name,
+                        s1: sc.s1||0, s2: sc.s2||0, locked: sc.locked||false, terrain: `Terrain ${tStr}`, status:'en_attente', poule: p.letter, ordre: globalOrder++ 
+                    };
                 });
             }
         });
-        
         if(Object.keys(updates).length > 0) { await db.ref().update(updates); alert(`✅ Synchronisation Firebase réussie !`); }
     }
 
