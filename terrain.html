@@ -12,37 +12,31 @@
         .match-card { transition: all 0.2s ease-in-out; }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800" onload="loadMatches()">
+<body class="bg-slate-100 font-sans text-slate-800" onload="initApp()">
 
-    <header class="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-50">
-        <h1 class="text-xl font-black italic uppercase tracking-tighter text-center">T3N <span class="text-amber-500">TERRAIN</span></h1>
+    <header class="sticky top-0 z-50 shadow-xl">
+        <div class="bg-slate-900 text-white p-3">
+            <h1 class="text-xl font-black italic uppercase tracking-tighter text-center">T3N <span class="text-amber-500">TERRAIN</span></h1>
+        </div>
+        
+        <div class="bg-white p-3 border-b border-slate-200 grid grid-cols-2 gap-2">
+            <select id="sel-cat" onchange="loadMatches()" class="p-3 bg-slate-100 rounded-xl font-black outline-none text-center text-slate-800 border-2 border-slate-200">
+                <option value="U6">U6</option><option value="U8">U8</option><option value="U10" selected>U10</option><option value="U12">U12</option>
+            </select>
+            <select id="sel-ter" onchange="loadMatches()" class="p-3 bg-amber-100 text-amber-900 rounded-xl font-black outline-none text-center border-2 border-amber-200">
+                <option value="Terrain 1">Terrain 1</option><option value="Terrain 2">Terrain 2</option><option value="Terrain 3">Terrain 3</option>
+                <option value="Terrain 4">Terrain 4</option><option value="Terrain 5">Terrain 5</option><option value="Terrain 6">Terrain 6</option>
+                <option value="Terrain 7">Terrain 7</option><option value="Terrain 8">Terrain 8</option>
+            </select>
+        </div>
+        
+        <div id="master-info" class="bg-amber-500 text-black text-[10px] font-black uppercase text-center py-1">
+            Recherche du Maître...
+        </div>
     </header>
 
-    <main class="p-4 max-w-md mx-auto space-y-4">
-        
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <select id="sel-year" onchange="loadMatches()" class="p-3 bg-slate-100 rounded-xl font-bold outline-none"><option value="2026">2026</option></select>
-                <select id="sel-cat" onchange="loadMatches()" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
-                    <option value="U6">U6</option><option value="U8">U8</option><option value="U10" selected>U10</option><option value="U12">U12</option>
-                </select>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-                <select id="sel-phase" onchange="loadMatches()" class="p-3 bg-slate-100 rounded-xl font-bold outline-none text-center">
-                    <option value="PHASE1">Phase 1 (Matin)</option><option value="PHASE2">Phase 2 (A-Midi)</option>
-                </select>
-                <select id="sel-ter" onchange="loadMatches()" class="p-3 bg-amber-100 text-amber-900 rounded-xl font-black outline-none text-center">
-                    <option value="Terrain 1">Terrain 1</option><option value="Terrain 2">Terrain 2</option><option value="Terrain 3">Terrain 3</option>
-                    <option value="Terrain 4">Terrain 4</option><option value="Terrain 5">Terrain 5</option><option value="Terrain 6">Terrain 6</option>
-                    <option value="Terrain 7">Terrain 7</option><option value="Terrain 8">Terrain 8</option>
-                </select>
-            </div>
-        </div>
-
-        <div id="matches-container" class="space-y-4 pb-10">
-            <p class="text-center text-slate-400 font-bold text-sm italic mt-10">Chargement en cours...</p>
-        </div>
-
+    <main class="p-4 max-w-md mx-auto">
+        <div id="matches-container" class="space-y-4 pb-10"></div>
     </main>
 
 <script>
@@ -59,89 +53,86 @@
     if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") firebase.initializeApp(firebaseConfig);
     const db = firebase.apps.length ? firebase.database() : null;
 
-    let currentRef = null;
+    let activeYear = null;
+    let activePhase = null;
+    let matchesRef = null;
+
+    function initApp() {
+        if(!db) return document.getElementById('matches-container').innerHTML = `<p class="text-center font-bold">Firebase non configuré.</p>`;
+        
+        // 1. On écoute la table de commande du Maître
+        db.ref('t3n/settings').on('value', snap => {
+            if(!snap.exists()) return;
+            const settings = snap.val();
+            const cat = document.getElementById('sel-cat').value;
+            
+            activeYear = settings.activeYear;
+            activePhase = settings[`activePhase_${cat}`] || 'PHASE1';
+            
+            let phaseText = activePhase === 'PHASE1' ? 'Matin' : 'Après-Midi';
+            document.getElementById('master-info').innerHTML = `Édition ${activeYear} - Phase ${phaseText}`;
+            
+            // 2. On recharge les matchs pour cette configuration
+            loadMatches();
+        });
+    }
 
     function loadMatches() {
-        if (!db) return document.getElementById('matches-container').innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10">Firebase non configuré.</p>`;
+        if (!activeYear || !activePhase) return;
         
-        const year = document.getElementById('sel-year').value;
         const cat = document.getElementById('sel-cat').value;
-        const phase = document.getElementById('sel-phase').value;
         const terrain = document.getElementById('sel-ter').value;
+        const path = `t3n/${activeYear}/${cat}_${activePhase}/matches`;
         
-        if (currentRef) currentRef.off(); // Stoppe l'écoute précédente
-
-        const path = `t3n/${year}/${cat}_${phase}/matches`;
-        currentRef = db.ref(path);
+        if (matchesRef) matchesRef.off();
+        matchesRef = db.ref(path);
         
-        document.getElementById('matches-container').innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10 animate-pulse">Recherche des matchs...</p>`;
+        document.getElementById('matches-container').innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10 animate-pulse">Chargement...</p>`;
 
-        currentRef.orderByChild('terrain').equalTo(terrain).on('value', snap => {
+        matchesRef.orderByChild('terrain').equalTo(terrain).on('value', snap => {
             const container = document.getElementById('matches-container');
-            if (!snap.exists()) {
-                container.innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10">Aucun match prévu ici.</p>`;
-                return;
-            }
+            if (!snap.exists()) { container.innerHTML = `<p class="text-center text-slate-400 font-bold text-sm italic mt-10">Aucun match prévu ici.</p>`; return; }
 
             let matches = [];
             snap.forEach(child => { matches.push({ id: child.key, ...child.val() }); });
-            matches.sort((a, b) => a.ordre - b.ordre); // Tri chronologique
+            matches.sort((a, b) => a.ordre - b.ordre);
 
             container.innerHTML = matches.map((m, index) => {
                 const isLocked = m.locked;
-                const lockBadge = isLocked ? `<span class="bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black uppercase">Verrouillé par Master</span>` : '';
-                const opacity = isLocked ? 'opacity-70' : '';
-
+                const lockBadge = isLocked ? `<span class="bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black uppercase">Verrouillé</span>` : '';
                 return `
-                <div class="match-card bg-white p-5 rounded-[2rem] shadow-sm border-2 ${isLocked ? 'border-red-200' : 'border-slate-100'} ${opacity}">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="bg-amber-100 text-amber-800 font-black text-[10px] px-3 py-1 rounded-full">Match ${index + 1}</span>
-                        ${lockBadge}
-                    </div>
-                    
+                <div class="match-card bg-white p-5 rounded-[2rem] shadow-sm border-2 ${isLocked ? 'border-red-200 opacity-70' : 'border-slate-100'}">
+                    <div class="flex justify-between items-center mb-4"><span class="bg-amber-100 text-amber-800 font-black text-[10px] px-3 py-1 rounded-full">Match ${index + 1}</span>${lockBadge}</div>
                     <div class="grid grid-cols-3 items-center gap-2 mb-4">
                         <div class="text-center">
-                            <p class="font-black text-sm leading-tight text-slate-700">${m.t2}</p>
+                            <p class="font-black text-sm text-slate-700">${m.t2}</p>
                             <div class="flex justify-center items-center gap-2 mt-3">
-                                <button onclick="updateScore('${m.id}', 's2', -1, ${isLocked})" class="w-8 h-8 rounded-full bg-slate-100 font-black text-slate-500 hover:bg-slate-200 active:scale-90">-</button>
-                                <span class="text-2xl font-black text-slate-900 w-6">${m.s2 || 0}</span>
+                                <button onclick="updateScore('${m.id}', 's2', -1, ${isLocked})" class="w-8 h-8 rounded-full bg-slate-100 font-black hover:bg-slate-200 active:scale-90">-</button>
+                                <span class="text-2xl font-black w-6">${m.s2 || 0}</span>
                                 <button onclick="updateScore('${m.id}', 's2', 1, ${isLocked})" class="w-8 h-8 rounded-full bg-amber-500 font-black text-white hover:bg-amber-600 active:scale-90">+</button>
                             </div>
                         </div>
-                        
                         <div class="text-center text-slate-300 font-black text-sm">VS</div>
-                        
                         <div class="text-center">
-                            <p class="font-black text-sm leading-tight text-slate-700">${m.t1}</p>
+                            <p class="font-black text-sm text-slate-700">${m.t1}</p>
                             <div class="flex justify-center items-center gap-2 mt-3">
-                                <button onclick="updateScore('${m.id}', 's1', -1, ${isLocked})" class="w-8 h-8 rounded-full bg-slate-100 font-black text-slate-500 hover:bg-slate-200 active:scale-90">-</button>
-                                <span class="text-2xl font-black text-slate-900 w-6">${m.s1 || 0}</span>
+                                <button onclick="updateScore('${m.id}', 's1', -1, ${isLocked})" class="w-8 h-8 rounded-full bg-slate-100 font-black hover:bg-slate-200 active:scale-90">-</button>
+                                <span class="text-2xl font-black w-6">${m.s1 || 0}</span>
                                 <button onclick="updateScore('${m.id}', 's1', 1, ${isLocked})" class="w-8 h-8 rounded-full bg-amber-500 font-black text-white hover:bg-amber-600 active:scale-90">+</button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="bg-slate-50 p-2 rounded-xl text-center text-[10px] font-bold text-slate-500 uppercase">
-                        Arbitre : <span class="text-orange-600">${m.arb}</span>
-                    </div>
+                    <div class="bg-slate-50 p-2 rounded-xl text-center text-[10px] font-bold text-slate-500 uppercase">Arbitre : <span class="text-orange-600">${m.arb}</span></div>
                 </div>`;
             }).join('');
         });
     }
 
     function updateScore(matchId, field, delta, isLocked) {
-        if (isLocked) return alert("Le Master a verrouillé ce score. Contactez la table de marque.");
-        
-        const year = document.getElementById('sel-year').value;
+        if (isLocked) return alert("Le Master a verrouillé ce score.");
         const cat = document.getElementById('sel-cat').value;
-        const phase = document.getElementById('sel-phase').value;
-        const path = `t3n/${year}/${cat}_${phase}/matches/${matchId}/${field}`;
-        
-        // Transaction Firebase pour éviter les conflits si plusieurs cliquent en même temps
-        db.ref(path).transaction(currentScore => {
-            let newVal = (currentScore || 0) + delta;
-            return newVal < 0 ? 0 : newVal; // Pas de score négatif
-        });
+        const path = `t3n/${activeYear}/${cat}_${activePhase}/matches/${matchId}/${field}`;
+        db.ref(path).transaction(currentScore => { let newVal = (currentScore || 0) + delta; return newVal < 0 ? 0 : newVal; });
     }
 </script>
 </body>
