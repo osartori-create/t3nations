@@ -6,8 +6,13 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <style>
+        .drag-over { background-color: #fef3c7 !important; border: 2px dashed #f59e0b !important; }
+        .conflict { animation: pulseRed 2s infinite; border: 2px solid #ef4444 !important; }
+        @keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+    </style>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900">
+<body class="bg-slate-50 font-sans text-slate-900 min-h-screen">
 
     <header class="bg-slate-900 text-white p-6 shadow-2xl flex justify-between items-center border-b-4 border-amber-500 sticky top-0 z-50">
         <div class="flex items-center gap-6">
@@ -16,38 +21,64 @@
                 <input type="number" id="config-year" value="2026" onchange="updateYear()" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
             </div>
             <nav class="flex gap-2 bg-slate-800 p-1 rounded-xl">
+                <button onclick="switchCat('U6')" class="cat-btn px-4 py-2 rounded-lg font-black text-xs uppercase" id="btn-U6">U6</button>
                 <button onclick="switchCat('U8')" class="cat-btn px-4 py-2 rounded-lg font-black text-xs uppercase" id="btn-U8">U8</button>
                 <button onclick="switchCat('U10')" class="cat-btn px-4 py-2 rounded-lg font-black text-xs uppercase bg-amber-500 text-black" id="btn-U10">U10</button>
                 <button onclick="switchCat('U12')" class="cat-btn px-4 py-2 rounded-lg font-black text-xs uppercase" id="btn-U12">U12</button>
             </nav>
         </div>
-        <button onclick="deployTournament()" class="bg-amber-500 hover:bg-amber-600 px-8 py-3 rounded-2xl text-slate-950 font-black uppercase shadow-xl transition-all scale-105 active:scale-95">Déployer le Tournoi</button>
+        <button onclick="deployTournament()" class="bg-amber-500 hover:bg-amber-600 px-8 py-3 rounded-2xl text-slate-950 font-black uppercase shadow-xl transition-all active:scale-95">Déployer aux Terrains</button>
     </header>
 
-    <main class="p-8 max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-4 gap-8">
+    <main class="p-8 max-w-[1800px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-8">
         
-        <section class="xl:col-span-1 space-y-6">
+        <section class="xl:col-span-4 space-y-6">
             <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
                 <h2 class="text-xl font-black uppercase mb-4 flex items-center gap-3">
-                    <span class="bg-amber-500 text-black w-8 h-8 rounded-full flex items-center justify-center text-sm italic">1</span>
-                    Import & Seeding
+                    <span class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
+                    Import CSV (Catégorie <span id="import-cat-label" class="text-amber-500 ml-1">U10</span>)
                 </h2>
-                <p class="text-[10px] font-bold opacity-50 uppercase mb-2">Syntaxe : Club[nb][*] (ex: ZUG2*)</p>
-                <textarea id="raw-import" rows="5" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-sm focus:border-amber-500 outline-none transition-all" placeholder="RCM3, ZUG2*, FRANKFURT1*"></textarea>
-                <button onclick="processImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800">Calculer Répartition</button>
+                <textarea id="raw-csv" rows="4" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-xs font-mono focus:border-amber-500 outline-none" placeholder="Coller ici les lignes du fichier Excel (inclure les colonnes Nom, U6, U8, U10, U12)"></textarea>
+                <button onclick="parseCSV()" class="w-full mt-4 bg-slate-200 text-slate-800 p-3 rounded-xl font-black uppercase hover:bg-slate-300">Analyser les équipes</button>
+            </div>
+
+            <div id="qualification-panel" class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 hidden">
+                <h2 class="text-xl font-black uppercase mb-4 flex items-center gap-3">
+                    <span class="bg-slate-900 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
+                    Configuration (<span id="total-teams">0</span> équipes)
+                </h2>
+                
+                <div class="max-h-48 overflow-y-auto mb-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <table class="w-full text-sm text-left">
+                        <thead><tr class="opacity-50 text-xs uppercase"><th class="pb-2">Club</th><th class="pb-2 text-center">Étranger</th></tr></thead>
+                        <tbody id="club-list"></tbody>
+                    </table>
+                </div>
+
+                <h3 class="font-bold text-xs uppercase opacity-50 mb-3">Formats Possibles</h3>
+                <div id="format-options" class="flex flex-col gap-2 max-h-64 overflow-y-auto pr-2">
+                    </div>
             </div>
         </section>
 
-        <section class="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6" id="poules-container">
-            </section>
+        <section class="xl:col-span-8">
+            <div id="poules-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="col-span-full py-20 flex flex-col items-center justify-center opacity-20 border-4 border-dashed border-slate-300 rounded-[3rem]">
+                    <span class="text-6xl mb-4">🏉</span>
+                    <h2 class="text-2xl font-black uppercase italic">En attente de ventilation</h2>
+                </div>
+            </div>
+        </section>
     </main>
 
     <script>
         let currentCat = "U10";
         let year = 2026;
-        let finalPoules = [];
+        let importedClubs = []; // { name: "Mulhouse", count: 2, isForeign: false }
+        let allTeams = []; // { id: "Mulhouse_1", baseClub: "Mulhouse", level: 1, isForeign: false, name: "Mulhouse 1" }
+        let currentPoules = []; // Array of Arrays
 
-        // Firebase - Remplacez par vos clés
+        // Firebase Setup (À compléter)
         const firebaseConfig = { /* VOS CLES */ };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
@@ -56,6 +87,7 @@
             currentCat = cat;
             document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('bg-amber-500', 'text-black'));
             document.getElementById(`btn-${cat}`).classList.add('bg-amber-500', 'text-black');
+            document.getElementById('import-cat-label').innerText = cat;
         }
 
         function updateYear() {
@@ -63,84 +95,236 @@
             document.getElementById('display-year').innerText = year;
         }
 
-        function processImport() {
-            const raw = document.getElementById('raw-import').value;
-            const items = raw.split(',').map(s => s.trim()).filter(s => s !== "");
-            let teams = [];
+        // --- ETAPE 1 : Parsing CSV ---
+        function parseCSV() {
+            const raw = document.getElementById('raw-csv').value;
+            const rows = raw.split('\n').map(r => r.trim()).filter(r => r);
+            importedClubs = [];
+            
+            // Détection automatique de l'index des colonnes
+            let headers = rows[0].split(/[;,]/).map(h => h.trim().toUpperCase());
+            let nameIdx = headers.findIndex(h => h.includes('NOM'));
+            let catIdx = headers.findIndex(h => h.includes(currentCat));
 
-            items.forEach(item => {
-                const isForeign = item.includes('*');
-                const clean = item.replace('*', '');
-                const match = clean.match(/^([A-Za-z\s]+)(\d+)$/);
+            if (nameIdx === -1 || catIdx === -1) {
+                // Fallback aux index par défaut de votre fichier : Nom=3, U6=4, U8=5, U10=6, U12=7
+                nameIdx = 3;
+                catIdx = currentCat === 'U6' ? 4 : currentCat === 'U8' ? 5 : currentCat === 'U10' ? 6 : 7;
+            }
+
+            for (let i = 1; i < rows.length; i++) {
+                let cols = rows[i].split(/[;,]/);
+                if(cols.length > catIdx) {
+                    let clubName = cols[nameIdx].trim();
+                    let count = parseInt(cols[catIdx].trim()) || 0;
+                    if (count > 0 && clubName) {
+                        importedClubs.push({ name: clubName, count: count, isForeign: false });
+                    }
+                }
+            }
+
+            renderClubList();
+            generateFormats();
+            document.getElementById('qualification-panel').classList.remove('hidden');
+        }
+
+        function renderClubList() {
+            let total = 0;
+            const tbody = document.getElementById('club-list');
+            tbody.innerHTML = importedClubs.map((c, i) => {
+                total += c.count;
+                return `
+                <tr class="border-b border-slate-100">
+                    <td class="py-2 font-bold">${c.name} <span class="text-xs text-amber-600 bg-amber-50 px-2 rounded-full">x${c.count}</span></td>
+                    <td class="py-2 text-center">
+                        <input type="checkbox" class="w-4 h-4 accent-amber-500" onchange="importedClubs[${i}].isForeign = this.checked">
+                    </td>
+                </tr>`;
+            }).join('');
+            document.getElementById('total-teams').innerText = total;
+        }
+
+        // --- ETAPE 2 : Générateur de Formats Exhaustifs ---
+        function generateFormats() {
+            const total = parseInt(document.getElementById('total-teams').innerText);
+            if(total < 3) return;
+
+            const sizes = [6, 5, 4, 3];
+            const combos = [];
+
+            function search(target, currentCombo, startIndex) {
+                if (target === 0) { combos.push([...currentCombo]); return; }
+                if (target < 0) return;
+                for (let i = startIndex; i < sizes.length; i++) {
+                    currentCombo.push(sizes[i]);
+                    search(target - sizes[i], currentCombo, i);
+                    currentCombo.pop();
+                }
+            }
+            search(total, [], 0);
+
+            const container = document.getElementById('format-options');
+            container.innerHTML = combos.map((combo, idx) => {
+                const max = Math.max(...combo);
+                const min = Math.min(...combo);
+                const diff = max - min;
                 
-                if(match) {
-                    const club = match[1].trim();
-                    const count = parseInt(match[2]);
-                    for(let i=1; i<=count; i++) teams.push({ club, level: i, foreign: isForeign, name: `${club} ${i}` });
-                } else {
-                    teams.push({ club: clean, level: 1, foreign: isForeign, name: clean });
+                let colorClass = "bg-green-100 text-green-800 border-green-300";
+                let badge = "Équilibré";
+                
+                if (diff === 2) { colorClass = "bg-yellow-100 text-yellow-800 border-yellow-300"; badge = "Léger déséquilibre"; }
+                if (diff === 3) { colorClass = "bg-orange-100 text-orange-800 border-orange-300"; badge = "Déséquilibré"; }
+                if (diff > 3 || (combo.includes(3) && combo.includes(6))) { colorClass = "bg-red-100 text-red-800 border-red-300"; badge = "Très déséquilibré"; }
+
+                const breakdown = sizes.map(s => {
+                    const count = combo.filter(x => x===s).length;
+                    return count > 0 ? `${count} poule(s) de ${s}` : null;
+                }).filter(Boolean).join(' + ');
+
+                return `
+                <button onclick='ventiler(${JSON.stringify(combo)})' class="w-full text-left p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${colorClass}">
+                    <div class="flex justify-between items-center">
+                        <span class="font-black text-sm">${breakdown}</span>
+                        <span class="text-[10px] uppercase font-bold bg-white/50 px-2 py-1 rounded">${badge}</span>
+                    </div>
+                </button>`;
+            }).join('');
+        }
+
+        // --- ETAPE 3 : Ventilation Intelligente ---
+        function ventiler(format) {
+            allTeams = [];
+            importedClubs.forEach(c => {
+                for(let i=1; i<=c.count; i++) {
+                    allTeams.push({ id: `${c.name.replace(/\s/g, '')}_${i}`, baseClub: c.name, level: i, isForeign: c.isForeign, name: `${c.name} ${i}` });
                 }
             });
 
-            // Algo de répartition
-            const numPoules = Math.ceil(teams.length / 4.5);
-            finalPoules = Array.from({ length: numPoules }, () => []);
+            // Tri de Seeding
+            allTeams.sort((a,b) => (a.level - b.level) || (b.isForeign - a.isForeign));
 
-            // Tri crucial : Niveau > Etranger (pour répartir les têtes de série étrangères)
-            const sortedTeams = teams.sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
+            currentPoules = Array.from({ length: format.length }, (_, i) => ({
+                id: `Poule_${i}`,
+                letter: String.fromCharCode(65 + i),
+                targetSize: format[i],
+                terrain: i + 1,
+                teams: []
+            }));
 
-            sortedTeams.forEach(team => {
-                let bestPoule = finalPoules
-                    .map((p, i) => ({ 
-                        p, i, 
-                        score: p.length * 10 
-                               + (p.some(t => t.club === team.club) ? 100 : 0) // Eviter club
-                               + (p.filter(t => t.foreign).length * 5) // Equilibrer étrangers
+            // Distribution
+            allTeams.forEach(team => {
+                let availablePoules = currentPoules.filter(p => p.teams.length < p.targetSize);
+                let bestPoule = availablePoules
+                    .map(p => ({
+                        p,
+                        score: (p.teams.some(t => t.baseClub === team.baseClub) ? 1000 : 0) + 
+                               (p.teams.filter(t => t.isForeign).length * 10)
                     }))
                     .sort((a,b) => a.score - b.score)[0];
                 
-                finalPoules[bestPoule.i].push(team);
+                if(bestPoule) bestPoule.p.teams.push(team);
             });
 
-            renderPoules();
+            renderPoulesBoard();
         }
 
-        function renderPoules() {
+        // --- ETAPE 4 : Interface Drag & Drop et Terrains ---
+        function renderPoulesBoard() {
             const container = document.getElementById('poules-container');
-            container.innerHTML = finalPoules.map((p, i) => `
-                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200">
-                    <h3 class="font-black uppercase italic mb-4">Poule ${String.fromCharCode(65+i)}</h3>
-                    <ul class="space-y-2">
-                        ${p.map(t => `
-                            <li class="flex justify-between items-center bg-slate-50 p-3 rounded-2xl border border-slate-100">
+            container.innerHTML = currentPoules.map((p, pIdx) => {
+                
+                // Vérification Conflits Internes
+                const clubs = p.teams.map(t => t.baseClub);
+                const hasConflict = clubs.some((c, i) => clubs.indexOf(c) !== i);
+
+                return `
+                <div class="bg-white p-5 rounded-[2rem] shadow-sm border-2 ${hasConflict ? 'conflict' : 'border-slate-200'} transition-all" 
+                     ondragover="allowDrop(event)" ondrop="drop(event, ${pIdx})" id="pzone-${pIdx}">
+                    
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-black uppercase italic text-lg">Poule ${p.letter}</h3>
+                        <select class="bg-slate-100 border-none rounded-lg text-xs font-bold p-1 outline-none" onchange="updateTerrain(${pIdx}, this.value)">
+                            ${Array.from({length: 15}, (_, i) => `<option value="${i+1}" ${p.terrain === i+1 ? 'selected' : ''}>Terrain ${i+1}</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div class="space-y-2 min-h-[100px]">
+                        ${p.teams.map((t, tIdx) => `
+                            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100 cursor-move hover:bg-slate-100 hover:shadow-md transition-all"
+                                 draggable="true" ondragstart="drag(event, ${pIdx}, ${tIdx})">
                                 <span class="font-bold text-sm uppercase">${t.name}</span>
-                                <div class="flex gap-2">
-                                    ${t.foreign ? '<span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-black">🌍 INT</span>' : ''}
-                                    <span class="text-[10px] bg-slate-200 px-2 py-0.5 rounded-full font-black">Niv.${t.level}</span>
+                                <div class="flex gap-1">
+                                    ${t.isForeign ? '<span class="text-[9px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-black">🌍 INT</span>' : ''}
+                                    <span class="text-[9px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-black">Niv.${t.level}</span>
                                 </div>
-                            </li>
+                            </div>
                         `).join('')}
-                    </ul>
+                    </div>
                 </div>
-            `).join('');
+            `;}).join('');
         }
 
+        function updateTerrain(pIdx, val) {
+            currentPoules[pIdx].terrain = parseInt(val);
+        }
+
+        // --- Logique Drag & Drop ---
+        let draggedItem = null;
+
+        function drag(ev, pIdx, tIdx) {
+            draggedItem = { pIdx, tIdx };
+            ev.dataTransfer.setData("text", ""); // Required for Firefox
+        }
+
+        function allowDrop(ev) {
+            ev.preventDefault();
+            const zone = ev.target.closest('[id^="pzone-"]');
+            if(zone) zone.classList.add('drag-over');
+        }
+
+        document.addEventListener('dragleave', (ev) => {
+            const zone = ev.target.closest('[id^="pzone-"]');
+            if(zone) zone.classList.remove('drag-over');
+        });
+
+        function drop(ev, targetPIdx) {
+            ev.preventDefault();
+            document.querySelectorAll('[id^="pzone-"]').forEach(el => el.classList.remove('drag-over'));
+            
+            if(!draggedItem || draggedItem.pIdx === targetPIdx) return;
+
+            // Déplacement de l'objet équipe
+            const team = currentPoules[draggedItem.pIdx].teams.splice(draggedItem.tIdx, 1)[0];
+            currentPoules[targetPIdx].teams.push(team);
+            
+            draggedItem = null;
+            renderPoulesBoard(); // Rafraîchit l'affichage et vérifie les conflits
+        }
+
+        // --- ETAPE 5 : Déploiement ---
         async function deployTournament() {
-            if(!finalPoules.length) return alert("Générez d'abord les poules !");
+            if(!currentPoules.length) return alert("Veuillez d'abord ventiler les équipes.");
+            
             const updates = {};
             const baseRef = `t3n/${year}/${currentCat}`;
 
-            finalPoules.forEach((poule, pIdx) => {
-                const letter = String.fromCharCode(65 + pIdx);
-                // On pourrait injecter ici la matrice relative à p.length (3, 4, 5 ou 6)
-                // Pour l'exemple, on initialise juste les métadonnées de poule
-                poule.forEach((team, tIdx) => {
-                    updates[`${baseRef}/teams/${team.name}`] = { ...team, poule: letter };
+            currentPoules.forEach(poule => {
+                poule.teams.forEach(team => {
+                    updates[`${baseRef}/teams/${team.name}`] = { 
+                        ...team, 
+                        poule: poule.letter,
+                        assignedTerrain: `Terrain ${poule.terrain}` 
+                    };
                 });
             });
 
-            await db.ref().update(updates);
-            alert("Tournoi déployé ! Les classements prendront en compte le statut étranger.");
+            try {
+                await db.ref().update(updates);
+                alert(`Catégorie ${currentCat} déployée avec succès ! Les terrains sont prêts.`);
+            } catch(e) {
+                console.error(e);
+                alert("Erreur de connexion à Firebase.");
+            }
         }
     </script>
 </body>
