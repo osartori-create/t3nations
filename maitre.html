@@ -29,8 +29,9 @@
             </select>
         </div>
         <div class="flex gap-2">
-            <button onclick="document.getElementById('modal-import').classList.toggle('hidden')" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-black uppercase text-xs">Importer JSON Assistant</button>
-            <button onclick="calculateGlobalRanking()" class="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded font-black uppercase text-xs text-slate-900">Calculer Classement</button>
+            <button onclick="document.getElementById('modal-import').classList.toggle('hidden')" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-black uppercase text-xs">Importer JSON</button>
+            <button onclick="document.getElementById('modal-manual').classList.toggle('hidden')" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded font-black uppercase text-xs">Création Manuelle</button>
+            <button onclick="calculateGlobalRanking()" class="bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded font-black uppercase text-xs text-slate-900 ml-4">Calculer Classement</button>
         </div>
     </header>
 
@@ -71,12 +72,45 @@
 
     <div id="modal-import" class="hidden fixed inset-0 bg-slate-950/90 flex items-center justify-center p-6 z-50">
         <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-2xl border border-slate-700 shadow-2xl">
-            <h3 class="text-xl font-black mb-4 uppercase italic">Importer la configuration Gem</h3>
-            <p class="text-slate-400 text-xs mb-4">Collez ici le bloc de code JSON fourni par votre assistant.</p>
+            <h3 class="text-xl font-black mb-4 uppercase italic">Importer la configuration Gem <span class="text-red-500 text-sm">(Écrase les données existantes)</span></h3>
             <textarea id="import-area" class="w-full h-64 bg-slate-900 border border-slate-700 rounded p-3 text-mono text-xs text-blue-400 focus:outline-none focus:ring-1 focus:ring-amber-500" placeholder='[{"poule": "A", "terrains": [1], "equipes": [...]}, ...]'></textarea>
             <div class="flex justify-end gap-3 mt-6">
                 <button onclick="document.getElementById('modal-import').classList.add('hidden')" class="px-6 py-2 text-slate-400 font-bold uppercase text-xs">Annuler</button>
-                <button onclick="processImport()" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-black uppercase text-sm">Lancer le déploiement</button>
+                <button onclick="processImport()" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-black uppercase text-sm">Déployer (Remplace tout)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-manual" class="hidden fixed inset-0 bg-slate-950/90 flex items-center justify-center p-6 z-50">
+        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-lg border border-slate-700 shadow-2xl">
+            <h3 class="text-xl font-black mb-4 uppercase italic">Création Manuelle de Poule <span class="text-green-500 text-sm">(Ajout)</span></h3>
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-400">Nom de la Poule (Ex: A)</label>
+                    <input type="text" id="man-poule" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white uppercase font-bold" placeholder="A">
+                </div>
+                <div>
+                    <label class="text-[10px] uppercase font-bold text-slate-400">Format (Nb équipes)</label>
+                    <select id="man-format" onchange="updateManualFields()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-bold">
+                        <option value="4" selected>4 Équipes (1 terrain)</option>
+                        <option value="3">3 Équipes (1 terrain)</option>
+                        <option value="5">5 Équipes (1 ou 2 terr.)</option>
+                        <option value="6">6 Équipes (2 terrains)</option>
+                    </select>
+                </div>
+                <div class="col-span-2">
+                    <label class="text-[10px] uppercase font-bold text-slate-400">Terrain(s) affecté(s) (Séparés par virgule, ex: 1, 2)</label>
+                    <input type="text" id="man-terrains" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="1">
+                </div>
+            </div>
+
+            <div id="man-teams" class="space-y-2 mb-6">
+                </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="document.getElementById('modal-manual').classList.add('hidden')" class="px-4 py-2 text-slate-400 font-bold uppercase text-xs">Fermer</button>
+                <button onclick="processManualCreation()" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded font-black uppercase text-sm">Générer et Ajouter</button>
             </div>
         </div>
     </div>
@@ -151,7 +185,7 @@
             matches.forEach(m => {
                 [m.t1, m.t2].forEach(t => { if(!teams[t]) teams[t] = { name: t, pts: 0, pour: 0, contre: 0, diff: 0, matches: 0, poule: m.poule } });
                 
-                if(m.s1 !== undefined && m.s2 !== undefined) {
+                if(m.s1 !== undefined && m.s2 !== undefined && (m.s1 > 0 || m.s2 > 0 || m.status === 'termine')) {
                     teams[m.t1].matches++; teams[m.t2].matches++;
                     teams[m.t1].pour += m.s1; teams[m.t1].contre += m.s2;
                     teams[m.t2].pour += m.s2; teams[m.t2].contre += m.s1;
@@ -179,7 +213,6 @@
                 tr.draggable = true;
                 tr.dataset.index = i;
                 
-                // Events Drag & Drop
                 tr.ondragstart = e => { e.target.classList.add('drag-ghost'); e.dataTransfer.setData('text/plain', i); };
                 tr.ondragend = e => e.target.classList.remove('drag-ghost');
                 tr.ondragover = e => { e.preventDefault(); tr.classList.add('drop-target'); };
@@ -203,8 +236,7 @@
             renderRanking();
         }
 
-        // --- IMPORT & EXPORT ---
-
+        // --- IMPORT JSON (REMPLACE TOUT) ---
         function processImport() {
             const raw = document.getElementById('import-area').value;
             try {
@@ -213,6 +245,8 @@
                 const cat = document.getElementById('sel-cat').value;
                 const phase = document.getElementById('sel-phase').value;
                 
+                if(!confirm(`ATTENTION : Cela va effacer et remplacer tout le tournoi actuel pour la catégorie ${cat} (${phase}). Continuer ?`)) return;
+
                 let updates = { poules: poules, matches: {} };
 
                 poules.forEach(p => {
@@ -238,6 +272,68 @@
             } catch(e) { alert("Erreur de format JSON."); }
         }
 
+        // --- CREATION MANUELLE (AJOUT) ---
+        function updateManualFields() {
+            const format = parseInt(document.getElementById('man-format').value);
+            const container = document.getElementById('man-teams');
+            container.innerHTML = '';
+            for(let i=1; i<=format; i++) {
+                container.innerHTML += `
+                    <div>
+                        <label class="text-[10px] uppercase font-bold text-slate-500">Équipe ${i}</label>
+                        <input type="text" id="man-team-${i}" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white font-bold" placeholder="Nom équipe ${i}">
+                    </div>
+                `;
+            }
+        }
+
+        function processManualCreation() {
+            const poule = document.getElementById('man-poule').value.toUpperCase().trim();
+            const format = parseInt(document.getElementById('man-format').value);
+            const terrainsRaw = document.getElementById('man-terrains').value;
+            const terrains = terrainsRaw.split(',').map(t => t.trim()).filter(t => t);
+
+            if(!poule || terrains.length === 0) return alert("Veuillez remplir le nom de la poule et les terrains.");
+
+            const equipes = [];
+            for(let i=1; i<=format; i++) {
+                const eq = document.getElementById(`man-team-${i}`).value.trim();
+                if(!eq) return alert(`L'équipe ${i} n'est pas renseignée.`);
+                equipes.push(eq);
+            }
+
+            const matrix = MATRICES[format];
+            let updates = {};
+
+            matrix.forEach((match, idx) => {
+                const mid = `${poule}_M${idx+1}`;
+                // On prépare la mise à jour pour Firebase en ne touchant qu'aux nœuds de cette poule
+                updates[`matches/${mid}`] = {
+                    poule: poule,
+                    terrain: terrains[idx % terrains.length],
+                    t1: equipes[match.a - 1],
+                    t2: equipes[match.b - 1],
+                    arb: equipes[match.arb - 1],
+                    s1: 0, s2: 0, status: 'en_attente'
+                };
+            });
+
+            const year = new Date().getFullYear();
+            const cat = document.getElementById('sel-cat').value;
+            const phase = document.getElementById('sel-phase').value;
+
+            // On utilise .update() pour ne pas effacer ce qui existe déjà !
+            db.ref(`t3n/${year}/${cat}_${phase}`).update(updates)
+              .then(() => {
+                  alert(`✅ Poule ${poule} générée et ajoutée au tournoi !`);
+                  // On vide les équipes pour faciliter la saisie de la poule suivante
+                  for(let i=1; i<=format; i++) document.getElementById(`man-team-${i}`).value = '';
+                  // On avance d'une lettre automatiquement (A -> B)
+                  document.getElementById('man-poule').value = String.fromCharCode(poule.charCodeAt(0) + 1); 
+              })
+              .catch(e => alert("Erreur lors de la création : " + e));
+        }
+
         function exportToExcel() {
             let tsv = "Rang\tEquipe\tPoints\tDiff\tPour\tObs\n";
             globalRanking.forEach((t, i) => {
@@ -246,7 +342,11 @@
             navigator.clipboard.writeText(tsv).then(() => alert("Copié ! Collez directement dans Excel."));
         }
 
-        window.onload = switchContext;
+        // Init
+        window.onload = () => {
+            switchContext();
+            updateManualFields();
+        };
     </script>
 </body>
 </html>
