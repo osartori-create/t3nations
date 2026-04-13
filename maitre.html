@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master - Orchestrateur & Architecte</title>
+    <title>T3N Master - Orchestrateur & Trophée</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -24,6 +24,12 @@
         .excel-yellow { background-color: #fef08a; font-weight: 900; }
         .excel-blue { background-color: #e0f2fe; }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #print-zone, #print-zone * { visibility: visible; }
+            #print-zone { position: absolute; left: 0; top: 0; width: 100%; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen" onload="initApp()">
@@ -38,7 +44,8 @@
             <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
             <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
             <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
-            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/20" id="tab-MAINTENANCE">Purges</button>
+            <button onclick="showTab('TROPHEE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-amber-300 border border-amber-500/30" id="tab-TROPHEE">🏆 Trophée</button>
+            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-1 text-red-400 border border-red-500/20" id="tab-MAINTENANCE">Purges</button>
         </nav>
     </div>
     <div class="flex gap-4 items-center">
@@ -132,9 +139,12 @@
                         <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab">Phase 1 (Brassage)</button>
                         <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all">Phase 2 (Classement)</button>
                     </nav>
-                    <div class="text-right px-4 border-l">
-                        <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
-                        <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
+                    <div class="flex items-center gap-4">
+                        <button onclick="printCategoryResults()" class="hidden text-[10px] font-black uppercase bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-300 transition-colors" id="btn-print-cat">🖨️ Imprimer Classement</button>
+                        <div class="text-right px-4 border-l">
+                            <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
+                            <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
+                        </div>
                     </div>
                 </div>
 
@@ -143,9 +153,9 @@
                     <div class="relative z-10">
                         <h3 class="font-black text-indigo-800 uppercase mb-2 text-xl">Génération Phase 2 : Péréquation FFR</h3>
                         <p class="text-xs text-indigo-600/80 mb-6 max-w-2xl">
-                            Le système utilise la péréquation pour fusionner les poules du matin. Il classe les équipes selon leur <b>Ratio (Points obtenus / Matchs joués)</b> afin d'intégrer le format d'après-midi défini par l'Architecte.
+                            Le système va effacer l'ossature fantôme et classer les vraies équipes selon leur <b>Ratio (Points / Matchs joués)</b> pour intégrer le moule de l'après-midi.
                         </p>
-                        <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">Répartir dans le moule Phase 2</button>
+                        <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">Calculer les Ratios & Remplir la Phase 2</button>
                     </div>
                 </div>
 
@@ -171,6 +181,33 @@
         </div>
     </section>
 
+    <section id="content-TROPHEE" class="tab-content hidden space-y-6">
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-amber-200 shadow-xl max-w-6xl mx-auto">
+            <div class="flex justify-between items-center mb-8 border-b pb-4">
+                <div>
+                    <h2 class="text-3xl font-black uppercase text-slate-800 flex items-center gap-3">🏆 Bouclier T3N</h2>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Calcul en temps réel sur les phases de classement (A-Midi)</p>
+                </div>
+                <button onclick="computeTrophy()" class="bg-amber-500 text-black px-6 py-3 rounded-xl font-black uppercase shadow-lg hover:bg-amber-400 active:scale-95 transition-all">Actualiser le Podium</button>
+            </div>
+            
+            <div id="trophy-podium" class="flex justify-center items-end h-64 gap-4 mb-12 hidden">
+                </div>
+
+            <div id="trophy-list" class="hidden">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead class="bg-slate-100 text-[10px] font-black uppercase text-slate-500">
+                        <tr><th class="p-4 border-b">Rang</th><th class="p-4 border-b">Club</th><th class="p-4 text-center border-b text-blue-600">U8</th><th class="p-4 text-center border-b text-slate-800">U10</th><th class="p-4 text-center border-b text-red-600">U12</th><th class="p-4 text-center border-b text-amber-600 text-lg">Total Points</th></tr>
+                    </thead>
+                    <tbody id="trophy-tbody" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            <div id="trophy-empty" class="text-center py-20 text-slate-400 font-bold uppercase tracking-widest">
+                Cliquez sur Actualiser pour générer le palmarès.<br><span class="text-[10px] normal-case opacity-70">Nécessite que les phases 2 soient générées.</span>
+            </div>
+        </div>
+    </section>
+
     <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
         <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl max-w-4xl mx-auto">
             <h2 class="text-2xl font-black uppercase text-red-600 mb-6 flex items-center gap-3">🛠️ Administration & Purges</h2>
@@ -186,7 +223,7 @@
                 </div>
                 <div class="bg-red-600 p-6 rounded-3xl text-white flex flex-col justify-between shadow-lg">
                     <h3 class="font-black uppercase text-xl italic">Reset Global Annuel</h3>
-                    <p class="text-xs opacity-80 mb-4 font-bold">DANGER : Efface l'intégralité des données Firebase pour l'année sélectionnée, et vide la mémoire du navigateur.</p>
+                    <p class="text-xs opacity-80 mb-4 font-bold">DANGER : Efface l'intégralité des données Firebase pour l'année sélectionnée.</p>
                     <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase shadow-xl hover:scale-105 transition-transform">Purger l'Année Totale</button>
                 </div>
             </div>
@@ -196,8 +233,6 @@
 
 <script>
     const MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
-    
-    // Matrice mathématique des rencontres
     const MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
         4: [{a:1,b:2,arb:4},{a:3,b:4,arb:1},{a:1,b:3,arb:2},{a:2,b:4,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
@@ -205,7 +240,6 @@
         6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
     };
 
-    // Recettes de base (qui seront inversées dynamiquement par l'algorithme)
     const RECIPES = [
         { teams: 14, title: "Classique", p1: {p6:0, p5:0, p4:2, p3:2, str:"2x4, 2x3"}, p2: {p6:1, p5:0, p4:2, p3:0, str:"1x6, 2x4"}, icon: "🏉" },
         { teams: 16, title: "Symétrique", p1: {p6:0, p5:0, p4:4, p3:0, str:"4x4"}, p2: {p6:0, p5:0, p4:4, p3:0, str:"4x4"}, icon: "⚖️" },
@@ -216,17 +250,7 @@
         { teams: 24, title: "Symétrique", p1: {p6:0, p5:0, p4:6, p3:0, str:"6x4"}, p2: {p6:0, p5:0, p4:6, p3:0, str:"6x4"}, icon: "⚖️" }
     ];
 
-    // --- FIREBASE CONFIG ---
-    const firebaseConfig = {
-        // --- COLLE TES CLES ICI ---
-        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
-        authDomain: "t3nations.firebaseapp.com",
-        databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "t3nations",
-        storageBucket: "t3nations.firebasestorage.app",
-        messagingSenderId: "368081588642",
-        appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
-    };
+    const firebaseConfig = { apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", authDomain: "t3nations.firebaseapp.com", databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app", projectId: "t3nations" };
     if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") firebase.initializeApp(firebaseConfig);
     const db = firebase.apps.length ? firebase.database() : null;
 
@@ -244,7 +268,7 @@
     function getCatSettings() { return appState.cats[appState.activeCat].settings; }
 
     function initApp() {
-        let saved = localStorage.getItem('t3n_master_final');
+        let saved = localStorage.getItem('t3n_master_v26');
         if (saved) { 
             appState = JSON.parse(saved); 
             Object.keys(appState.cats).forEach(k => { if(!appState.cats[k].settings) appState.cats[k].settings = {p1:120, p2:120, battement:2}; });
@@ -255,7 +279,7 @@
     }
 
     function saveState() {
-        localStorage.setItem('t3n_master_final', JSON.stringify(appState));
+        localStorage.setItem('t3n_master_v26', JSON.stringify(appState));
         let ind = document.getElementById('save-indicator'); ind.classList.remove('opacity-0'); setTimeout(() => ind.classList.add('opacity-0'), 2000);
     }
 
@@ -285,8 +309,9 @@
         let btn = document.getElementById(`tab-${id}`); btn.classList.add('active-tab');
         if (id === 'U8') btn.classList.add('active-u8'); else if (id === 'U10') btn.classList.add('active-u10'); else if (id === 'U12') btn.classList.add('active-u12');
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        if (id === 'IMPORT' || id === 'MAINTENANCE') { document.getElementById(`content-${id}`).classList.remove('hidden'); } 
+        if (id === 'IMPORT' || id === 'MAINTENANCE' || id === 'TROPHEE') { document.getElementById(`content-${id}`).classList.remove('hidden'); } 
         else { appState.activeCat = id; document.getElementById('content-CAT').classList.remove('hidden'); initCategoryUI(); attachFirebaseListener(); }
+        if(id === 'TROPHEE') computeTrophy();
         saveState();
     }
 
@@ -294,6 +319,10 @@
         appState.currentPhase = phase;
         document.getElementById('tab-phase1').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE1'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
         document.getElementById('tab-phase2').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE2'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500 hover:bg-slate-200'}`;
+        
+        if(phase === 'PHASE2') document.getElementById('btn-print-cat').classList.remove('hidden');
+        else document.getElementById('btn-print-cat').classList.add('hidden');
+        
         initCategoryUI(); attachFirebaseListener(); broadcastSettings(); saveState();
     }
 
@@ -327,38 +356,39 @@
         document.getElementById('master-table-container').classList.remove('hidden');
     }
 
-    // --- MOTEUR ARCHITECTE ---
     function initCategoryUI() {
         let titleEl = document.getElementById('active-cat-title'); titleEl.innerText = appState.activeCat;
         titleEl.className = 'text-4xl font-black uppercase ' + (appState.activeCat === 'U8' ? 'text-blue-600' : appState.activeCat === 'U10' ? 'text-slate-800' : appState.activeCat === 'U12' ? 'text-red-600' : 'text-amber-500');
         
-        let phase1 = appState.cats[appState.activeCat].phase1;
+        let phase1 = appState.cats[appState.activeCat].phase1; let phase2 = appState.cats[appState.activeCat].phase2;
         let set = getCatSettings();
-        document.getElementById('cfg-creneau-p1').value = set.p1;
-        document.getElementById('cfg-creneau-p2').value = set.p2;
-        document.getElementById('cfg-battement').value = set.battement;
+        document.getElementById('cfg-creneau-p1').value = set.p1; document.getElementById('cfg-creneau-p2').value = set.p2; document.getElementById('cfg-battement').value = set.battement;
         document.getElementById('architect-settings').classList.remove('hidden');
         
         if(appState.currentPhase === 'PHASE1' && !phase1.formatStr && phase1.poules.length === 0) {
-            phase1.teams = [];
-            appState.masterData.forEach(c => { for(let i=1; i<=c[appState.activeCat.toLowerCase()]; i++) phase1.teams.push({ id: `${c.id}_${i}`, club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign, customNote: '' }); });
+            phase1.teams = []; appState.masterData.forEach(c => { for(let i=1; i<=c[appState.activeCat.toLowerCase()]; i++) phase1.teams.push({ id: `${c.id}_${i}`, club: c.name, level: i, name: `${c.name} ${i}`, foreign: c.foreign, customNote: '' }); });
         }
 
         if(appState.currentPhase === 'PHASE1') {
-            document.getElementById('phase2-generator').classList.add('hidden');
-            document.getElementById('architect-container').classList.remove('hidden');
+            document.getElementById('phase2-generator').classList.add('hidden'); document.getElementById('architect-container').classList.remove('hidden');
             let total = (phase1.teams.length || (phase1.reserve.length + phase1.poules.reduce((s,p)=>s+p.teams.length,0)));
             document.getElementById('active-cat-count').innerText = total;
             renderArchitectScenarios(total, phase1);
             toggleArchitect(!!phase1.formatStr);
         } else {
             document.getElementById('architect-container').classList.add('hidden');
-            let phase2 = appState.cats[appState.activeCat].phase2;
             if(phase2.poules.length === 0 && phase2.reserve.length === 0) {
-                document.getElementById('phase2-generator').classList.remove('hidden'); document.getElementById('match-board').innerHTML = ''; document.getElementById('deploy-zone').classList.add('hidden');
-                document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden');
+                document.getElementById('phase2-generator').classList.remove('hidden'); document.getElementById('match-board').innerHTML = ''; document.getElementById('deploy-zone').classList.add('hidden'); document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden');
             } else {
-                document.getElementById('phase2-generator').classList.add('hidden');
+                // Check if Phase 2 is currently filled with dummy teams
+                let isGhost = phase2.poules.some(p => p.teams.some(t => t.isDummy));
+                if(isGhost) {
+                    document.getElementById('phase2-generator').classList.remove('hidden');
+                    document.getElementById('phase2-generator').querySelector('h3').innerText = "⚠️ Phase 2 en mode Vue Fantôme";
+                    document.getElementById('phase2-generator').querySelector('p').innerHTML = "L'ossature ci-dessous est <b>virtuelle</b> pour vous permettre de préparer votre journée. Cliquez sur le bouton pour écraser ces fantômes avec les vraies équipes de la Phase 1 par Péréquation.";
+                } else {
+                    document.getElementById('phase2-generator').classList.add('hidden');
+                }
             }
         }
         renderBoard(); renderReserve();
@@ -366,22 +396,14 @@
 
     function renderArchitectScenarios(total, phase) {
         const list = document.getElementById('scenario-list'); list.innerHTML = "";
-        let maxT = MAX_TERRAINS[appState.activeCat];
-        let set = getCatSettings();
-        
-        // 1. Charger les recettes de base
-        let baseScenarios = RECIPES.filter(r => r.teams === total);
-        let scenarios = [];
+        let maxT = MAX_TERRAINS[appState.activeCat]; let set = getCatSettings();
+        let baseScenarios = RECIPES.filter(r => r.teams === total); let scenarios = [];
 
-        // 2. Création dynamique des inversions
         baseScenarios.forEach(s => {
             scenarios.push(s);
-            if(s.p1.str !== s.p2.str) {
-                scenarios.push({ title: s.title + " (Inversé)", p1: s.p2, p2: s.p1, icon: "🔄" });
-            }
+            if(s.p1.str !== s.p2.str) scenarios.push({ title: s.title + " (Inversé)", p1: s.p2, p2: s.p1, icon: "🔄" });
         });
         
-        // 3. Fallback algorithmique
         if(scenarios.length === 0) {
             for(let p6=0; p6<=total/6; p6++) {
                 for(let p5=0; p5<=total/5; p5++) {
@@ -389,10 +411,7 @@
                         for(let p3=0; p3<=total/3; p3++) {
                             if(p6*6 + p5*5 + p4*4 + p3*3 === total) {
                                 let terrainsReq = p6*2 + p5*2 + p4*1 + p3*1;
-                                if(terrainsReq <= maxT) {
-                                    let str = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`.trim();
-                                    scenarios.push({ title: "Calculé", p1: {p6, p5, p4, p3, str}, p2: {p6, p5, p4, p3, str}, icon: "⚙️" });
-                                }
+                                if(terrainsReq <= maxT) { let str = `${p6?p6+'x6 ':''}${p5?p5+'x5 ':''}${p4?p4+'x4 ':''}${p3?p3+'x3 ':''}`.trim(); scenarios.push({ title: "Calculé", p1: {p6, p5, p4, p3, str}, p2: {p6, p5, p4, p3, str}, icon: "⚙️" }); }
                             }
                         }
                     }
@@ -403,13 +422,9 @@
         if(scenarios.length === 0) { list.innerHTML = `<p class="text-xs text-red-500 font-bold">⚠️ Aucun plan ne rentre sur ${maxT} terrains.</p>`; return; }
 
         scenarios.forEach(s => {
-            let rotP1 = Math.max(s.p1.p6?15:0, s.p1.p5?10:0, s.p1.p4?6:0, s.p1.p3?3:0);
-            let rotP2 = Math.max(s.p2.p6?15:0, s.p2.p5?10:0, s.p2.p4?6:0, s.p2.p3?3:0);
-            
-            let durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0;
-            let durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
+            let rotP1 = Math.max(s.p1.p6?15:0, s.p1.p5?10:0, s.p1.p4?6:0, s.p1.p3?3:0); let rotP2 = Math.max(s.p2.p6?15:0, s.p2.p5?10:0, s.p2.p4?6:0, s.p2.p3?3:0);
+            let durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; let durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
             let timeWarning = (durP1 < 5 || durP2 < 5) ? `<span class="text-red-500 bg-red-50 px-1 rounded ml-2">⚠️ Impossible temporellement</span>` : '';
-            
             let slotsP2 = s.p2.p6*6 + s.p2.p5*5 + s.p2.p4*4 + s.p2.p3*3;
             let repechage = slotsP2 > total ? slotsP2 - total : 0;
             let repBadge = repechage > 0 ? `<div class="bg-red-100 text-red-800 text-[9px] font-black px-2 py-1 rounded mt-2">⚠️ Phase 2 nécessitera ${repechage} repêchage(s)</div>` : '';
@@ -422,95 +437,72 @@
                     <div class="bg-slate-50 p-2 rounded-lg"><span class="text-[9px] text-slate-400 uppercase font-bold block">Matin (${rotP1} Rot.)</span><span class="font-black text-indigo-600 text-sm">${s.p1.str}</span></div>
                     <div class="bg-slate-50 p-2 rounded-lg"><span class="text-[9px] text-slate-400 uppercase font-bold block">A-Midi (${rotP2} Rot.)</span><span class="font-black text-indigo-600 text-sm">${s.p2.str}</span></div>
                 </div>
-                <div class="text-[10px] text-slate-500 leading-tight">
-                    Match Matin calculé : <b class="${durP1<5?'text-red-500':'text-amber-600'}">${durP1} min</b> ${timeWarning}<br>
-                    Match A-Midi calculé : <b class="${durP2<5?'text-red-500':'text-amber-600'}">${durP2} min</b>
-                </div>
-                ${repBadge}
-            `;
+                <div class="text-[10px] text-slate-500 leading-tight">Match Matin calculé : <b class="${durP1<5?'text-red-500':'text-amber-600'}">${durP1} min</b> ${timeWarning}<br>Match A-Midi calculé : <b class="${durP2<5?'text-red-500':'text-amber-600'}">${durP2} min</b></div>${repBadge}`;
             div.onclick = () => { applyDayPlan(s, phase.teams.length ? phase.teams : [...phase.reserve, ...phase.poules.flatMap(p=>p.teams)], durP1, durP2, repechage); };
             list.appendChild(div);
         });
     }
 
-    // --- MODE MANUEL ---
     function applyManualPlan() {
-        let total = parseInt(document.getElementById('active-cat-count').innerText);
-        let maxT = MAX_TERRAINS[appState.activeCat];
+        let total = parseInt(document.getElementById('active-cat-count').innerText); let maxT = MAX_TERRAINS[appState.activeCat];
         let p1 = { p6: parseInt(document.getElementById('m-p1-6').value)||0, p5: parseInt(document.getElementById('m-p1-5').value)||0, p4: parseInt(document.getElementById('m-p1-4').value)||0, p3: parseInt(document.getElementById('m-p1-3').value)||0 };
         let p2 = { p6: parseInt(document.getElementById('m-p2-6').value)||0, p5: parseInt(document.getElementById('m-p2-5').value)||0, p4: parseInt(document.getElementById('m-p2-4').value)||0, p3: parseInt(document.getElementById('m-p2-3').value)||0 };
-        
-        let t1 = p1.p6*6 + p1.p5*5 + p1.p4*4 + p1.p3*3;
-        let t2 = p2.p6*6 + p2.p5*5 + p2.p4*4 + p2.p3*3;
-        
+        let t1 = p1.p6*6 + p1.p5*5 + p1.p4*4 + p1.p3*3; let t2 = p2.p6*6 + p2.p5*5 + p2.p4*4 + p2.p3*3;
         if(t1 === 0 && t2 === 0) return alert("Veuillez saisir un nombre de poules.");
-        if(t1 === 0 && t2 > 0) { p1 = {...p2}; t1 = t2; }
-        if(t2 === 0 && t1 > 0) { p2 = {...p1}; t2 = t1; }
-        
+        if(t1 === 0 && t2 > 0) { p1 = {...p2}; t1 = t2; } if(t2 === 0 && t1 > 0) { p2 = {...p1}; t2 = t1; }
         if(t1 !== total) return alert(`Erreur Matin : format pour ${t1} équipes, mais vous en avez ${total}.`);
         if(t2 < total) return alert(`Erreur Après-Midi : format pour ${t2} places, impossible de caser les ${total} équipes.`);
         
-        let ter1 = p1.p6*2 + p1.p5*2 + p1.p4*1 + p1.p3*1;
-        let ter2 = p2.p6*2 + p2.p5*2 + p2.p4*1 + p2.p3*1;
-        if(ter1 > maxT || ter2 > maxT) {
-            if(!confirm(`⚠️ Attention, ce format nécessite jusqu'à ${Math.max(ter1, ter2)} terrains (vous en avez ${maxT} déclarés pour les ${appState.activeCat}). Voulez-vous forcer la création ?`)) return;
-        }
+        let ter1 = p1.p6*2 + p1.p5*2 + p1.p4*1 + p1.p3*1; let ter2 = p2.p6*2 + p2.p5*2 + p2.p4*1 + p2.p3*1;
+        if(ter1 > maxT || ter2 > maxT) { if(!confirm(`⚠️ Format nécessite jusqu'à ${Math.max(ter1, ter2)} terrains (vous en avez ${maxT}). Forcer la création ?`)) return; }
 
-        p1.str = `${p1.p6?p1.p6+'x6 ':''}${p1.p5?p1.p5+'x5 ':''}${p1.p4?p1.p4+'x4 ':''}${p1.p3?p1.p3+'x3 ':''}`.trim();
-        p2.str = `${p2.p6?p2.p6+'x6 ':''}${p2.p5?p2.p5+'x5 ':''}${p2.p4?p2.p4+'x4 ':''}${p2.p3?p2.p3+'x3 ':''}`.trim();
-
-        let set = getCatSettings();
-        let rotP1 = Math.max(p1.p6?15:0, p1.p5?10:0, p1.p4?6:0, p1.p3?3:0);
-        let rotP2 = Math.max(p2.p6?15:0, p2.p5?10:0, p2.p4?6:0, p2.p3?3:0);
-        let durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0;
-        let durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
+        p1.str = `${p1.p6?p1.p6+'x6 ':''}${p1.p5?p1.p5+'x5 ':''}${p1.p4?p1.p4+'x4 ':''}${p1.p3?p1.p3+'x3 ':''}`.trim(); p2.str = `${p2.p6?p2.p6+'x6 ':''}${p2.p5?p2.p5+'x5 ':''}${p2.p4?p2.p4+'x4 ':''}${p2.p3?p2.p3+'x3 ':''}`.trim();
+        let set = getCatSettings(); let rotP1 = Math.max(p1.p6?15:0, p1.p5?10:0, p1.p4?6:0, p1.p3?3:0); let rotP2 = Math.max(p2.p6?15:0, p2.p5?10:0, p2.p4?6:0, p2.p3?3:0);
+        let durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; let durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
         let repechage = t2 > total ? t2 - total : 0;
 
-        let s = { title: "Mode Manuel", p1: p1, p2: p2 };
-        let phase1 = appState.cats[appState.activeCat].phase1;
+        let s = { title: "Mode Manuel", p1: p1, p2: p2 }; let phase1 = appState.cats[appState.activeCat].phase1;
         applyDayPlan(s, phase1.teams.length ? phase1.teams : [...phase1.reserve, ...phase1.poules.flatMap(p=>p.teams)], durP1, durP2, repechage);
     }
 
     function applyDayPlan(s, teams, durP1, durP2, repechage) {
-        let p1 = appState.cats[appState.activeCat].phase1;
-        let p2 = appState.cats[appState.activeCat].phase2;
+        let p1 = appState.cats[appState.activeCat].phase1; let p2 = appState.cats[appState.activeCat].phase2;
         
-        p1.formatStr = s.title; p1.validated = false;
-        p1.poules = []; p1.reserve = [];
+        p1.formatStr = s.title; p1.validated = false; p1.poules = []; p1.reserve = [];
         p2.targetConfig = { ...s.p2, dur: durP2, rep: repechage };
 
-        const make = (n, target) => { 
-            for(let i=0; i<n; i++) p1.poules.push({ letter: String.fromCharCode(65+p1.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {}, adjustments: {} }); 
-        };
-        make(s.p1.p6, 6); make(s.p1.p5, 5); make(s.p1.p4, 4); make(s.p1.p3, 3);
-
+        // 1. Generation Phase 1
+        const makeP1 = (n, target) => { for(let i=0; i<n; i++) p1.poules.push({ letter: String.fromCharCode(65+p1.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {}, adjustments: {} }); };
+        makeP1(s.p1.p6, 6); makeP1(s.p1.p5, 5); makeP1(s.p1.p4, 4); makeP1(s.p1.p3, 3);
         const sorted = [...teams].sort((a,b) => (a.level - b.level) || (b.foreign - a.foreign));
-        sorted.forEach(t => {
-            const best = p1.poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0];
-            if(best) best.teams.push(t); else p1.reserve.push(t);
-        });
+        sorted.forEach(t => { const best = p1.poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x => x.club === t.club).length - b.teams.filter(x => x.club === t.club).length) || (a.teams.length - b.teams.length))[0]; if(best) best.teams.push(t); else p1.reserve.push(t); });
         
+        // 2. Pre-fill Phase 2 Blueprint (Fantômes)
+        p2.poules = []; p2.reserve = []; p2.validated = false;
+        let dummies = [];
+        p1.poules.forEach(p => {
+            for(let i=1; i<=p.target; i++) {
+                dummies.push({ id: `ghost_${p.letter}_${i}`, name: `${i}${i===1?'er':'ème'} Poule ${p.letter}`, level: i, club: '', foreign: false, customNote: 'Équipe virtuelle', isDummy: true });
+            }
+        });
+        for(let i=0; i<repechage; i++) dummies.push({ id: `ghost_rep_${i}`, name: `Repêché ${i+1}`, level: 99, club: '', foreign: false, customNote: 'Place de repêchage', isDummy: true });
+        dummies.sort((a,b) => a.level - b.level); // Regroupe tous les 1ers, puis 2èmes...
+
+        const makeP2 = (n, target) => { for(let i=0; i<n; i++) p2.poules.push({ letter: String.fromCharCode(65+p2.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {}, adjustments: {} }); };
+        makeP2(s.p2.p6, 6); makeP2(s.p2.p5, 5); makeP2(s.p2.p4, 4); makeP2(s.p2.p3, 3);
+        
+        let tIndex = 0;
+        p2.poules.forEach(p => { p.placeRange = `Places ${tIndex+1} à ${tIndex+p.target}`; for(let i=0; i<p.target; i++) { if (tIndex < dummies.length) { p.teams.push(dummies[tIndex]); tIndex++; } } });
+        
+        // UI
         document.getElementById('summary-p1').innerText = s.p1.str; document.getElementById('summary-p2').innerText = s.p2.str;
         document.getElementById('summary-time').innerHTML = `<span class="text-[10px] text-slate-500 font-bold block mb-1">DURÉES CALCULÉES :</span><span class="text-xs font-black text-amber-600">☀️ Matin: ${durP1} min | 🌤️ A-Midi: ${durP2} min</span>${repechage>0?`<br><span class="text-[10px] font-black text-red-500">⚠️ Phase 2 nécessitera ${repechage} repêchage(s)</span>`:''}`;
-        
         appState.activePouleTab = p1.poules[0]?.letter || 'A'; saveState(); toggleArchitect(true); renderBoard(); renderReserve();
     }
 
     function toggleArchitect(forceHide = false) {
-        if(forceHide) { 
-            document.getElementById('scenario-list').classList.add('hidden'); 
-            document.getElementById('manual-mode-panel').classList.add('hidden');
-            document.getElementById('architect-settings').classList.add('hidden'); 
-            document.getElementById('scenario-summary').classList.remove('hidden'); 
-            document.getElementById('btn-edit-architect').classList.remove('hidden'); 
-        } else { 
-            document.getElementById('scenario-list').classList.remove('hidden'); 
-            document.getElementById('manual-mode-panel').classList.remove('hidden');
-            document.getElementById('architect-settings').classList.remove('hidden'); 
-            document.getElementById('scenario-summary').classList.add('hidden'); 
-            document.getElementById('btn-edit-architect').classList.add('hidden'); 
-            appState.cats[appState.activeCat].phase1.formatStr = null; 
-        }
+        if(forceHide) { document.getElementById('scenario-list').classList.add('hidden'); document.getElementById('manual-mode-panel').classList.add('hidden'); document.getElementById('architect-settings').classList.add('hidden'); document.getElementById('scenario-summary').classList.remove('hidden'); document.getElementById('btn-edit-architect').classList.remove('hidden'); } 
+        else { document.getElementById('scenario-list').classList.remove('hidden'); document.getElementById('manual-mode-panel').classList.remove('hidden'); document.getElementById('architect-settings').classList.remove('hidden'); document.getElementById('scenario-summary').classList.add('hidden'); document.getElementById('btn-edit-architect').classList.add('hidden'); appState.cats[appState.activeCat].phase1.formatStr = null; }
     }
 
     function validateFormat() { let phase = getActivePhase(); if(phase.poules.some(p => p.teams.length !== p.target)) { if(!confirm("Poules incomplètes. Continuer ?")) return; } phase.validated = true; saveState(); renderBoard(); }
@@ -531,7 +523,7 @@
 
         allTeams.sort((a, b) => { if(a.mRank !== b.mRank) return a.mRank - b.mRank; if(Math.abs(a.avgPts - b.avgPts) > 0.01) return b.avgPts - a.avgPts; if(Math.abs(a.avgDiff - b.avgDiff) > 0.01) return b.avgDiff - a.avgDiff; return b.foreign - a.foreign; });
         
-        let p2Teams = allTeams.map((t, idx) => { return { id: t.id, club: t.club, name: `${t.name} (${t.mRank}${t.mRank===1?'er':'e'} P.${t.letter})`, level: idx+1, foreign: t.foreign, customNote: `Ratio: ${t.avgPts.toFixed(2)} pts/m | Diff: ${t.avgDiff.toFixed(2)}/m` }; });
+        let p2Teams = allTeams.map((t, idx) => { return { id: t.id, club: t.club, name: `${t.name} (${t.mRank}${t.mRank===1?'er':'e'} Poule ${t.letter})`, level: idx+1, foreign: t.foreign, customNote: `Ratio: ${t.avgPts.toFixed(2)} pts/m | Diff: ${t.avgDiff.toFixed(2)}/m`, isDummy: false }; });
         
         let cfg = p2.targetConfig || {p4: Math.floor(allTeams.length/4), p6:0, p5:0, p3:0, rep:0};
         p2.poules = []; p2.reserve = []; p2.validated = false;
@@ -540,13 +532,10 @@
         makeP2(cfg.p6, 6); makeP2(cfg.p5, 5); makeP2(cfg.p4, 4); makeP2(cfg.p3, 3);
         
         let tIndex = 0;
-        p2.poules.forEach(p => { 
-            p.placeRange = `Places ${tIndex+1} à ${tIndex+p.target}`; 
-            for(let i=0; i<p.target; i++) { if (tIndex < p2Teams.length) { p.teams.push(p2Teams[tIndex]); tIndex++; } } 
-        });
+        p2.poules.forEach(p => { p.placeRange = `Places ${tIndex+1} à ${tIndex+p.target}`; for(let i=0; i<p.target; i++) { if (tIndex < p2Teams.length) { p.teams.push(p2Teams[tIndex]); tIndex++; } } });
         for(let i=tIndex; i<p2Teams.length; i++) p2.reserve.push(p2Teams[i]);
         
-        if(cfg.rep > 0) alert(`ATTENTION : Votre format nécessite ${cfg.rep} équipe(s) supplémentaire(s). Remplissez les trous en dupliquant des équipes depuis la réserve ou ajustez le format.`);
+        if(cfg.rep > 0) alert(`Format appliqué. ATTENTION : ${cfg.rep} place(s) vide(s) à combler par repêchage manuel.`);
         appState.activePouleTab = 'A'; saveState(); initCategoryUI();
     }
 
@@ -581,9 +570,9 @@
             document.getElementById('match-board').className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
             document.getElementById('match-board').innerHTML = phase.poules.map((p, i) => `
                 <div class="bg-white p-4 rounded-2xl border-2 shadow-sm ${p.teams.length < p.target ? 'border-red-300 bg-red-50' : ''}" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${i})">
-                    <h3 class="font-black italic uppercase mb-2">Poule ${p.letter} <span class="text-[10px] opacity-40">(${p.teams.length}/${p.target})</span><br><span class="text-[9px] text-indigo-500">${p.placeRange||''}</span></h3>
+                    <h3 class="font-black italic uppercase mb-2 flex justify-between"><span>Poule ${p.letter} <span class="text-[10px] opacity-40">(${p.teams.length}/${p.target})</span></span><span class="text-[9px] text-indigo-500">${p.placeRange||''}</span></h3>
                     ${p.teams.length < p.target ? `<div class="text-[10px] font-black text-red-500 mb-2">⚠️ Manque ${p.target - p.teams.length} équipe(s)</div>` : ''}
-                    <div class="space-y-1 min-h-[50px]">${p.teams.map((t, ti) => `<div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-xs font-bold flex justify-between cursor-move shadow-sm hover:border-amber-400"><span>${t.name} ${t.customNote?`<span title="${t.customNote}" class="text-indigo-500 font-black cursor-help">ℹ️</span>`:''}</span><span class="opacity-40 text-[9px]">N.${t.level}</span></div>`).join('')}</div>
+                    <div class="space-y-1 min-h-[50px]">${p.teams.map((t, ti) => `<div draggable="true" ondragstart="dragFromPoule(event, ${i}, ${ti})" class="p-2 bg-slate-50 border rounded-lg text-xs font-bold flex justify-between items-center cursor-move shadow-sm hover:border-amber-400 ${t.isDummy?'text-indigo-600 border-indigo-200 border-dashed bg-indigo-50/50':''}"><span class="truncate">${t.name} ${t.customNote&&!t.isDummy?`<span title="${t.customNote}" class="text-indigo-500 font-black cursor-help">ℹ️</span>`:''}</span><span class="opacity-40 text-[9px] ml-2">N.${t.level}</span></div>`).join('')}</div>
                 </div>`).join('');
         } else {
             document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('deploy-zone').classList.remove('hidden'); document.getElementById('poule-tabs').classList.remove('hidden');
@@ -594,28 +583,34 @@
             
             if(p.teams.length !== p.target) content = `<div class="text-center py-10 opacity-30 italic">Ajustez les équipes.</div>`;
             else {
+                let isGhostPhase = p.teams.some(t => t.isDummy);
+                
                 let matchesRows = MATRICES[p.target].map((m, mIdx) => {
                     let tStr = p.tUsed === 2 ? ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
                     let sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
-                    return `<tr><td class="font-bold text-slate-500">T.${tStr}</td><td class="excel-yellow">${p.teams[m.b-1].name}</td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td><td>${p.teams[m.a-1].name}</td><td class="text-orange-600">${p.teams[m.arb-1].name}</td><td><input type="checkbox" title="Lock Master" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer"></td></tr>`;
+                    let lockedAttr = isGhostPhase ? 'disabled' : '';
+                    let opacityClass = isGhostPhase ? 'opacity-50' : '';
+                    return `<tr class="${opacityClass}"><td class="font-bold text-slate-500">T.${tStr}</td><td class="excel-yellow ${p.teams[m.b-1].isDummy?'text-indigo-600':''}">${p.teams[m.b-1].name}</td><td class="bg-slate-50 p-0"><input type="number" ${lockedAttr} class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" ${lockedAttr} class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td><td class="${p.teams[m.a-1].isDummy?'text-indigo-600':''}">${p.teams[m.a-1].name}</td><td class="text-orange-600">${p.teams[m.arb-1].name}</td><td><input type="checkbox" title="Lock Master" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer" ${lockedAttr}></td></tr>`;
                 }).join('');
 
                 let ranking = computeRanking(p);
                 let classRows = ranking.map((r, idx) => {
                     let adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : {val:'', note:''};
-                    return `<tr><td class="excel-yellow">${idx+1}</td><td class="${idx%2===0?'excel-blue':''} font-bold text-left px-2">${r.name}</td><td class="font-black">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-0"><input type="number" value="${adj.val}" class="w-10 text-center font-bold outline-none bg-slate-50 text-[10px]" onchange="updateAdjVal(${pIdx}, ${r.id}, this.value)" placeholder="+/-"></td><td class="p-0"><input type="text" value="${adj.note}" class="w-full text-left px-1 font-normal outline-none bg-slate-50 text-[10px]" onchange="updateAdjNote(${pIdx}, ${r.id}, this.value)" placeholder="Motif..."></td></tr>`;
+                    let lockedAttr = isGhostPhase ? 'disabled' : '';
+                    let opacityClass = isGhostPhase ? 'opacity-50' : '';
+                    return `<tr class="${opacityClass}"><td class="excel-yellow">${idx+1}</td><td class="${idx%2===0?'excel-blue':''} font-bold text-left px-2 ${r.ogTeam.isDummy?'text-indigo-600 italic':''}">${r.name}</td><td class="font-black">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-0"><input type="number" ${lockedAttr} value="${adj.val}" class="w-10 text-center font-bold outline-none bg-slate-50 text-[10px]" onchange="updateAdjVal(${pIdx}, ${r.id}, this.value)" placeholder="+/-"></td><td class="p-0"><input type="text" ${lockedAttr} value="${adj.note}" class="w-full text-left px-1 font-normal outline-none bg-slate-50 text-[10px]" onchange="updateAdjNote(${pIdx}, ${r.id}, this.value)" placeholder="Motif..."></td></tr>`;
                 }).join('');
 
-                content = `<div class="flex flex-col lg:flex-row gap-6 items-start w-full"><table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table><div class="flex-1 w-full space-y-3"><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajust.</th><th>Motif Départage</th></tr></thead><tbody>${classRows}</tbody></table></div></div>`;
+                content = `${isGhostPhase?`<div class="bg-indigo-100 text-indigo-800 text-center py-2 text-xs font-black uppercase tracking-widest rounded-xl mb-4">Vue Fantôme (Saisie bloquée)</div>`:''}<div class="flex flex-col lg:flex-row gap-6 items-start w-full"><table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table><div class="flex-1 w-full space-y-3"><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajust.</th><th>Motif Départage</th></tr></thead><tbody>${classRows}</tbody></table></div></div>`;
             }
 
-            document.getElementById('match-board').innerHTML = `<div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${pIdx})"><div class="flex justify-between items-center mb-4 border-b pb-4"><h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[12px] text-indigo-500 ml-2">${p.placeRange||''}</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600">Détacher / Modifier vue globale</button></h3><select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select></div>${content}</div>`;
+            document.getElementById('match-board').innerHTML = `<div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full" id="print-zone" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${pIdx})"><div class="flex justify-between items-center mb-4 border-b pb-4"><h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[12px] text-indigo-500 ml-2">${p.placeRange||''}</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600">Détacher / Modifier vue globale</button></h3><select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select></div>${content}</div>`;
         }
     }
 
     function renderReserve() {
         let phase = getActivePhase(); document.getElementById('reserve-count').innerText = phase.reserve.length;
-        document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move hover:border-amber-400">${t.name} ${t.foreign?'🌍':''} ${t.customNote?`<span title="${t.customNote}" class="text-indigo-500 font-black cursor-help">ℹ️</span>`:''}</div>`).join('') || `<div class="opacity-20 text-[10px] font-bold uppercase italic text-center">Glissez une équipe ici</div>`;
+        document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move hover:border-amber-400 ${t.isDummy?'text-indigo-600 border-indigo-200 border-dashed':''}">${t.name} ${t.foreign?'🌍':''} ${t.customNote&&!t.isDummy?`<span title="${t.customNote}" class="text-indigo-500 font-black cursor-help">ℹ️</span>`:''}</div>`).join('') || `<div class="opacity-20 text-[10px] font-bold uppercase italic text-center">Glissez une équipe ici</div>`;
     }
 
     function allowDrop(e) { e.preventDefault(); }
@@ -624,10 +619,13 @@
     function dropToPoule(e, targetPIdx) { e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json")); let phase = getActivePhase(); let team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : phase.reserve.splice(d.tIdx, 1)[0]; if (team) { if (appState.currentPhase === 'PHASE2') { let note = prompt("Motif du transfert :"); if (note) team.customNote = note; } phase.poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); } }
     function dropToReserve(e) { e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json")); let phase = getActivePhase(); if (d.src === 'poule') { phase.reserve.push(phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); } }
 
-    async function simulateScores() { if(!confirm("🧪 Injecter scores aléatoires ?")) return; getActivePhase().poules.forEach(p => { if(p.teams.length === p.target) { if(!p.scores) p.scores = {}; MATRICES[p.target].forEach((m, idx) => { p.scores[idx] = { s1: Math.floor(Math.random()*4), s2: Math.floor(Math.random()*4), locked: false }; }); } }); saveState(); renderBoard(); await deployCategory(); }
+    async function simulateScores() { if(!confirm("🧪 Injecter scores aléatoires ?")) return; getActivePhase().poules.forEach(p => { if(p.teams.length === p.target && !p.teams[0].isDummy) { if(!p.scores) p.scores = {}; MATRICES[p.target].forEach((m, idx) => { p.scores[idx] = { s1: Math.floor(Math.random()*4), s2: Math.floor(Math.random()*4), locked: false }; }); } }); saveState(); renderBoard(); await deployCategory(); }
 
     async function deployCategory() {
         if (!db) return alert("Firebase non configuré."); const year = document.getElementById('config-year').value; const updates = {}; let globalOrder = 1;
+        let hasGhosts = getActivePhase().poules.some(p => p.teams.some(t => t.isDummy));
+        if(hasGhosts) return alert("Impossible d'envoyer des équipes fantômes aux terrains. Procédez d'abord à la péréquation.");
+        
         getActivePhase().poules.forEach(p => {
             if (p.teams.length === p.target) {
                 MATRICES[p.target].forEach((m, idx) => {
@@ -640,35 +638,113 @@
         if(Object.keys(updates).length > 0) { await db.ref().update(updates); alert(`✅ Déploiement réussi !`); }
     }
 
+    // --- IMPRESSION DES CLASSEMENTS ---
+    function printCategoryResults() {
+        let phase = getActivePhase();
+        if(!phase.poules || phase.poules.length === 0 || phase.poules[0].teams[0]?.isDummy) return alert("Classement non disponible.");
+        
+        let htmlContent = `<div style="font-family:sans-serif;"><h2>CLASSEMENT OFFICIEL - ${appState.activeCat} - ${appState.currentPhase}</h2>`;
+        phase.poules.forEach(p => {
+            if(p.teams.length !== p.target) return;
+            let ranking = computeRanking(p);
+            htmlContent += `<h3 style="margin-top:20px; border-bottom:2px solid #000; padding-bottom:5px;">POULE ${p.letter} <span style="font-size:12px; font-weight:normal;">(${p.placeRange||''})</span></h3>`;
+            htmlContent += `<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px;"><thead><tr style="background:#eee;">
+                <th style="padding:5px; border:1px solid #ccc;">Rang</th>
+                <th style="padding:5px; border:1px solid #ccc;">Équipe</th>
+                <th style="padding:5px; border:1px solid #ccc; text-align:center;">Pts</th>
+                <th style="padding:5px; border:1px solid #ccc; text-align:center;">Diff</th></tr></thead><tbody>`;
+            ranking.forEach((r, idx) => {
+                htmlContent += `<tr><td style="padding:5px; border:1px solid #ccc; font-weight:bold;">${idx+1}</td>
+                <td style="padding:5px; border:1px solid #ccc;">${r.name}</td>
+                <td style="padding:5px; border:1px solid #ccc; text-align:center;">${r.pts}</td>
+                <td style="padding:5px; border:1px solid #ccc; text-align:center;">${r.diff>0?'+'+r.diff:r.diff}</td></tr>`;
+            });
+            htmlContent += `</tbody></table>`;
+        });
+        htmlContent += `</div>`;
+        
+        let printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write('<html><head><title>Classement T3N</title></head><body>' + htmlContent + '</body></html>');
+        printWindow.document.close();
+        printWindow.onload = function() { printWindow.print(); }
+    }
+
+    // --- CALCUL DU TROPHEE ---
+    function computeTrophy() {
+        document.getElementById('trophy-empty').classList.add('hidden');
+        document.getElementById('trophy-podium').classList.remove('hidden');
+        document.getElementById('trophy-list').classList.remove('hidden');
+
+        let clubs = {};
+        appState.masterData.forEach(c => { clubs[c.name] = { name: c.name, U8: 999, U10: 999, U12: 999, pts: 0 }; });
+
+        ['U8', 'U10', 'U12'].forEach(cat => {
+            let p2 = appState.cats[cat].phase2;
+            if (!p2.poules || p2.poules.length === 0 || (p2.poules[0].teams[0] && p2.poules[0].teams[0].isDummy)) return; // Ignorer si non calculé ou fantôme
+            
+            let currentAbsRank = 1;
+            p2.poules.forEach(p => {
+                if(p.teams.length !== p.target) return;
+                let ranking = computeRanking(p);
+                ranking.forEach((r, idx) => {
+                    let absRank = currentAbsRank + idx;
+                    let clubName = r.ogTeam ? r.ogTeam.club : null;
+                    if (clubName && clubs[clubName]) {
+                        if (absRank < clubs[clubName][cat]) clubs[clubName][cat] = absRank; // Garder le meilleur rang
+                    }
+                });
+                currentAbsRank += p.target;
+            });
+        });
+
+        const pointsMap = {1:10, 2:9, 3:8, 4:7, 5:6, 6:5, 7:4, 8:3, 9:2, 10:1};
+        Object.values(clubs).forEach(c => {
+            ['U8', 'U10', 'U12'].forEach(cat => { if (c[cat] <= 10) c.pts += pointsMap[c[cat]]; });
+        });
+
+        let sorted = Object.values(clubs).filter(c => c.pts > 0).sort((a, b) => {
+            if (b.pts !== a.pts) return b.pts - a.pts; // Tri Points
+            if (a.U12 !== b.U12) return a.U12 - b.U12; // Tie-break U12
+            if (a.U10 !== b.U10) return a.U10 - b.U10; // Tie-break U10
+            return a.U8 - b.U8;                        // Tie-break U8
+        });
+
+        renderTrophy(sorted);
+    }
+
+    function renderTrophy(sortedList) {
+        if(sortedList.length === 0) {
+            document.getElementById('trophy-empty').classList.remove('hidden'); document.getElementById('trophy-podium').classList.add('hidden'); document.getElementById('trophy-list').classList.add('hidden'); return;
+        }
+
+        // PODIUM
+        let pHtml = '';
+        if(sortedList[1]) pHtml += `<div class="flex flex-col items-center justify-end h-48"><div class="text-center font-bold text-sm mb-2 text-slate-600 truncate w-32">${sortedList[1].name}</div><div class="bg-slate-300 w-32 h-3/4 rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-inner"><span class="text-3xl">🥈</span><span class="font-black text-xl mt-2 text-slate-500">${sortedList[1].pts} pts</span></div></div>`;
+        if(sortedList[0]) pHtml += `<div class="flex flex-col items-center justify-end h-64"><div class="text-center font-black text-lg mb-2 text-amber-600 truncate w-40">${sortedList[0].name}</div><div class="bg-amber-400 w-40 h-full rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-inner"><span class="text-5xl drop-shadow-md">🏆</span><span class="font-black text-3xl mt-4 text-amber-900">${sortedList[0].pts} pts</span></div></div>`;
+        if(sortedList[2]) pHtml += `<div class="flex flex-col items-center justify-end h-40"><div class="text-center font-bold text-sm mb-2 text-slate-600 truncate w-32">${sortedList[2].name}</div><div class="bg-orange-300 w-32 h-2/3 rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-inner"><span class="text-3xl">🥉</span><span class="font-black text-xl mt-2 text-orange-800">${sortedList[2].pts} pts</span></div></div>`;
+        document.getElementById('trophy-podium').innerHTML = pHtml;
+
+        // TABLEAU
+        document.getElementById('trophy-tbody').innerHTML = sortedList.map((c, idx) => `
+            <tr class="hover:bg-slate-50 transition-colors">
+                <td class="p-4 font-black ${idx<3?'text-amber-500':'text-slate-400'}">${idx+1}</td>
+                <td class="p-4 font-bold text-slate-800 uppercase">${c.name}</td>
+                <td class="p-4 text-center text-xs font-bold ${c.U8===999?'text-slate-300':'text-blue-500'}">${c.U8===999?'-':(c.U8<=10?c.U8+'e ('+pointsMap[c.U8]+'pt)':'11+')}</td>
+                <td class="p-4 text-center text-xs font-bold ${c.U10===999?'text-slate-300':'text-slate-600'}">${c.U10===999?'-':(c.U10<=10?c.U10+'e ('+pointsMap[c.U10]+'pt)':'11+')}</td>
+                <td class="p-4 text-center text-xs font-bold ${c.U12===999?'text-slate-300':'text-red-500'}">${c.U12===999?'-':(c.U12<=10?c.U12+'e ('+pointsMap[c.U12]+'pt)':'11+')}</td>
+                <td class="p-4 text-center font-black text-amber-600 text-lg">${c.pts}</td>
+            </tr>
+        `).join('');
+    }
+    const pointsMap = {1:10, 2:9, 3:8, 4:7, 5:6, 6:5, 7:4, 8:3, 9:2, 10:1};
+
     async function purge(type) {
         if(!db) return alert("Firebase non configuré."); 
         const year = document.getElementById('config-year').value; 
         const cat = document.getElementById('maint-cat').value;
-        
-        if(type==='ALL') {
-            if(confirm(`DANGER ABSOLU : Voulez-vous vraiment TOUT supprimer pour l'édition ${year} ? (Irréversible)`)) { 
-                await db.ref(`t3n/${year}`).remove(); 
-                localStorage.removeItem('t3n_master_final'); 
-                location.reload(); 
-            }
-        }
-        else if(type==='scores') {
-            if(confirm(`Réinitialiser les scores de la phase actuelle pour les ${cat} ?`)) { 
-                const snap = await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).once('value'); 
-                if(snap.exists()) { 
-                    const ups = {}; 
-                    snap.forEach(c => { ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; }); 
-                    await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).update(ups); 
-                    alert("Scores réinitialisés !");
-                } 
-            }
-        } 
-        else {
-            if (confirm(`Supprimer l'élément [${type}] pour les ${cat} ?`)) {
-                await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/${type}`).remove();
-                alert(`Purge de ${type} terminée.`);
-            }
-        }
+        if(type==='ALL') { if(confirm(`DANGER ABSOLU : Voulez-vous vraiment TOUT supprimer pour l'édition ${year} ? (Irréversible)`)) { await db.ref(`t3n/${year}`).remove(); localStorage.removeItem('t3n_master_v26'); location.reload(); } }
+        else if(type==='scores') { if(confirm(`Réinitialiser les scores ?`)) { const snap = await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).once('value'); if(snap.exists()) { const ups = {}; snap.forEach(c => { ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; }); await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).update(ups); alert("Scores réinitialisés !"); } } } 
+        else { if (confirm(`Supprimer l'élément [${type}] pour les ${cat} ?`)) { await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/${type}`).remove(); alert(`Purge terminée.`); } }
     }
 </script>
 </body>
