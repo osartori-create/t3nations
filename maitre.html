@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v25 - Logistique & Horaires</title>
+    <title>T3N Master - Orchestrateur & Architecte</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -38,12 +38,13 @@
             <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
             <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
             <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
+            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-red-400 border border-red-500/20" id="tab-MAINTENANCE">Purges</button>
         </nav>
     </div>
     <div class="flex gap-4 items-center">
         <span id="sync-status" class="text-[9px] text-green-400 font-black uppercase tracking-widest animate-pulse hidden">● Live</span>
         <div id="save-indicator" class="text-[10px] text-slate-400 font-bold italic transition-opacity duration-500 opacity-0">💾 Sauvegardé</div>
-        <button onclick="simulateScores()" class="text-[9px] bg-indigo-600 text-white font-black uppercase px-3 py-1 rounded hover:bg-indigo-700">Test Factice</button>
+        <button onclick="simulateScores()" class="text-[9px] bg-indigo-600 text-white font-black uppercase px-3 py-1 rounded hover:bg-indigo-700 shadow-md">Test Factice</button>
     </div>
 </header>
 
@@ -51,8 +52,8 @@
     <section id="content-IMPORT" class="tab-content space-y-6">
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
             <h2 class="text-xl font-black uppercase mb-4 italic">1. Importation Sportive</h2>
-            <textarea id="csv-input" rows="6" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Copiez les colonnes Excel (Nom Club | U6 | U8 | U10 | U12)"></textarea>
-            <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 transition-all">Valider la base clubs</button>
+            <textarea id="csv-input" rows="6" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500 transition-colors" placeholder="Copiez les colonnes Excel (Nom Club | U6 | U8 | U10 | U12)"></textarea>
+            <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 shadow-lg active:scale-95 transition-all">Valider la base clubs</button>
         </div>
         <div id="master-table-container" class="bg-white p-6 rounded-[2.5rem] border border-slate-200 hidden shadow-sm">
             <table class="w-full text-left text-sm">
@@ -64,6 +65,7 @@
 
     <section id="content-CAT" class="tab-content hidden">
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            
             <div class="xl:col-span-3 space-y-6">
                 <div class="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24">
                     <h2 class="text-4xl font-black uppercase" id="active-cat-title">...</h2>
@@ -81,7 +83,33 @@
                             <label class="text-[8px] font-black uppercase text-slate-500 flex-1">Battement<br><div class="flex items-center"><input type="number" id="cfg-battement" onchange="updateCatSettings()" class="w-full bg-white border border-slate-200 rounded p-1 mt-1 font-black text-center text-xs" value="2"><span class="ml-1 text-[8px]">m</span></div></label>
                         </div>
 
-                        <div id="scenario-list" class="space-y-3 mb-6 max-h-[50vh] overflow-y-auto pr-2 pb-2"></div>
+                        <div id="scenario-list" class="space-y-3 mb-4 max-h-[40vh] overflow-y-auto pr-2 pb-2"></div>
+                        
+                        <div id="manual-mode-panel" class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl mb-4">
+                            <h4 class="text-[10px] font-black uppercase text-indigo-800 mb-2 flex items-center gap-2">🛠️ Mode Manuel</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-[9px] uppercase font-bold text-slate-500 mb-1">Matin (P1)</p>
+                                    <div class="flex gap-1">
+                                        <input type="number" id="m-p1-6" placeholder="x6" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                        <input type="number" id="m-p1-5" placeholder="x5" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                        <input type="number" id="m-p1-4" placeholder="x4" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                        <input type="number" id="m-p1-3" placeholder="x3" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-[9px] uppercase font-bold text-slate-500 mb-1">A-Midi (P2)</p>
+                                    <div class="flex gap-1">
+                                        <input type="number" id="m-p2-6" placeholder="x6" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                        <input type="number" id="m-p2-5" placeholder="x5" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                        <input type="number" id="m-p2-4" placeholder="x4" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                        <input type="number" id="m-p2-3" placeholder="x3" class="w-full text-center text-xs font-bold p-1 rounded border outline-none">
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="applyManualPlan()" class="mt-3 w-full bg-indigo-600 text-white text-[9px] font-black uppercase py-2 rounded-lg hover:bg-indigo-700 active:scale-95 transition-all">Simuler & Appliquer</button>
+                        </div>
+
                         <div id="scenario-summary" class="hidden bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl shadow-sm">
                             <p class="text-[10px] font-black text-amber-800 uppercase mb-1">Plan de Journée Actif</p>
                             <p class="text-xs font-bold text-slate-500 mt-2">Matin :</p>
@@ -142,12 +170,34 @@
             </div>
         </div>
     </section>
+
+    <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl max-w-4xl mx-auto">
+            <h2 class="text-2xl font-black uppercase text-red-600 mb-6 flex items-center gap-3">🛠️ Administration & Purges</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <h3 class="font-black uppercase text-sm border-b pb-2">Purge Ciblée (Par Catégorie)</h3>
+                    <select id="maint-cat" class="w-full p-3 rounded-xl bg-slate-100 font-bold border-none outline-none">
+                        <option value="U6">U6</option><option value="U8">U8</option><option value="U10">U10</option><option value="U12">U12</option>
+                    </select>
+                    <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors">Reset Scores Uniquement</button>
+                    <button onclick="purge('matches')" class="w-full py-3 bg-orange-50 text-orange-600 rounded-xl text-xs font-bold border border-orange-100 hover:bg-orange-100 transition-colors">Effacer tous les Matchs</button>
+                    <button onclick="purge('teams')" class="w-full py-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 hover:bg-red-100 transition-colors">Effacer Equipes & Formats</button>
+                </div>
+                <div class="bg-red-600 p-6 rounded-3xl text-white flex flex-col justify-between shadow-lg">
+                    <h3 class="font-black uppercase text-xl italic">Reset Global Annuel</h3>
+                    <p class="text-xs opacity-80 mb-4 font-bold">DANGER : Efface l'intégralité des données Firebase pour l'année sélectionnée, et vide la mémoire du navigateur.</p>
+                    <button onclick="purge('ALL')" class="w-full py-4 bg-white text-red-600 rounded-2xl font-black uppercase shadow-xl hover:scale-105 transition-transform">Purger l'Année Totale</button>
+                </div>
+            </div>
+        </div>
+    </section>
 </main>
 
 <script>
     const MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
-    const ROTATIONS_REQUISES = { 3:3, 4:6, 5:10, 6:15 }; 
     
+    // Matrice mathématique des rencontres
     const MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
         4: [{a:1,b:2,arb:4},{a:3,b:4,arb:1},{a:1,b:3,arb:2},{a:2,b:4,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
@@ -155,6 +205,7 @@
         6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
     };
 
+    // Recettes de base (qui seront inversées dynamiquement par l'algorithme)
     const RECIPES = [
         { teams: 14, title: "Classique", p1: {p6:0, p5:0, p4:2, p3:2, str:"2x4, 2x3"}, p2: {p6:1, p5:0, p4:2, p3:0, str:"1x6, 2x4"}, icon: "🏉" },
         { teams: 16, title: "Symétrique", p1: {p6:0, p5:0, p4:4, p3:0, str:"4x4"}, p2: {p6:0, p5:0, p4:4, p3:0, str:"4x4"}, icon: "⚖️" },
@@ -165,7 +216,17 @@
         { teams: 24, title: "Symétrique", p1: {p6:0, p5:0, p4:6, p3:0, str:"6x4"}, p2: {p6:0, p5:0, p4:6, p3:0, str:"6x4"}, icon: "⚖️" }
     ];
 
-    const firebaseConfig = { apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", authDomain: "t3nations.firebaseapp.com", databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app", projectId: "t3nations" };
+    // --- FIREBASE CONFIG ---
+    const firebaseConfig = {
+        // --- COLLE TES CLES ICI ---
+        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
+        authDomain: "t3nations.firebaseapp.com",
+        databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "t3nations",
+        storageBucket: "t3nations.firebasestorage.app",
+        messagingSenderId: "368081588642",
+        appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
+    };
     if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") firebase.initializeApp(firebaseConfig);
     const db = firebase.apps.length ? firebase.database() : null;
 
@@ -183,7 +244,7 @@
     function getCatSettings() { return appState.cats[appState.activeCat].settings; }
 
     function initApp() {
-        let saved = localStorage.getItem('t3n_master_v25');
+        let saved = localStorage.getItem('t3n_master_final');
         if (saved) { 
             appState = JSON.parse(saved); 
             Object.keys(appState.cats).forEach(k => { if(!appState.cats[k].settings) appState.cats[k].settings = {p1:120, p2:120, battement:2}; });
@@ -194,11 +255,30 @@
     }
 
     function saveState() {
-        localStorage.setItem('t3n_master_v25', JSON.stringify(appState));
+        localStorage.setItem('t3n_master_final', JSON.stringify(appState));
         let ind = document.getElementById('save-indicator'); ind.classList.remove('opacity-0'); setTimeout(() => ind.classList.add('opacity-0'), 2000);
     }
 
     function broadcastSettings() { if(db) db.ref(`t3n/settings`).update({ activeYear: document.getElementById('config-year').value, [`activePhase_${appState.activeCat}`]: appState.currentPhase }); }
+
+    let syncListener = null;
+    function attachFirebaseListener() {
+        if (!db) return; broadcastSettings();
+        const year = document.getElementById('config-year').value;
+        if (syncListener) syncListener.ref.off('child_changed', syncListener.cb);
+        const cb = db.ref(`t3n/${year}/${appState.activeCat}_${appState.currentPhase}/matches`).on('child_changed', snap => {
+            let data = snap.val(); let m = snap.key.match(/^P([A-Za-z]+)_M(\d+)$/); 
+            if(m) {
+                let pLetter = m[1], mIdx = parseInt(m[2]) - 1, phaseData = getActivePhase(), pIdx = phaseData.poules.findIndex(p => p.letter === pLetter);
+                if(pIdx > -1) {
+                    if(!phaseData.poules[pIdx].scores) phaseData.poules[pIdx].scores = {}; if(!phaseData.poules[pIdx].scores[mIdx]) phaseData.poules[pIdx].scores[mIdx] = {s1:'', s2:'', locked:false};
+                    phaseData.poules[pIdx].scores[mIdx].s1 = data.s1; phaseData.poules[pIdx].scores[mIdx].s2 = data.s2; phaseData.poules[pIdx].scores[mIdx].locked = data.locked;
+                    saveState(); renderBoard();
+                }
+            }
+        });
+        syncListener = { ref: db.ref(`t3n/${year}/${appState.activeCat}_${appState.currentPhase}/matches`), cb: cb };
+    }
 
     function showTab(id) {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab', 'active-u8', 'active-u10', 'active-u12'));
@@ -206,7 +286,7 @@
         if (id === 'U8') btn.classList.add('active-u8'); else if (id === 'U10') btn.classList.add('active-u10'); else if (id === 'U12') btn.classList.add('active-u12');
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
         if (id === 'IMPORT' || id === 'MAINTENANCE') { document.getElementById(`content-${id}`).classList.remove('hidden'); } 
-        else { appState.activeCat = id; document.getElementById('content-CAT').classList.remove('hidden'); initCategoryUI(); }
+        else { appState.activeCat = id; document.getElementById('content-CAT').classList.remove('hidden'); initCategoryUI(); attachFirebaseListener(); }
         saveState();
     }
 
@@ -214,7 +294,7 @@
         appState.currentPhase = phase;
         document.getElementById('tab-phase1').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE1'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500'}`;
         document.getElementById('tab-phase2').className = `px-4 py-2 text-[10px] font-black uppercase rounded-lg ${phase==='PHASE2'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500 hover:bg-slate-200'}`;
-        initCategoryUI(); broadcastSettings(); saveState();
+        initCategoryUI(); attachFirebaseListener(); broadcastSettings(); saveState();
     }
 
     function updateCatSettings() {
@@ -247,7 +327,7 @@
         document.getElementById('master-table-container').classList.remove('hidden');
     }
 
-    // --- MOTEUR ARCHITECTE TEMPOREL ---
+    // --- MOTEUR ARCHITECTE ---
     function initCategoryUI() {
         let titleEl = document.getElementById('active-cat-title'); titleEl.innerText = appState.activeCat;
         titleEl.className = 'text-4xl font-black uppercase ' + (appState.activeCat === 'U8' ? 'text-blue-600' : appState.activeCat === 'U10' ? 'text-slate-800' : appState.activeCat === 'U12' ? 'text-red-600' : 'text-amber-500');
@@ -289,8 +369,19 @@
         let maxT = MAX_TERRAINS[appState.activeCat];
         let set = getCatSettings();
         
-        let scenarios = RECIPES.filter(r => r.teams === total);
+        // 1. Charger les recettes de base
+        let baseScenarios = RECIPES.filter(r => r.teams === total);
+        let scenarios = [];
+
+        // 2. Création dynamique des inversions
+        baseScenarios.forEach(s => {
+            scenarios.push(s);
+            if(s.p1.str !== s.p2.str) {
+                scenarios.push({ title: s.title + " (Inversé)", p1: s.p2, p2: s.p1, icon: "🔄" });
+            }
+        });
         
+        // 3. Fallback algorithmique
         if(scenarios.length === 0) {
             for(let p6=0; p6<=total/6; p6++) {
                 for(let p5=0; p5<=total/5; p5++) {
@@ -312,16 +403,13 @@
         if(scenarios.length === 0) { list.innerHTML = `<p class="text-xs text-red-500 font-bold">⚠️ Aucun plan ne rentre sur ${maxT} terrains.</p>`; return; }
 
         scenarios.forEach(s => {
-            // Calcul Mathématique précis du temps
             let rotP1 = Math.max(s.p1.p6?15:0, s.p1.p5?10:0, s.p1.p4?6:0, s.p1.p3?3:0);
             let rotP2 = Math.max(s.p2.p6?15:0, s.p2.p5?10:0, s.p2.p4?6:0, s.p2.p3?3:0);
             
-            let durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1);
-            let durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2);
+            let durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0;
+            let durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
+            let timeWarning = (durP1 < 5 || durP2 < 5) ? `<span class="text-red-500 bg-red-50 px-1 rounded ml-2">⚠️ Impossible temporellement</span>` : '';
             
-            let timeWarning = (durP1 < 5 || durP2 < 5) ? `<span class="text-red-500 bg-red-50 px-1 rounded ml-2">⚠️ Impossible</span>` : '';
-            
-            // Calcul Repêchages
             let slotsP2 = s.p2.p6*6 + s.p2.p5*5 + s.p2.p4*4 + s.p2.p3*3;
             let repechage = slotsP2 > total ? slotsP2 - total : 0;
             let repBadge = repechage > 0 ? `<div class="bg-red-100 text-red-800 text-[9px] font-black px-2 py-1 rounded mt-2">⚠️ Phase 2 nécessitera ${repechage} repêchage(s)</div>` : '';
@@ -343,6 +431,44 @@
             div.onclick = () => { applyDayPlan(s, phase.teams.length ? phase.teams : [...phase.reserve, ...phase.poules.flatMap(p=>p.teams)], durP1, durP2, repechage); };
             list.appendChild(div);
         });
+    }
+
+    // --- MODE MANUEL ---
+    function applyManualPlan() {
+        let total = parseInt(document.getElementById('active-cat-count').innerText);
+        let maxT = MAX_TERRAINS[appState.activeCat];
+        let p1 = { p6: parseInt(document.getElementById('m-p1-6').value)||0, p5: parseInt(document.getElementById('m-p1-5').value)||0, p4: parseInt(document.getElementById('m-p1-4').value)||0, p3: parseInt(document.getElementById('m-p1-3').value)||0 };
+        let p2 = { p6: parseInt(document.getElementById('m-p2-6').value)||0, p5: parseInt(document.getElementById('m-p2-5').value)||0, p4: parseInt(document.getElementById('m-p2-4').value)||0, p3: parseInt(document.getElementById('m-p2-3').value)||0 };
+        
+        let t1 = p1.p6*6 + p1.p5*5 + p1.p4*4 + p1.p3*3;
+        let t2 = p2.p6*6 + p2.p5*5 + p2.p4*4 + p2.p3*3;
+        
+        if(t1 === 0 && t2 === 0) return alert("Veuillez saisir un nombre de poules.");
+        if(t1 === 0 && t2 > 0) { p1 = {...p2}; t1 = t2; }
+        if(t2 === 0 && t1 > 0) { p2 = {...p1}; t2 = t1; }
+        
+        if(t1 !== total) return alert(`Erreur Matin : format pour ${t1} équipes, mais vous en avez ${total}.`);
+        if(t2 < total) return alert(`Erreur Après-Midi : format pour ${t2} places, impossible de caser les ${total} équipes.`);
+        
+        let ter1 = p1.p6*2 + p1.p5*2 + p1.p4*1 + p1.p3*1;
+        let ter2 = p2.p6*2 + p2.p5*2 + p2.p4*1 + p2.p3*1;
+        if(ter1 > maxT || ter2 > maxT) {
+            if(!confirm(`⚠️ Attention, ce format nécessite jusqu'à ${Math.max(ter1, ter2)} terrains (vous en avez ${maxT} déclarés pour les ${appState.activeCat}). Voulez-vous forcer la création ?`)) return;
+        }
+
+        p1.str = `${p1.p6?p1.p6+'x6 ':''}${p1.p5?p1.p5+'x5 ':''}${p1.p4?p1.p4+'x4 ':''}${p1.p3?p1.p3+'x3 ':''}`.trim();
+        p2.str = `${p2.p6?p2.p6+'x6 ':''}${p2.p5?p2.p5+'x5 ':''}${p2.p4?p2.p4+'x4 ':''}${p2.p3?p2.p3+'x3 ':''}`.trim();
+
+        let set = getCatSettings();
+        let rotP1 = Math.max(p1.p6?15:0, p1.p5?10:0, p1.p4?6:0, p1.p3?3:0);
+        let rotP2 = Math.max(p2.p6?15:0, p2.p5?10:0, p2.p4?6:0, p2.p3?3:0);
+        let durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0;
+        let durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
+        let repechage = t2 > total ? t2 - total : 0;
+
+        let s = { title: "Mode Manuel", p1: p1, p2: p2 };
+        let phase1 = appState.cats[appState.activeCat].phase1;
+        applyDayPlan(s, phase1.teams.length ? phase1.teams : [...phase1.reserve, ...phase1.poules.flatMap(p=>p.teams)], durP1, durP2, repechage);
     }
 
     function applyDayPlan(s, teams, durP1, durP2, repechage) {
@@ -371,8 +497,20 @@
     }
 
     function toggleArchitect(forceHide = false) {
-        if(forceHide) { document.getElementById('scenario-list').classList.add('hidden'); document.getElementById('architect-settings').classList.add('hidden'); document.getElementById('scenario-summary').classList.remove('hidden'); document.getElementById('btn-edit-architect').classList.remove('hidden'); } 
-        else { document.getElementById('scenario-list').classList.remove('hidden'); document.getElementById('architect-settings').classList.remove('hidden'); document.getElementById('scenario-summary').classList.add('hidden'); document.getElementById('btn-edit-architect').classList.add('hidden'); appState.cats[appState.activeCat].phase1.formatStr = null; }
+        if(forceHide) { 
+            document.getElementById('scenario-list').classList.add('hidden'); 
+            document.getElementById('manual-mode-panel').classList.add('hidden');
+            document.getElementById('architect-settings').classList.add('hidden'); 
+            document.getElementById('scenario-summary').classList.remove('hidden'); 
+            document.getElementById('btn-edit-architect').classList.remove('hidden'); 
+        } else { 
+            document.getElementById('scenario-list').classList.remove('hidden'); 
+            document.getElementById('manual-mode-panel').classList.remove('hidden');
+            document.getElementById('architect-settings').classList.remove('hidden'); 
+            document.getElementById('scenario-summary').classList.add('hidden'); 
+            document.getElementById('btn-edit-architect').classList.add('hidden'); 
+            appState.cats[appState.activeCat].phase1.formatStr = null; 
+        }
     }
 
     function validateFormat() { let phase = getActivePhase(); if(phase.poules.some(p => p.teams.length !== p.target)) { if(!confirm("Poules incomplètes. Continuer ?")) return; } phase.validated = true; saveState(); renderBoard(); }
@@ -486,7 +624,7 @@
     function dropToPoule(e, targetPIdx) { e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json")); let phase = getActivePhase(); let team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : phase.reserve.splice(d.tIdx, 1)[0]; if (team) { if (appState.currentPhase === 'PHASE2') { let note = prompt("Motif du transfert :"); if (note) team.customNote = note; } phase.poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); } }
     function dropToReserve(e) { e.preventDefault(); const d = JSON.parse(e.dataTransfer.getData("application/json")); let phase = getActivePhase(); if (d.src === 'poule') { phase.reserve.push(phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); } }
 
-    async function simulateScores() { if(!confirm("🧪 Injecter scores ?")) return; getActivePhase().poules.forEach(p => { if(p.teams.length === p.target) { if(!p.scores) p.scores = {}; MATRICES[p.target].forEach((m, idx) => { p.scores[idx] = { s1: Math.floor(Math.random()*4), s2: Math.floor(Math.random()*4), locked: false }; }); } }); saveState(); renderBoard(); await deployCategory(); }
+    async function simulateScores() { if(!confirm("🧪 Injecter scores aléatoires ?")) return; getActivePhase().poules.forEach(p => { if(p.teams.length === p.target) { if(!p.scores) p.scores = {}; MATRICES[p.target].forEach((m, idx) => { p.scores[idx] = { s1: Math.floor(Math.random()*4), s2: Math.floor(Math.random()*4), locked: false }; }); } }); saveState(); renderBoard(); await deployCategory(); }
 
     async function deployCategory() {
         if (!db) return alert("Firebase non configuré."); const year = document.getElementById('config-year').value; const updates = {}; let globalOrder = 1;
@@ -503,11 +641,34 @@
     }
 
     async function purge(type) {
-        if(!db) return; const year = document.getElementById('config-year').value; const cat = document.getElementById('maint-cat').value;
-        if(type==='ALL' && confirm("DANGER : Supprimer TOUTE LA BASE ?")) { await db.ref(`t3n/${year}`).remove(); localStorage.clear(); location.reload(); }
-        else if(type==='scores' && confirm(`Réinitialiser scores ?`)) { const snap = await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).once('value'); if(snap.exists()) { const ups = {}; snap.forEach(c => { ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; }); await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).update(ups); } } 
-        else if (confirm(`Supprimer [${type}] ?`)) await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/${type}`).remove();
-        alert("Purge terminée.");
+        if(!db) return alert("Firebase non configuré."); 
+        const year = document.getElementById('config-year').value; 
+        const cat = document.getElementById('maint-cat').value;
+        
+        if(type==='ALL') {
+            if(confirm(`DANGER ABSOLU : Voulez-vous vraiment TOUT supprimer pour l'édition ${year} ? (Irréversible)`)) { 
+                await db.ref(`t3n/${year}`).remove(); 
+                localStorage.removeItem('t3n_master_final'); 
+                location.reload(); 
+            }
+        }
+        else if(type==='scores') {
+            if(confirm(`Réinitialiser les scores de la phase actuelle pour les ${cat} ?`)) { 
+                const snap = await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).once('value'); 
+                if(snap.exists()) { 
+                    const ups = {}; 
+                    snap.forEach(c => { ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; }); 
+                    await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/matches`).update(ups); 
+                    alert("Scores réinitialisés !");
+                } 
+            }
+        } 
+        else {
+            if (confirm(`Supprimer l'élément [${type}] pour les ${cat} ?`)) {
+                await db.ref(`t3n/${year}/${cat}_${appState.currentPhase}/${type}`).remove();
+                alert(`Purge de ${type} terminée.`);
+            }
+        }
     }
 </script>
 </body>
