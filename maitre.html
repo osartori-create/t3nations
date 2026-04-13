@@ -2,20 +2,22 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v31 - Compatibilité Totale</title>
+    <title>T3N Master v33 - LOGIQUE COMPLÈTE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
-        .tab-btn { color: white; opacity: 0.7; transition: all 0.2s; }
-        .tab-btn.active-tab { opacity: 1; background: #f59e0b; color: #000; }
+        .tab-btn { color: white; opacity: 0.7; transition: all 0.2s; cursor: pointer; }
+        .tab-btn.active-tab { opacity: 1; background: #f59e0b; color: #000; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
         .tab-btn.active-u8 { background: #2563eb !important; color: white !important; }
         .tab-btn.active-u10 { background: #ffffff !important; color: #0f172a !important; }
         .tab-btn.active-u12 { background: #dc2626 !important; color: white !important; }
+        .active-poule-tab { background: #1e293b !important; color: #fff !important; }
         .excel-table { border-collapse: collapse; width: 100%; text-align: center; font-size: 11px; }
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 6px 4px; }
         .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
         .excel-yellow { background-color: #fef08a; font-weight: 900; }
+        .excel-blue { background-color: #e0f2fe; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen" onload="initApp()">
@@ -23,29 +25,34 @@
 <header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 border-amber-500 sticky top-0 z-50">
     <div class="flex items-center gap-6">
         <h1 class="text-2xl font-black italic uppercase tracking-tighter">T3N <span class="text-amber-500 text-3xl">MASTER</span></h1>
-        <input type="number" id="config-year" value="2026" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
+        <input type="number" id="config-year" value="2026" onchange="broadcastSettings()" class="bg-transparent border-none text-xs font-bold text-slate-400 w-16 focus:ring-0">
         <nav class="flex gap-1 bg-white/5 p-1 rounded-xl">
-            <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] active-tab" id="tab-IMPORT">Import</button>
-            <button onclick="showTab('U6')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px]" id="tab-U6">U6</button>
-            <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px]" id="tab-U8">U8</button>
-            <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px]" id="tab-U10">U10</button>
-            <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px]" id="tab-U12">U12</button>
-            <button onclick="showTab('TROPHEE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] ml-4 text-amber-300" id="tab-TROPHEE">🏆 Trophée</button>
-            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] ml-1 text-red-400" id="tab-MAINTENANCE">Purges</button>
+            <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase active-tab" id="tab-IMPORT">Import</button>
+            <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
+            <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
+            <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
+            <button onclick="showTab('TROPHEE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-amber-300 border border-amber-500/30" id="tab-TROPHEE">🏆 Trophée</button>
+            <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-1 text-red-400 border border-red-500/20" id="tab-MAINTENANCE">Purge</button>
         </nav>
     </div>
-    <div id="sync-status" class="text-[9px] text-green-400 font-black uppercase tracking-widest animate-pulse hidden">● Live</div>
+    <div class="flex items-center gap-4">
+        <div id="sync-status" class="text-[9px] text-green-400 font-black uppercase tracking-widest animate-pulse hidden">● Live</div>
+        <button onclick="simulateScores()" class="text-[9px] bg-indigo-600 text-white font-black uppercase px-3 py-1 rounded hover:bg-indigo-700">Test Factice</button>
+    </div>
 </header>
 
 <main class="p-6 max-w-[1900px] mx-auto">
     <section id="content-IMPORT" class="tab-content space-y-6">
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-            <h2 class="text-xl font-black uppercase mb-4 italic">1. Importation Sportive</h2>
-            <textarea id="csv-input" rows="6" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500 transition-colors" placeholder="Nom Club | U6 | U8 | U10 | U12"></textarea>
-            <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 shadow-lg active:scale-95 transition-all">Valider</button>
+            <h2 class="text-xl font-black uppercase mb-4 italic text-slate-800">1. Importation Clubs (Format Excel)</h2>
+            <textarea id="csv-input" rows="8" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Copiez ici : Nom Club | U6 | U8 | U10 | U12"></textarea>
+            <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 shadow-lg transition-all">Charger la liste</button>
         </div>
-        <div id="master-table-container" class="bg-white p-6 rounded-[2.5rem] border border-slate-200 hidden">
-            <table class="w-full text-left text-sm"><tbody id="master-tbody" class="divide-y divide-slate-100 italic"></tbody></table>
+        <div id="master-table-container" class="bg-white p-6 rounded-[2.5rem] border border-slate-200 hidden shadow-sm">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-[10px] font-black uppercase opacity-40"><tr><th class="p-3">Club</th><th class="p-3 text-center">U8</th><th class="p-3 text-center">U10</th><th class="p-3 text-center">U12</th></tr></thead>
+                <tbody id="master-tbody" class="divide-y divide-slate-100 italic text-slate-700"></tbody>
+            </table>
         </div>
     </section>
 
@@ -54,47 +61,65 @@
             <div class="xl:col-span-3 space-y-6">
                 <div class="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24">
                     <h2 class="text-4xl font-black uppercase" id="active-cat-title">...</h2>
-                    <div id="scenario-list" class="space-y-3 mt-4"></div>
-                    <hr class="my-4">
+                    <p class="text-[10px] font-black opacity-40 uppercase mb-4"><span id="active-cat-count">0</span> équipes détectées</p>
+                    
+                    <div id="architect-options" class="space-y-2">
+                        <button onclick="applyPlan(4)" class="w-full p-3 bg-indigo-50 text-indigo-700 rounded-xl font-black uppercase text-[10px] border border-indigo-200 hover:bg-indigo-100">Générer Poules de 4</button>
+                        <button onclick="applyPlan(5)" class="w-full p-3 bg-indigo-50 text-indigo-700 rounded-xl font-black uppercase text-[10px] border border-indigo-200 hover:bg-indigo-100">Générer Poules de 5</button>
+                    </div>
+
+                    <hr class="my-6">
                     <h3 class="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">📦 Réserve</h3>
                     <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-4 min-h-[150px] flex flex-col gap-2"></div>
                 </div>
             </div>
+
             <div class="xl:col-span-9 space-y-4">
                 <div class="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
                     <nav class="flex gap-2">
-                        <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab">Brassage</button>
-                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500">Classement</button>
+                        <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab">Phase 1 (Brassage)</button>
+                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500">Phase 2 (Classement)</button>
                     </nav>
                 </div>
+
                 <div id="validation-zone" class="hidden bg-amber-100 border border-amber-300 p-6 rounded-[2rem] flex justify-between items-center shadow-inner">
-                    <p class="font-black text-amber-800 uppercase text-xs">Ajustez les équipes avant de valider.</p>
-                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase shadow-md">Valider l'ossature</button>
+                    <p class="font-black text-amber-800 uppercase text-xs italic">Vérifiez la répartition, puis validez pour saisir les scores.</p>
+                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase shadow-md hover:bg-amber-600">Valider</button>
                 </div>
+
                 <div id="poule-tabs" class="hidden flex gap-2 overflow-x-auto bg-slate-200 p-2 rounded-xl"></div>
                 <div id="match-board" class="w-full"></div>
+
                 <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-xl flex justify-between items-center border-b-4 border-amber-500 mt-4">
-                    <p class="text-amber-500 font-black uppercase italic text-sm">Déploiement Firebase</p>
-                    <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-8 py-3 rounded-xl font-black uppercase shadow-lg active:scale-95 transition-all">Envoyer aux Terrains</button>
+                    <div>
+                        <p class="text-amber-500 font-black uppercase italic text-sm tracking-tighter">Déploiement Firebase</p>
+                        <p class="text-[10px] opacity-50">Envoie les matchs sur les téléphones des arbitres.</p>
+                    </div>
+                    <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-8 py-3 rounded-xl font-black uppercase shadow-lg transition-all">Diffuser</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
+    <section id="content-TROPHEE" class="tab-content hidden space-y-6">
+        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-amber-200 shadow-xl max-w-6xl mx-auto text-center">
+            <h2 class="text-3xl font-black uppercase text-slate-800">🏆 Trophée T3N</h2>
+            <button onclick="computeTrophy()" class="mt-6 bg-amber-500 text-black px-6 py-3 rounded-xl font-black uppercase shadow-lg">Calculer le Podium</button>
+            <div id="trophy-results" class="mt-10"></div>
+        </div>
+    </section>
+
+    <section id="content-MAINTENANCE" class="tab-content hidden">
         <div class="bg-white p-8 rounded-[2.5rem] border-2 border-red-100 shadow-xl max-w-xl mx-auto text-center">
-            <h2 class="text-2xl font-black uppercase text-red-600 mb-6">Reset Complet</h2>
-            <button onclick="purgeALL()" class="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase shadow-xl hover:scale-105 transition-transform">💣 Vider le navigateur 💣</button>
-            <p class="text-[10px] text-slate-400 mt-4 italic">Utilisez ceci si les boutons ne répondent plus.</p>
+            <h2 class="text-2xl font-black uppercase text-red-600 mb-6">Maintenance</h2>
+            <button onclick="purgeLocal()" class="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase shadow-xl hover:scale-105 transition-all">💣 Vider le navigateur (Reset local) 💣</button>
         </div>
     </section>
 </main>
 
 <script>
-    // --- V31 : AUCUNE SYNTAXE MODERNE TYPE "?." POUR EVITER LES CRASHES ---
-    var STORAGE_KEY = 't3n_master_v31';
+    var STORAGE_KEY = 't3n_master_v33';
 
-    // --- CONFIGURATION FIREBASE ---
     var firebaseConfig = { 
         apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", 
         authDomain: "t3nations.firebaseapp.com", 
@@ -115,36 +140,25 @@
     };
 
     var appState = { 
-        masterData: [], 
-        activeCat: 'U10', 
-        currentPhase: 'PHASE1', 
-        activePouleTab: 'A',
-        cats: { 
-            'U6': initCat(), 'U8': initCat(), 'U10': initCat(), 'U12': initCat() 
-        } 
+        masterData: [], activeCat: 'U10', currentPhase: 'PHASE1', activePouleTab: 'A',
+        cats: { 'U8': initCat(), 'U10': initCat(), 'U12': initCat() }
     };
 
     function initCat() { 
-        return { 
-            phase1: { poules: [], reserve: [], validated: false, formatStr: null },
-            phase2: { poules: [], reserve: [], validated: false, formatStr: null }
-        }; 
+        return { phase1: { poules: [], reserve: [], validated: false }, phase2: { poules: [], reserve: [], validated: false } }; 
     }
+
+    function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
 
     function initApp() {
         var saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            try { appState = JSON.parse(saved); } catch(e) { console.error("Cache reset"); }
-        }
+        if (saved) { try { appState = JSON.parse(saved); } catch(e) {} }
         if (db) document.getElementById('sync-status').classList.remove('hidden');
+        if (appState.masterData.length > 0) renderMasterTable();
         showTab(appState.activeCat || 'IMPORT');
     }
 
-    function saveState() {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
-        var ind = document.getElementById('save-indicator');
-        if(ind) { ind.classList.remove('opacity-0'); setTimeout(function(){ ind.classList.add('opacity-0'); }, 1000); }
-    }
+    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); }
 
     function showTab(id) {
         document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active-tab', 'active-u8', 'active-u10', 'active-u12'); });
@@ -156,108 +170,155 @@
             if(id === 'U12') btn.classList.add('active-u12');
         }
         document.querySelectorAll('.tab-content').forEach(function(c){ c.classList.add('hidden'); });
-        var content = document.getElementById('content-' + id);
-        if(content) { 
-            content.classList.remove('hidden'); 
+        if (['IMPORT', 'MAINTENANCE', 'TROPHEE'].indexOf(id) > -1) {
+            document.getElementById('content-' + id).classList.remove('hidden');
         } else {
             document.getElementById('content-CAT').classList.remove('hidden');
             appState.activeCat = id;
             document.getElementById('active-cat-title').innerText = id;
-            renderArchitect();
         }
-        renderBoard();
-        renderReserve();
-        saveState();
+        renderBoard(); renderReserve(); saveState();
     }
 
     function processMasterImport() {
         var raw = document.getElementById('csv-input').value;
         var lines = raw.split('\n').filter(function(l){ return l.trim().length > 0; });
-        appState.masterData = lines.map(function(l, i){ 
-            var p = l.split(/\t|,/);
-            return { id: 'c'+i, name: p[0], u8: 1, u10: 1, u12: 1 };
+        appState.masterData = [];
+        lines.forEach(function(line, idx){
+            var p = line.split(/\t|;/);
+            if(p.length >= 5) {
+                appState.masterData.push({ id:'c'+idx, name:p[0].trim(), u8:parseInt(p[2])||0, u10:parseInt(p[3])||0, u12:parseInt(p[4])||0 });
+            }
         });
-        alert("Clubs importés !");
-        saveState();
-        renderMasterTable();
+        alert("Chargé : " + appState.masterData.length + " clubs.");
+        saveState(); renderMasterTable();
     }
 
     function renderMasterTable() {
         var html = appState.masterData.map(function(c){
-            return '<tr><td class="p-3 font-bold uppercase text-xs">'+c.name+'</td><td class="p-3 text-center text-amber-600 font-black">'+c.u10+' eq.</td></tr>';
+            return '<tr><td class="p-3 font-bold uppercase text-xs">'+c.name+'</td><td class="p-3 text-center">'+c.u8+'</td><td class="p-3 text-center">'+c.u10+'</td><td class="p-3 text-center">'+c.u12+'</td></tr>';
         }).join('');
         document.getElementById('master-tbody').innerHTML = html;
         document.getElementById('master-table-container').classList.remove('hidden');
     }
 
-    function renderArchitect() {
-        var cat = appState.cats[appState.activeCat];
-        var total = appState.masterData.length;
-        var list = document.getElementById('scenario-list');
-        list.innerHTML = '<button onclick="applyAuto(4)" class="w-full p-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-xs shadow-lg">Générer Poules de 4</button>';
-    }
-
-    function applyAuto(size) {
-        var phase = appState.cats[appState.activeCat].phase1;
+    function applyPlan(size) {
+        var phase = getActivePhase();
         phase.poules = []; phase.reserve = [];
         var teams = [];
-        appState.masterData.forEach(function(c){ 
-            teams.push({ id: c.id, name: c.name, club: c.name, isDummy: false });
+        appState.masterData.forEach(function(c){
+            var count = c[appState.activeCat.toLowerCase()];
+            for(var i=1; i<=count; i++) {
+                teams.push({ id: c.id+'_'+i, name: c.name + ' ' + i, club: c.name, isDummy: false });
+            }
         });
-        
-        var nbPoules = Math.floor(teams.length / size);
-        for(var i=0; i<nbPoules; i++) {
-            phase.poules.push({ letter: String.fromCharCode(65+i), target: size, teams: teams.splice(0, size), scores: {} });
+        var nb = Math.floor(teams.length / size);
+        for(var i=0; i<nb; i++) {
+            phase.poules.push({ letter: String.fromCharCode(65+i), target: size, teams: teams.splice(0, size), scores: {}, adjustments: {} });
         }
         phase.reserve = teams;
         phase.validated = false;
-        saveState();
-        renderBoard();
-        renderReserve();
+        document.getElementById('active-cat-count').innerText = (nb * size + phase.reserve.length);
+        saveState(); renderBoard(); renderReserve();
     }
 
     function renderBoard() {
-        var phase = appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()];
+        var phase = getActivePhase();
         var board = document.getElementById('match-board');
         if(!phase.poules || phase.poules.length === 0) { board.innerHTML = ""; return; }
 
         if(!phase.validated) {
             document.getElementById('validation-zone').classList.remove('hidden');
-            board.className = "grid grid-cols-3 gap-4";
+            document.getElementById('poule-tabs').classList.add('hidden');
+            document.getElementById('deploy-zone').classList.add('hidden');
+            board.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
             board.innerHTML = phase.poules.map(function(p, i){
-                return '<div class="bg-white p-4 rounded-xl border-2"><b>Poule '+p.letter+'</b><div class="mt-2 space-y-1">'+p.teams.map(function(t){ return '<div class="p-2 bg-slate-50 border rounded text-[10px] font-bold">'+t.name+'</div>'; }).join('')+'</div></div>';
+                return '<div class="bg-white p-4 rounded-3xl border-2 shadow-sm" ondragover="allowDrop(event)" ondrop="dropToPoule(event, '+i+')">' +
+                    '<h3 class="font-black italic uppercase mb-3">Poule '+p.letter+'</h3>' +
+                    '<div class="space-y-1 min-h-[50px]">' + p.teams.map(function(t, ti){
+                        return '<div draggable="true" ondragstart="dragTeam(event, '+i+', '+ti+')" class="p-2 bg-slate-50 border rounded-lg text-[10px] font-bold cursor-move">'+t.name+'</div>';
+                    }).join('') + '</div></div>';
             }).join('');
         } else {
             document.getElementById('validation-zone').classList.add('hidden');
             document.getElementById('deploy-zone').classList.remove('hidden');
-            board.className = "bg-white p-6 rounded-3xl border-2";
-            board.innerHTML = "<p class='font-black uppercase italic'>Tableau des scores prêt pour le déploiement.</p>";
+            document.getElementById('poule-tabs').classList.remove('hidden');
+            
+            document.getElementById('poule-tabs').innerHTML = phase.poules.map(function(p){
+                return '<button onclick="appState.activePouleTab=\''+p.letter+'\';renderBoard()" class="px-4 py-2 rounded-lg font-black text-[10px] '+(appState.activePouleTab===p.letter?'active-poule-tab shadow-lg':'bg-white text-slate-400')+'">Poule '+p.letter+'</button>';
+            }).join('');
+
+            var pIdx = phase.poules.findIndex(function(x){ return x.letter === appState.activePouleTab; });
+            if(pIdx === -1) pIdx = 0;
+            var p = phase.poules[pIdx];
+
+            board.className = "bg-white p-6 rounded-[2.5rem] border-2 shadow-sm";
+            var matchesHtml = MATRICES[p.target].map(function(m, mIdx){
+                var sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:''};
+                return '<tr>' +
+                    '<td class="excel-yellow font-bold">'+p.teams[m.a-1].name+'</td>' +
+                    '<td class="p-0"><input type="number" value="'+sc.s1+'" onchange="updS('+pIdx+','+mIdx+',\'s1\',this.value)" class="w-full text-center h-10 font-black"></td>' +
+                    '<td class="p-0"><input type="number" value="'+sc.s2+'" onchange="updS('+pIdx+','+mIdx+',\'s2\',this.value)" class="w-full text-center h-10 font-black"></td>' +
+                    '<td>'+p.teams[m.b-1].name+'</td>' +
+                    '<td class="text-orange-600 font-bold">'+p.teams[m.arb-1].name+'</td>' +
+                '</tr>';
+            }).join('');
+
+            board.innerHTML = '<table class="excel-table"><thead class="excel-header"><tr><th>Équipe A</th><th colspan="2">Scores</th><th>Équipe B</th><th>Arbitre</th></tr></thead><tbody>'+matchesHtml+'</tbody></table>';
         }
     }
 
-    function validateFormat() {
-        appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()].validated = true;
+    function updS(pIdx, mIdx, field, val) {
+        var p = getActivePhase().poules[pIdx];
+        if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:''};
+        p.scores[mIdx][field] = val;
         saveState();
-        renderBoard();
+        if(db) {
+            var yr = document.getElementById('config-year').value;
+            db.ref('t3n/'+yr+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update({ [field]: parseInt(val)||0 });
+        }
     }
+
+    function validateFormat() { getActivePhase().validated = true; saveState(); renderBoard(); }
 
     function renderReserve() {
-        var res = appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()].reserve;
-        document.getElementById('reserve-zone').innerHTML = res.map(function(t){
-            return '<div class="p-2 bg-white border rounded text-[10px] font-bold">'+t.name+'</div>';
-        }).join('') || '<p class="text-[10px] opacity-30 text-center">Vide</p>';
+        var res = getActivePhase().reserve;
+        document.getElementById('reserve-zone').innerHTML = res.map(function(t, i){
+            return '<div draggable="true" ondragstart="dragFromReserve(event, '+i+')" class="p-2 bg-white border rounded-lg text-[10px] font-bold cursor-move shadow-sm">'+t.name+'</div>';
+        }).join('') || '<p class="text-[10px] opacity-20 text-center">Vide</p>';
     }
 
-    function purgeALL() {
-        if(confirm("Supprimer toute la mémoire locale ?")) {
-            localStorage.clear();
-            location.reload();
+    function dragTeam(e, pIdx, tIdx) { e.dataTransfer.setData("text", JSON.stringify({src:'poule', pIdx:pIdx, tIdx:tIdx})); }
+    function dragFromReserve(e, tIdx) { e.dataTransfer.setData("text", JSON.stringify({src:'reserve', tIdx:tIdx})); }
+    function allowDrop(e) { e.preventDefault(); }
+    function dropToPoule(e, targetPIdx) {
+        e.preventDefault(); var data = JSON.parse(e.dataTransfer.getData("text")); var phase = getActivePhase();
+        var team = (data.src === 'poule') ? phase.poules[data.pIdx].teams.splice(data.tIdx, 1)[0] : phase.reserve.splice(data.tIdx, 1)[0];
+        if(team) { phase.poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); }
+    }
+    function dropToReserve(e) {
+        e.preventDefault(); var data = JSON.parse(e.dataTransfer.getData("text")); if(data.src === 'poule') {
+            var phase = getActivePhase(); phase.reserve.push(phase.poules[data.pIdx].teams.splice(data.tIdx, 1)[0]);
+            saveState(); renderBoard(); renderReserve();
         }
     }
 
-    function allowDrop(e) { e.preventDefault(); }
-    function dropToReserve(e) { /* Simplified for V31 stability */ }
+    function deployCategory() {
+        if(!db) return; var yr = document.getElementById('config-year').value; var phase = getActivePhase(); var ups = {};
+        phase.poules.forEach(function(p){
+            MATRICES[p.target].forEach(function(m, idx){
+                var sc = p.scores[idx] || {s1:0, s2:0};
+                ups['t3n/'+yr+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(idx+1)] = {
+                    t1: p.teams[m.a-1].name, t2: p.teams[m.b-1].name, arb: p.teams[m.arb-1].name, s1: sc.s1||0, s2: sc.s2||0, status:'en_attente', poule: p.letter
+                };
+            });
+        });
+        db.ref().update(ups); alert("Déployé !");
+    }
+
     function switchCatPhase(p) { appState.currentPhase = p; renderBoard(); saveState(); }
+    function purgeLocal() { if(confirm("Reset local ?")) { localStorage.clear(); location.reload(); } }
+    function broadcastSettings() { if(db) db.ref('t3n/settings').update({ activeYear: document.getElementById('config-year').value }); }
 </script>
 </body>
 </html>
