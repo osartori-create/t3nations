@@ -82,8 +82,16 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        const firebaseConfig = { /* COLLES TES INFOS FIREBASE ICI */ };
+        // --- CONFIGURATION FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
+            authDomain: "t3nations.firebaseapp.com",
+            databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "t3nations",
+            storageBucket: "t3nations.firebasestorage.app",
+            messagingSenderId: "368081588642",
+            appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
