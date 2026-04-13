@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>T3N - Résultats en Direct</title>
+    <title>T3N - Résultats & Trophée Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <style>
         body { -webkit-tap-highlight-color: transparent; background-color: #0f172a; color: #f8fafc; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .tab-btn { color: #94a3b8; transition: all 0.2s; }
+        .tab-btn { transition: all 0.2s; }
         .active-tab { background: #f59e0b !important; color: #000 !important; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
         .active-u8 { background: #3b82f6 !important; color: white !important; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
         .active-u10 { background: #f8fafc !important; color: #0f172a !important; box-shadow: 0 0 15px rgba(248, 250, 252, 0.4); }
@@ -28,27 +28,30 @@
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white">T3N <span class="text-amber-500">LIVE</span></h1>
                 <div class="flex items-center gap-2 mt-1">
                     <span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span></span>
-                    <span id="live-info" class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Temps Réel</span>
+                    <span id="live-info" class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">En attente de connexion...</span>
                 </div>
             </div>
         </div>
 
         <div class="max-w-7xl mx-auto mt-4 flex flex-col sm:flex-row gap-3 justify-between items-center">
             <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl w-full sm:w-auto overflow-x-auto">
-                <button onclick="setCat('U8')" id="tab-U8" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">U8</button>
-                <button onclick="setCat('U10')" id="tab-U10" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">U10</button>
-                <button onclick="setCat('U12')" id="tab-U12" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">U12</button>
+                <button onclick="setMainTab('U8')" id="tab-U8" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400">U8</button>
+                <button onclick="setMainTab('U10')" id="tab-U10" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400">U10</button>
+                <button onclick="setMainTab('U12')" id="tab-U12" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400">U12</button>
+                <div class="w-px bg-slate-700 mx-1"></div>
+                <button onclick="setMainTab('TROPHEE')" id="tab-TROPHEE" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-amber-500 border border-amber-500/30">🏆 Trophée</button>
             </nav>
-            <nav class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl w-full sm:w-auto">
+            
+            <nav id="phase-nav" class="flex gap-2 bg-slate-800/50 p-1.5 rounded-xl w-full sm:w-auto">
                 <button onclick="setPhase('PHASE1')" id="tab-PHASE1" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase active-tab">Matin</button>
-                <button onclick="setPhase('PHASE2')" id="tab-PHASE2" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase">Après-Midi</button>
+                <button onclick="setPhase('PHASE2')" id="tab-PHASE2" class="tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400">Après-Midi</button>
             </nav>
         </div>
     </header>
 
-    <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-8 mt-4" id="poules-container">
-        <div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">Connexion au stade...</div>
-    </main>
+    <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-8 mt-4" id="poules-container"></main>
+    
+    <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-8 mt-4 hidden" id="trophy-container"></main>
 
 <script>
     const firebaseConfig = {
@@ -64,27 +67,39 @@
     if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") firebase.initializeApp(firebaseConfig);
     const db = firebase.apps.length ? firebase.database() : null;
 
-    let activeCat = 'U10';
-    let localPhase = 'PHASE1'; // Indépendant du Maître
+    let activeMain = 'U10';
+    let localPhase = 'PHASE1';
     let globalSettings = {};
     let matchesRef = null;
+    let trophyRef = null;
+    const pointsMap = {1:10, 2:9, 3:8, 4:7, 5:6, 6:5, 7:4, 8:3, 9:2, 10:1};
 
     function initApp() {
         if(!db) return;
         db.ref('t3n/settings').on('value', snap => {
             if(snap.exists()) {
                 globalSettings = snap.val();
-                setCat(activeCat); // Recharge avec l'année reçue
+                document.getElementById('live-info').innerText = `Édition ${globalSettings.activeYear}`;
+                if(activeMain !== 'TROPHEE') setMainTab(activeMain);
+                else setMainTab('TROPHEE');
             }
         });
     }
 
-    function setCat(cat) {
-        activeCat = cat;
-        document.querySelectorAll('[id^="tab-U"]').forEach(b => b.className = 'tab-btn flex-1 sm:flex-none px-6 py-2 rounded-lg font-black text-xs uppercase text-slate-400');
-        let btn = document.getElementById(`tab-${cat}`);
-        btn.classList.add(`active-${cat.toLowerCase()}`);
-        loadData();
+    function setMainTab(tab) {
+        activeMain = tab;
+        document.querySelectorAll('[id^="tab-U"], #tab-TROPHEE').forEach(b => { b.classList.remove('active-u8', 'active-u10', 'active-u12', 'active-tab'); if(b.id !== 'tab-TROPHEE') b.classList.add('text-slate-400'); });
+        let btn = document.getElementById(`tab-${tab}`); btn.classList.remove('text-slate-400');
+
+        if (tab === 'TROPHEE') {
+            btn.classList.add('active-tab', 'text-black');
+            document.getElementById('phase-nav').classList.add('hidden'); document.getElementById('poules-container').classList.add('hidden'); document.getElementById('trophy-container').classList.remove('hidden');
+            loadTrophy();
+        } else {
+            btn.classList.add(`active-${tab.toLowerCase()}`);
+            document.getElementById('phase-nav').classList.remove('hidden'); document.getElementById('trophy-container').classList.add('hidden'); document.getElementById('poules-container').classList.remove('hidden');
+            loadData();
+        }
     }
 
     function setPhase(phase) {
@@ -96,51 +111,29 @@
 
     function loadData() {
         if (!db || !globalSettings.activeYear) return;
+        const year = globalSettings.activeYear; const path = `t3n/${year}/${activeMain}_${localPhase}/matches`;
+        if (matchesRef) matchesRef.off(); matchesRef = db.ref(path);
         
-        const year = globalSettings.activeYear;
-        const path = `t3n/${year}/${activeCat}_${localPhase}/matches`;
-
-        document.getElementById('live-info').innerText = `Édition ${year}`;
-
-        if (matchesRef) matchesRef.off();
-        matchesRef = db.ref(path);
-        
-        document.getElementById('poules-container').innerHTML = `<div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">Chargement...</div>`;
+        document.getElementById('poules-container').innerHTML = `<div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">Chargement du Stade...</div>`;
 
         matchesRef.on('value', snap => {
-            if (!snap.exists()) {
-                document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-3xl text-center text-slate-400"><span class="text-4xl block mb-4">🏟️</span><p class="font-bold text-lg uppercase">Aucun match programmé</p><p class="text-sm">Cette phase n'est pas encore déployée par l'organisation.</p></div>`;
-                return;
-            }
-
-            let matchesByPoule = {};
-            snap.forEach(child => {
-                let m = child.val();
-                if (!matchesByPoule[m.poule]) matchesByPoule[m.poule] = [];
-                matchesByPoule[m.poule].push(m);
-            });
-
+            if (!snap.exists()) { document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-3xl text-center text-slate-400"><span class="text-4xl block mb-4">🏟️</span><p class="font-bold text-lg uppercase">Aucun match programmé</p><p class="text-sm">Le calendrier n'est pas encore dévoilé.</p></div>`; return; }
+            let matchesByPoule = {}; snap.forEach(child => { let m = child.val(); if (!matchesByPoule[m.poule]) matchesByPoule[m.poule] = []; matchesByPoule[m.poule].push(m); });
             renderDashboard(matchesByPoule);
         });
     }
 
     function renderDashboard(matchesByPoule) {
-        let html = '';
-        let pouleKeys = Object.keys(matchesByPoule).sort();
-
+        let html = ''; let pouleKeys = Object.keys(matchesByPoule).sort();
         pouleKeys.forEach(pLetter => {
-            let matches = matchesByPoule[pLetter];
-            matches.sort((a, b) => a.ordre - b.ordre);
-
+            let matches = matchesByPoule[pLetter]; matches.sort((a, b) => a.ordre - b.ordre);
             let teamsObj = {};
             matches.forEach(m => {
                 if(!teamsObj[m.t1]) teamsObj[m.t1] = { name: m.t1, pts: 0, diff: 0, played: 0, form: [] };
                 if(!teamsObj[m.t2]) teamsObj[m.t2] = { name: m.t2, pts: 0, diff: 0, played: 0, form: [] };
-                
                 let s1 = parseInt(m.s1), s2 = parseInt(m.s2);
                 if (s1 > 0 || s2 > 0 || m.locked) { 
-                    teamsObj[m.t1].played++; teamsObj[m.t2].played++;
-                    teamsObj[m.t1].diff += (s1 - s2); teamsObj[m.t2].diff += (s2 - s1);
+                    teamsObj[m.t1].played++; teamsObj[m.t2].played++; teamsObj[m.t1].diff += (s1 - s2); teamsObj[m.t2].diff += (s2 - s1);
                     if (s1 > s2) { teamsObj[m.t1].pts+=3; teamsObj[m.t2].pts+=1; teamsObj[m.t1].form.push('W'); teamsObj[m.t2].form.push('L'); } 
                     else if (s1 < s2) { teamsObj[m.t1].pts+=1; teamsObj[m.t2].pts+=3; teamsObj[m.t1].form.push('L'); teamsObj[m.t2].form.push('W'); } 
                     else { teamsObj[m.t1].pts+=2; teamsObj[m.t2].pts+=2; teamsObj[m.t1].form.push('D'); teamsObj[m.t2].form.push('D'); }
@@ -148,37 +141,49 @@
             });
 
             let ranking = Object.values(teamsObj).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
-
+            
             let classRows = ranking.map((r, idx) => {
                 let formHtml = r.form.slice(-3).map(f => `<span class="form-dot ${f==='W'?'bg-win':(f==='L'?'bg-loss':'bg-draw')}"></span>`).join('');
-                return `<tr class="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors"><td class="py-3 px-2 text-center text-slate-400 font-bold">${idx+1}</td><td class="py-3 px-2 font-bold text-white text-sm">${r.name}</td><td class="py-3 px-2 text-center font-black text-amber-400 text-lg">${r.pts}</td><td class="py-3 px-2 text-center font-bold ${r.diff>0?'text-green-400':(r.diff<0?'text-red-400':'text-slate-400')}">${r.diff>0?'+'+r.diff:r.diff}</td><td class="py-3 px-2 text-center whitespace-nowrap">${formHtml}</td></tr>`;
+                let isGhost = r.name.toLowerCase().includes('meilleur') || r.name.toLowerCase().includes(' des ');
+                return `<tr class="border-b border-slate-700/50 ${isGhost?'opacity-40':''} hover:bg-slate-700/20 transition-colors"><td class="py-3 px-2 text-center text-slate-400 font-bold">${idx+1}</td><td class="py-3 px-2 font-bold text-white text-sm ${isGhost?'italic':''}">${r.name}</td><td class="py-3 px-2 text-center font-black text-amber-400 text-lg">${r.pts}</td><td class="py-3 px-2 text-center font-bold ${r.diff>0?'text-green-400':(r.diff<0?'text-red-400':'text-slate-400')}">${r.diff>0?'+'+r.diff:r.diff}</td><td class="py-3 px-2 text-center whitespace-nowrap">${formHtml}</td></tr>`;
             }).join('');
 
             let matchRows = matches.map((m, idx) => {
                 let isPlayed = m.s1 > 0 || m.s2 > 0 || m.locked;
                 let scoreClass = isPlayed ? 'text-white' : 'text-slate-600';
-                return `
-                <div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-xl mb-2 border border-slate-700/50">
+                let isGhost = m.t1.toLowerCase().includes('meilleur') || m.t1.toLowerCase().includes(' des ');
+                return `<div class="flex items-center justify-between p-3 bg-slate-800/40 rounded-xl mb-2 border border-slate-700/50 ${isGhost?'opacity-40':''}">
                     <div class="flex-1 text-right font-bold text-xs sm:text-sm text-slate-300 pr-3">${m.t2}</div>
-                    <div class="bg-slate-900 px-4 py-1.5 rounded-lg border border-slate-700 font-black tracking-widest ${scoreClass} text-lg w-24 min-w-[80px] text-center shadow-inner whitespace-nowrap">
-                        ${m.s2} - ${m.s1}
-                    </div>
+                    <div class="bg-slate-900 px-4 py-1.5 rounded-lg border border-slate-700 font-black tracking-widest ${scoreClass} text-lg w-24 min-w-[80px] text-center shadow-inner whitespace-nowrap">${m.s2} - ${m.s1}</div>
                     <div class="flex-1 text-left font-bold text-xs sm:text-sm text-slate-300 pl-3">${m.t1}</div>
                     <div class="hidden sm:block text-[9px] text-slate-500 font-bold uppercase w-20 text-right opacity-60">${m.terrain}</div>
                 </div>`;
             }).join('');
 
-            html += `
-            <div class="mb-10">
-                <div class="flex items-center gap-4 mb-4 pl-2"><h2 class="text-3xl font-black italic uppercase text-white">Poule ${pLetter}</h2><div class="h-[2px] flex-1 bg-gradient-to-r from-slate-700 to-transparent"></div></div>
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <div class="lg:col-span-5"><div class="glass-panel rounded-[2rem] overflow-hidden shadow-lg"><table class="w-full text-left text-xs sm:text-sm"><thead class="bg-slate-900/80 text-[10px] font-black uppercase tracking-widest text-slate-400"><tr><th class="py-4 px-2 text-center">R.</th><th class="py-4 px-2">Équipe</th><th class="py-4 px-2 text-center">Pts</th><th class="py-4 px-2 text-center">Diff</th><th class="py-4 px-2 text-center" title="Forme sur les 3 derniers matchs">Série</th></tr></thead><tbody>${classRows}</tbody></table></div><div class="mt-3 px-4 flex justify-between text-[10px] text-slate-500 font-bold uppercase"><span>V = 3pts, N = 2pts, D = 1pt</span><span>🟢 Victoire 🔴 Défaite</span></div></div>
-                    <div class="lg:col-span-7"><div class="glass-panel p-4 sm:p-6 rounded-[2rem] shadow-lg max-h-[400px] overflow-y-auto"><h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-4">Calendrier & Résultats</h3>${matchRows}</div></div>
-                </div>
+            html += `<div class="mb-10"><div class="flex items-center gap-4 mb-4 pl-2"><h2 class="text-3xl font-black italic uppercase text-white">Poule ${pLetter}</h2><div class="h-[2px] flex-1 bg-gradient-to-r from-slate-700 to-transparent"></div></div><div class="grid grid-cols-1 lg:grid-cols-12 gap-6"><div class="lg:col-span-5"><div class="glass-panel rounded-[2rem] overflow-hidden shadow-lg"><table class="w-full text-left text-xs sm:text-sm"><thead class="bg-slate-900/80 text-[10px] font-black uppercase tracking-widest text-slate-400"><tr><th class="py-4 px-2 text-center">R.</th><th class="py-4 px-2">Équipe</th><th class="py-4 px-2 text-center">Pts</th><th class="py-4 px-2 text-center">Diff</th><th class="py-4 px-2 text-center" title="Forme sur les 3 derniers matchs">Série</th></tr></thead><tbody>${classRows}</tbody></table></div><div class="mt-3 px-4 flex justify-between text-[10px] text-slate-500 font-bold uppercase"><span>V = 3pts, N = 2pts, D = 1pt</span><span>🟢 Victoire 🔴 Défaite</span></div></div><div class="lg:col-span-7"><div class="glass-panel p-4 sm:p-6 rounded-[2rem] shadow-lg max-h-[400px] overflow-y-auto"><h3 class="text-[10px] font-black uppercase text-slate-500 tracking-widest mb-4">Calendrier & Résultats</h3>${matchRows}</div></div></div></div>`;
+        });
+        document.getElementById('poules-container').innerHTML = html;
+    }
+
+    function loadTrophy() {
+        if (!db || !globalSettings.activeYear) return; const year = globalSettings.activeYear;
+        if (trophyRef) trophyRef.off(); trophyRef = db.ref(`t3n/${year}/trophy`);
+        document.getElementById('trophy-container').innerHTML = `<div class="text-center py-20 animate-pulse text-slate-500 font-bold uppercase tracking-widest text-sm">Synchronisation du Palmarès...</div>`;
+        trophyRef.on('value', snap => {
+            if (!snap.exists()) { document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-3xl text-center text-slate-400"><span class="text-4xl block mb-4">🛡️</span><p class="font-bold text-lg uppercase">Palmarès non calculé</p><p class="text-sm">Le trophée T3N se base sur les matchs de l'après-midi.</p></div>`; return; }
+            let sortedList = snap.val(); let pHtml = '';
+            if(sortedList[1]) pHtml += `<div class="flex flex-col items-center justify-end h-48"><div class="text-center font-bold text-xs sm:text-sm mb-2 text-slate-300 truncate w-24 sm:w-32">${sortedList[1].name}</div><div class="bg-slate-600 border border-slate-500 w-24 sm:w-32 h-3/4 rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-inner"><span class="text-3xl">🥈</span><span class="font-black text-lg sm:text-xl mt-2 text-slate-300">${sortedList[1].pts} pts</span></div></div>`;
+            if(sortedList[0]) pHtml += `<div class="flex flex-col items-center justify-end h-64"><div class="text-center font-black text-base sm:text-lg mb-2 text-amber-400 truncate w-32 sm:w-40">${sortedList[0].name}</div><div class="bg-gradient-to-b from-amber-500 to-amber-600 border border-amber-400 w-32 sm:w-40 h-full rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-inner"><span class="text-5xl drop-shadow-md">🏆</span><span class="font-black text-2xl sm:text-3xl mt-4 text-black">${sortedList[0].pts} pts</span></div></div>`;
+            if(sortedList[2]) pHtml += `<div class="flex flex-col items-center justify-end h-40"><div class="text-center font-bold text-xs sm:text-sm mb-2 text-slate-300 truncate w-24 sm:w-32">${sortedList[2].name}</div><div class="bg-orange-800 border border-orange-700 w-24 sm:w-32 h-2/3 rounded-t-xl flex flex-col items-center justify-start pt-4 shadow-inner"><span class="text-3xl">🥉</span><span class="font-black text-lg sm:text-xl mt-2 text-orange-300">${sortedList[2].pts} pts</span></div></div>`;
+            
+            let tbody = sortedList.map((c, idx) => `<tr class="hover:bg-slate-800/50 transition-colors border-b border-slate-700/50"><td class="p-4 font-black ${idx<3?'text-amber-500':'text-slate-400'}">${idx+1}</td><td class="p-4 font-bold text-white uppercase">${c.name}</td><td class="p-4 text-center text-xs font-bold ${c.U8===999?'text-slate-600':'text-blue-400'}">${c.U8===999?'-':(c.U8<=10?c.U8+'e ('+pointsMap[c.U8]+'pt)':'11+')}</td><td class="p-4 text-center text-xs font-bold ${c.U10===999?'text-slate-600':'text-slate-300'}">${c.U10===999?'-':(c.U10<=10?c.U10+'e ('+pointsMap[c.U10]+'pt)':'11+')}</td><td class="p-4 text-center text-xs font-bold ${c.U12===999?'text-slate-600':'text-red-400'}">${c.U12===999?'-':(c.U12<=10?c.U12+'e ('+pointsMap[c.U12]+'pt)':'11+')}</td><td class="p-4 text-center font-black text-amber-500 text-lg">${c.pts}</td></tr>`).join('');
+            
+            document.getElementById('trophy-container').innerHTML = `
+            <div class="glass-panel p-6 sm:p-8 rounded-[2.5rem] shadow-xl">
+                <div class="flex justify-center items-end h-64 gap-2 sm:gap-4 mb-12">${pHtml}</div>
+                <div class="overflow-x-auto"><table class="w-full text-left text-sm border-collapse min-w-[600px]"><thead class="bg-slate-900/80 text-[10px] font-black uppercase text-slate-400"><tr><th class="p-4">Rang</th><th class="p-4">Club</th><th class="p-4 text-center text-blue-500">U8</th><th class="p-4 text-center text-slate-200">U10</th><th class="p-4 text-center text-red-500">U12</th><th class="p-4 text-center text-amber-500">Points</th></tr></thead><tbody class="divide-y divide-slate-700/50">${tbody}</tbody></table></div>
             </div>`;
         });
-
-        document.getElementById('poules-container').innerHTML = html;
     }
 </script>
 </body>
