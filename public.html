@@ -50,13 +50,12 @@
     </header>
 
     <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-8 mt-4" id="poules-container"></main>
-    
     <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-8 mt-4 hidden" id="trophy-container"></main>
 
 <script>
+    // --- 1. METS TA CLE ICI ---
     const firebaseConfig = {
-        // --- COLLE TES CLES ICI ---
-        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
+        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", 
         authDomain: "t3nations.firebaseapp.com",
         databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "t3nations",
@@ -64,7 +63,12 @@
         messagingSenderId: "368081588642",
         appId: "1:368081588642:web:c1f2c6a3c2c9b47929a2fb"
     };
-    if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") firebase.initializeApp(firebaseConfig);
+
+    // --- 2. LAISSE CETTE LIGNE INTACTE (VERROU DE SECURITE) ---
+    if (!firebase.apps.length && firebaseConfig.apiKey !== "VOTRE_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
+    }
+    
     const db = firebase.apps.length ? firebase.database() : null;
 
     let activeMain = 'U10';
