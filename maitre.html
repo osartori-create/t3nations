@@ -87,30 +87,29 @@
 
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
-                    <label class="text-[10px] uppercase font-bold text-slate-400">Nom de la Poule (Ex: A)</label>
+                    <label class="text-[10px] uppercase font-bold text-slate-400">Nom Poule (Ex: A)</label>
                     <input type="text" id="man-poule" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white uppercase font-bold" placeholder="A">
                 </div>
                 <div>
-                    <label class="text-[10px] uppercase font-bold text-slate-400">Format (Nb équipes)</label>
+                    <label class="text-[10px] uppercase font-bold text-slate-400">Format</label>
                     <select id="man-format" onchange="updateManualFields()" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-bold">
-                        <option value="4" selected>4 Équipes (1 terrain)</option>
-                        <option value="3">3 Équipes (1 terrain)</option>
-                        <option value="5">5 Équipes (1 ou 2 terr.)</option>
-                        <option value="6">6 Équipes (2 terrains)</option>
+                        <option value="4" selected>4 Équipes</option>
+                        <option value="3">3 Équipes</option>
+                        <option value="5">5 Équipes</option>
+                        <option value="6">6 Équipes</option>
                     </select>
                 </div>
                 <div class="col-span-2">
-                    <label class="text-[10px] uppercase font-bold text-slate-400">Terrain(s) affecté(s) (Séparés par virgule, ex: 1, 2)</label>
+                    <label class="text-[10px] uppercase font-bold text-slate-400">Terrains (Ex: 1, 2)</label>
                     <input type="text" id="man-terrains" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white" placeholder="1">
                 </div>
             </div>
 
-            <div id="man-teams" class="space-y-2 mb-6">
-                </div>
+            <div id="man-teams" class="space-y-2 mb-6"></div>
 
             <div class="flex justify-end gap-3">
                 <button onclick="document.getElementById('modal-manual').classList.add('hidden')" class="px-4 py-2 text-slate-400 font-bold uppercase text-xs">Fermer</button>
-                <button onclick="processManualCreation()" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded font-black uppercase text-sm">Générer et Ajouter</button>
+                <button onclick="processManualCreation()" class="bg-indigo-600 hover:bg-indigo-700 px-6 py-2 rounded font-black uppercase text-sm">Ajouter</button>
             </div>
         </div>
     </div>
@@ -129,7 +128,7 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let currentData = { matches: {}, poules: [] };
+        let currentData = { matches: {}, poules: [], overrides: {}, obs: {} };
         let globalRanking = [];
         const MATRICES = {
             3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
@@ -138,15 +137,14 @@
             6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
         };
 
-        // --- CORE LOGIC ---
-
         function switchContext() {
             const cat = document.getElementById('sel-cat').value;
             const phase = document.getElementById('sel-phase').value;
             const year = new Date().getFullYear();
             
             db.ref(`t3n/${year}/${cat}_${phase}`).on('value', snapshot => {
-                currentData = snapshot.val() || { matches: {}, poules: [] };
+                // On récupère aussi les overrides (classement forcé) et obs (remarques)
+                currentData = snapshot.val() || { matches: {}, poules: [], overrides: {}, obs: {} };
                 renderLiveFeed();
                 calculateGlobalRanking();
             });
@@ -155,7 +153,6 @@
         function renderLiveFeed() {
             const container = document.getElementById('matches-grid');
             container.innerHTML = '';
-            
             const sortedMatches = Object.entries(currentData.matches || {}).sort((a,b) => a[1].poule.localeCompare(b[1].poule));
             
             sortedMatches.forEach(([id, m]) => {
@@ -183,10 +180,9 @@
             const matches = Object.values(currentData.matches || {});
             
             matches.forEach(m => {
-                [m.t1, m.t2].forEach(t => { if(!teams[t]) teams[t] = { name: t, pts: 0, pour: 0, contre: 0, diff: 0, matches: 0, poule: m.poule } });
+                [m.t1, m.t2].forEach(t => { if(!teams[t]) teams[t] = { name: t, pts: 0, pour: 0, contre: 0, diff: 0 } });
                 
                 if(m.s1 !== undefined && m.s2 !== undefined && (m.s1 > 0 || m.s2 > 0 || m.status === 'termine')) {
-                    teams[m.t1].matches++; teams[m.t2].matches++;
                     teams[m.t1].pour += m.s1; teams[m.t1].contre += m.s2;
                     teams[m.t2].pour += m.s2; teams[m.t2].contre += m.s1;
                     
@@ -198,8 +194,21 @@
 
             Object.values(teams).forEach(t => t.diff = t.pour - t.contre);
 
-            // Tri initial : Points > Diff > Essais Pour
-            globalRanking = Object.values(teams).sort((a,b) => (b.pts - a.pts) || (b.diff - a.diff) || (b.pour - a.pour));
+            // NOUVEAU MOTEUR DE TRI : Points > Override Manuel > Diff > Pour
+            globalRanking = Object.values(teams).sort((a,b) => {
+                // 1. Priorité absolue aux Points
+                if (b.pts !== a.pts) return b.pts - a.pts;
+
+                // 2. Priorité au départage manuel (Drag & Drop) si égalité de points
+                const overA = currentData.overrides && currentData.overrides[a.name] !== undefined ? currentData.overrides[a.name] : 999;
+                const overB = currentData.overrides && currentData.overrides[b.name] !== undefined ? currentData.overrides[b.name] : 999;
+                if (overA !== overB) return overA - overB;
+
+                // 3. Si aucun départage manuel, on regarde le Goal Average
+                if (b.diff !== a.diff) return b.diff - a.diff;
+                return b.pour - a.pour; // 4. Essais marqués
+            });
+
             renderRanking();
         }
 
@@ -219,134 +228,47 @@
                 tr.ondragleave = e => tr.classList.remove('drop-target');
                 tr.ondrop = e => { e.preventDefault(); tr.classList.remove('drop-target'); handleDrop(e.dataTransfer.getData('text/plain'), i); };
 
+                // Récupération de l'observation sauvegardée
+                const obsVal = currentData.obs && currentData.obs[t.name] ? currentData.obs[t.name] : '';
+
                 tr.innerHTML = `
                     <td class="p-2 font-black text-slate-500">${i+1}${i===0?'er':'e'}</td>
-                    <td class="p-2 font-bold uppercase truncate max-w-[120px]">${t.name}</td>
+                    <td class="p-2 font-bold uppercase truncate max-w-[120px]" title="Glissez pour forcer le départage">${t.name}</td>
                     <td class="p-2 text-center font-black text-blue-400">${t.pts}</td>
                     <td class="p-2 text-center text-slate-400">${t.diff > 0 ? '+'+t.diff : t.diff}</td>
-                    <td class="p-1"><input type="text" placeholder="..." class="bg-transparent border-none text-[9px] w-full focus:ring-0 text-slate-500"></td>
+                    <td class="p-1"><input type="text" value="${obsVal}" onchange="saveObs('${t.name}', this.value)" placeholder="ex: Etranger" class="bg-transparent border-none text-[9px] w-full focus:ring-0 text-amber-500 font-bold"></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
+        // NOUVEAU : Sauvegarde de l'ordre forcé en base de données
         function handleDrop(from, to) {
             const moved = globalRanking.splice(from, 1)[0];
             globalRanking.splice(to, 0, moved);
-            renderRanking();
-        }
-
-        // --- IMPORT JSON (REMPLACE TOUT) ---
-        function processImport() {
-            const raw = document.getElementById('import-area').value;
-            try {
-                const poules = JSON.parse(raw);
-                const year = new Date().getFullYear();
-                const cat = document.getElementById('sel-cat').value;
-                const phase = document.getElementById('sel-phase').value;
-                
-                if(!confirm(`ATTENTION : Cela va effacer et remplacer tout le tournoi actuel pour la catégorie ${cat} (${phase}). Continuer ?`)) return;
-
-                let updates = { poules: poules, matches: {} };
-
-                poules.forEach(p => {
-                    const nb = p.equipes.length;
-                    const matrix = MATRICES[nb];
-                    if(!matrix) return alert(`Format de poule de ${nb} non géré.`);
-                    
-                    matrix.forEach((match, idx) => {
-                        const mid = `${p.poule}_M${idx+1}`;
-                        updates.matches[mid] = {
-                            poule: p.poule,
-                            terrain: p.terrains[idx % p.terrains.length],
-                            t1: p.equipes[match.a - 1],
-                            t2: p.equipes[match.b - 1],
-                            arb: p.equipes[match.arb - 1],
-                            s1: 0, s2: 0, status: 'en_attente'
-                        };
-                    });
-                });
-
-                db.ref(`t3n/${year}/${cat}_${phase}`).set(updates)
-                  .then(() => { alert("🚀 Tournoi déployé !"); document.getElementById('modal-import').classList.add('hidden'); });
-            } catch(e) { alert("Erreur de format JSON."); }
-        }
-
-        // --- CREATION MANUELLE (AJOUT) ---
-        function updateManualFields() {
-            const format = parseInt(document.getElementById('man-format').value);
-            const container = document.getElementById('man-teams');
-            container.innerHTML = '';
-            for(let i=1; i<=format; i++) {
-                container.innerHTML += `
-                    <div>
-                        <label class="text-[10px] uppercase font-bold text-slate-500">Équipe ${i}</label>
-                        <input type="text" id="man-team-${i}" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-sm text-white font-bold" placeholder="Nom équipe ${i}">
-                    </div>
-                `;
-            }
-        }
-
-        function processManualCreation() {
-            const poule = document.getElementById('man-poule').value.toUpperCase().trim();
-            const format = parseInt(document.getElementById('man-format').value);
-            const terrainsRaw = document.getElementById('man-terrains').value;
-            const terrains = terrainsRaw.split(',').map(t => t.trim()).filter(t => t);
-
-            if(!poule || terrains.length === 0) return alert("Veuillez remplir le nom de la poule et les terrains.");
-
-            const equipes = [];
-            for(let i=1; i<=format; i++) {
-                const eq = document.getElementById(`man-team-${i}`).value.trim();
-                if(!eq) return alert(`L'équipe ${i} n'est pas renseignée.`);
-                equipes.push(eq);
-            }
-
-            const matrix = MATRICES[format];
-            let updates = {};
-
-            matrix.forEach((match, idx) => {
-                const mid = `${poule}_M${idx+1}`;
-                // On prépare la mise à jour pour Firebase en ne touchant qu'aux nœuds de cette poule
-                updates[`matches/${mid}`] = {
-                    poule: poule,
-                    terrain: terrains[idx % terrains.length],
-                    t1: equipes[match.a - 1],
-                    t2: equipes[match.b - 1],
-                    arb: equipes[match.arb - 1],
-                    s1: 0, s2: 0, status: 'en_attente'
-                };
-            });
-
+            
+            let newOverrides = {};
+            globalRanking.forEach((t, i) => { newOverrides[t.name] = i; });
+            
             const year = new Date().getFullYear();
             const cat = document.getElementById('sel-cat').value;
             const phase = document.getElementById('sel-phase').value;
-
-            // On utilise .update() pour ne pas effacer ce qui existe déjà !
-            db.ref(`t3n/${year}/${cat}_${phase}`).update(updates)
-              .then(() => {
-                  alert(`✅ Poule ${poule} générée et ajoutée au tournoi !`);
-                  // On vide les équipes pour faciliter la saisie de la poule suivante
-                  for(let i=1; i<=format; i++) document.getElementById(`man-team-${i}`).value = '';
-                  // On avance d'une lettre automatiquement (A -> B)
-                  document.getElementById('man-poule').value = String.fromCharCode(poule.charCodeAt(0) + 1); 
-              })
-              .catch(e => alert("Erreur lors de la création : " + e));
+            
+            // On sauvegarde l'ordre manuel. Firebase rechargera automatiquement la liste via le on('value')
+            db.ref(`t3n/${year}/${cat}_${phase}/overrides`).set(newOverrides);
         }
 
-        function exportToExcel() {
-            let tsv = "Rang\tEquipe\tPoints\tDiff\tPour\tObs\n";
-            globalRanking.forEach((t, i) => {
-                tsv += `${i+1}\t${t.name}\t${t.pts}\t${t.diff}\t${t.pour}\t\n`;
-            });
-            navigator.clipboard.writeText(tsv).then(() => alert("Copié ! Collez directement dans Excel."));
+        // NOUVEAU : Sauvegarde des remarques en base de données
+        function saveObs(teamName, value) {
+            const year = new Date().getFullYear();
+            const cat = document.getElementById('sel-cat').value;
+            const phase = document.getElementById('sel-phase').value;
+            db.ref(`t3n/${year}/${cat}_${phase}/obs/${teamName}`).set(value);
         }
 
-        // Init
-        window.onload = () => {
-            switchContext();
-            updateManualFields();
-        };
-    </script>
-</body>
-</html>
+        // --- IMPORT JSON NETTOYÉ ---
+        function processImport() {
+            let raw = document.getElementById('import-area').value;
+            raw = raw.replace(/[\u00A0]/g, " "); // Sécurité : Enlève les espaces invisibles capricieux
+            raw = raw.replace(/
+http://googleusercontent.com/immersive_entry_chip/0
