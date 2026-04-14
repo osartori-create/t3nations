@@ -807,12 +807,23 @@
     }
 
     // --- NOUVEAUTÉ : IMPORT JSON IA ---
-    function findOrCreateTeam(name) {
-        var phase = getActivePhase();
-        var allTeams = (phase.teams || []).concat(phase.reserve || []);
-        phase.poules.forEach(function(p) { allTeams = allTeams.concat(p.teams); });
+    function findOrCreateTeam(name, targetCat) {
+        var cat = targetCat || appState.activeCat;
+        var p1 = appState.cats[cat].phase1;
+        var p2 = appState.cats[cat].phase2;
         
-        var found = allTeams.find(function(t) { return t && t.name.toLowerCase() === name.toLowerCase(); });
+        // On cherche dans toutes les équipes (Phase 1 et 2) pour assurer la continuité
+        var allTeams = (p1.teams || []).concat(p1.reserve || []).concat(p2.teams || []).concat(p2.reserve || []);
+        p1.poules.forEach(function(p) { allTeams = allTeams.concat(p.teams); });
+        p2.poules.forEach(function(p) { allTeams = allTeams.concat(p.teams); });
+        
+        var found = allTeams.find(function(t) { 
+            if(!t) return false;
+            var tClean = t.name.toLowerCase().trim();
+            var nClean = name.toLowerCase().trim();
+            // Accepte le nom pur, même si le système y a ajouté "(1er des 1ers)" en phase 2
+            return tClean === nClean || tClean.startsWith(nClean + " ("); 
+        });
         if(found) return found;
 
         var inMaster = appState.masterData.find(function(c) { return name.toLowerCase().indexOf(c.name.toLowerCase()) > -1; });
@@ -827,34 +838,56 @@
 
         try {
             var data = JSON.parse(raw);
-            if(!confirm("⚠️ L'importation de ce fichier va écraser la structure de la phase actuelle. Continuer ?")) return;
+            if(!confirm("⚠️ L'importation va écraser la structure de la phase actuelle ("+appState.currentPhase+"). Continuer ?")) return;
             
-            var phase = getActivePhase();
-            phase.poules = [];
-            phase.validated = true; 
+            var updatedCats = {};
             
             data.forEach(function(pData) {
                 var nb = pData.equipes.length;
                 if(!MATRICES[nb]) return;
+
+                var targetCat = appState.activeCat;
+                var targetLetter = pData.poule;
+
+                // Détection intelligente du préfixe de catégorie (ex: "U8-A" -> cat="U8", letter="A")
+                var match = pData.poule.match(/^(U6|U8|U10|U12)[\s-]*([A-Z])$/i);
+                if(match) {
+                    targetCat = match[1].toUpperCase();
+                    targetLetter = match[2].toUpperCase();
+                }
+
+                var phaseData = appState.cats[targetCat][appState.currentPhase.toLowerCase()];
+                
+                // On vide la phase de cette catégorie uniquement lors de la première poule rencontrée
+                if(!updatedCats[targetCat]) {
+                    phaseData.poules = [];
+                    phaseData.validated = true;
+                    updatedCats[targetCat] = true;
+                }
                 
                 var newPoule = {
-                    letter: pData.poule,
+                    letter: targetLetter,
                     target: nb,
-                    tUsed: pData.terrains.length,
-                    terrainStart: pData.terrains[0],
-                    teams: pData.equipes.map(function(tName) { return findOrCreateTeam(tName); }),
+                    tUsed: pData.terrains ? pData.terrains.length : (nb>=5?2:1),
+                    terrainStart: pData.terrains ? pData.terrains[0] : 1,
+                    teams: pData.equipes.map(function(tName) { return findOrCreateTeam(tName, targetCat); }),
                     scores: {}, adjustments: {}
                 };
-                phase.poules.push(newPoule);
+                phaseData.poules.push(newPoule);
             });
             
             document.getElementById('modal-import-gem').classList.add('hidden');
             document.getElementById('import-gem-area').value = '';
-            toggleArchitect(true); 
-            saveState(); renderBoard();
-            alert("✅ Configuration IA importée avec succès !");
+            
+            // Si la catégorie actuellement à l'écran a été modifiée, on rafraîchit
+            if(updatedCats[appState.activeCat]) {
+                toggleArchitect(true); 
+                renderBoard();
+            }
+            saveState();
+            alert("✅ Import IA réussi ! Catégories impactées : " + Object.keys(updatedCats).join(', '));
 
-        } catch(e) { alert("❌ Format JSON invalide. Vérifiez la syntaxe."); }
+        } catch(e) { console.error(e); alert("❌ Format JSON invalide. Vérifiez la syntaxe."); }
     }
 
     // --- NOUVEAUTÉ : CREATION MANUELLE DE POULE ---
