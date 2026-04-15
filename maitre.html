@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master - L'Usine Intégrale</title>
+    <title>T3N Master v37 - Édition "Matin de Tournoi"</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -23,8 +23,6 @@
         .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
         .excel-yellow { background-color: #fef08a; font-weight: 900; }
         .excel-blue { background-color: #e0f2fe; }
-        .drag-ghost { opacity: 0.4; background: #fef3c7 !important; }
-        .drop-target { border-top: 3px solid #f59e0b; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen" onload="initApp()">
@@ -122,17 +120,8 @@
                         <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab">Phase 1 (Brassage)</button>
                         <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all">Phase 2 (Classement)</button>
                     </nav>
-                    
-                    <!-- NOUVEAUTÉ : Boutons Import et Création Manuelle -->
-                    <div class="flex gap-2">
-                        <button onclick="document.getElementById('modal-import-gem').classList.remove('hidden')" class="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 text-[10px] font-black uppercase rounded-lg transition-colors">📥 Import IA</button>
-                        <button onclick="document.getElementById('modal-manual-gem').classList.remove('hidden')" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 text-[10px] font-black uppercase rounded-lg transition-colors">✍️ + Poule</button>
-                    </div>
-
                     <div class="flex items-center gap-4">
-                        <button onclick="printCategoryResults()" class="text-[10px] font-black uppercase bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-300 transition-colors" id="btn-print-cat">🖨️ Imprimer</button>
-                        <!-- NOUVEAUTÉ : Bouton Export Excel -->
-                        <button onclick="exportToExcelCat()" class="text-[10px] font-black uppercase bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 transition-colors" id="btn-excel-cat">📋 Excel</button>
+                        <button onclick="printCategoryResults()" class="hidden text-[10px] font-black uppercase bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-300 transition-colors" id="btn-print-cat">🖨️ Imprimer Classement</button>
                         <div class="text-right px-4 border-l">
                             <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
                             <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
@@ -145,7 +134,7 @@
                     <div class="relative z-10">
                         <h3 class="font-black text-indigo-800 uppercase mb-2 text-xl">Génération Phase 2 : Péréquation FFR</h3>
                         <p class="text-xs text-indigo-600/80 mb-6 max-w-2xl">
-                            Le système va effacer l'ossature fantôme et classer les vraies équipes selon leur <b>Ratio (Points / Matchs joués)</b> du matin. <br><i>Note : Les ajustements manuels saisis en Phase 1 seront pris en compte.</i>
+                            Le système va effacer l'ossature fantôme et classer les vraies équipes selon leur <b>Ratio (Points / Matchs joués)</b> du matin.
                         </p>
                         <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">Calculer les Ratios & Remplir la Phase 2</button>
                     </div>
@@ -219,43 +208,8 @@
     </section>
 </main>
 
-<!-- NOUVEAU : MODALS POUR L'IMPORT GEM ET LA CREATION MANUELLE -->
-<div id="modal-import-gem" class="hidden fixed inset-0 bg-slate-900/80 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded-2xl w-full max-w-2xl shadow-2xl">
-        <h3 class="text-xl font-black uppercase mb-2">📥 Importer Configuration Assistant</h3>
-        <p class="text-xs text-slate-500 mb-4">Collez le bloc JSON. <span class="text-red-500 font-bold">ATTENTION :</span> Cela écrasera l'ossature de la phase en cours.</p>
-        <textarea id="import-gem-area" rows="10" class="w-full bg-slate-50 border border-slate-300 rounded p-2 text-xs font-mono outline-none focus:border-amber-500 mb-4" placeholder='[{"poule": "A", "terrains": [1], "equipes": ["Equipe 1", "Equipe 2"]}]'></textarea>
-        <div class="flex justify-end gap-2">
-            <button onclick="document.getElementById('modal-import-gem').classList.add('hidden')" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold uppercase">Annuler</button>
-            <button onclick="processImportGem()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-black uppercase">Générer le JSON</button>
-        </div>
-    </div>
-</div>
-
-<div id="modal-manual-gem" class="hidden fixed inset-0 bg-slate-900/80 flex justify-center items-center z-50">
-    <div class="bg-white p-6 rounded-2xl w-full max-w-md shadow-2xl">
-        <h3 class="text-xl font-black uppercase mb-4">✍️ Ajouter Poule Manuelle</h3>
-        <div class="grid grid-cols-2 gap-2 mb-2">
-            <div><label class="text-[10px] font-bold uppercase text-slate-500">Poule</label><input type="text" id="man-gem-poule" class="w-full border rounded p-1 text-sm font-bold uppercase" placeholder="Z"></div>
-            <div><label class="text-[10px] font-bold uppercase text-slate-500">Terrains</label><input type="text" id="man-gem-terrains" class="w-full border rounded p-1 text-sm font-bold" placeholder="1, 2"></div>
-        </div>
-        <div class="mb-4">
-            <label class="text-[10px] font-bold uppercase text-slate-500">Format</label>
-            <select id="man-gem-format" onchange="updateManGemFields()" class="w-full border rounded p-1 text-sm font-bold">
-                <option value="3">3 Equipes</option><option value="4" selected>4 Equipes</option><option value="5">5 Equipes</option><option value="6">6 Equipes</option>
-            </select>
-        </div>
-        <div id="man-gem-teams" class="space-y-1 mb-4 max-h-40 overflow-y-auto"></div>
-        <div class="flex justify-end gap-2">
-            <button onclick="document.getElementById('modal-manual-gem').classList.add('hidden')" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold uppercase">Annuler</button>
-            <button onclick="processManualGem()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black uppercase">Ajouter la poule</button>
-        </div>
-    </div>
-</div>
-
 <script>
-    // --- COMPATIBILITE MAXIMALE (VAR, FONCTIONS CLASSIQUES) ---
-    var STORAGE_KEY = 't3n_master_v35_finale';
+    var STORAGE_KEY = 't3n_master_v37_resilient';
 
     var MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
@@ -304,7 +258,6 @@
         }
         if(db) document.getElementById('sync-status').classList.remove('hidden'); 
         showTab(appState.activeCat || 'IMPORT');
-        updateManGemFields(); // Init manuel modal
     }
 
     function saveState() { 
@@ -315,8 +268,9 @@
     
     function broadcastSettings() { 
         if(db) {
+            // FIX TERRAIN BUG : On ne broadcast PLUS la phase active automatiquement ici
+            // On le fera uniquement au moment du déploiement
             var updateObj = { activeYear: document.getElementById('config-year').value };
-            updateObj['activePhase_' + appState.activeCat] = appState.currentPhase;
             db.ref('t3n/settings').update(updateObj); 
         }
     }
@@ -377,7 +331,8 @@
         appState.currentPhase = phase;
         document.getElementById('tab-phase1').className = 'px-4 py-2 text-[10px] font-black uppercase rounded-lg ' + (phase==='PHASE1'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500');
         document.getElementById('tab-phase2').className = 'px-4 py-2 text-[10px] font-black uppercase rounded-lg ' + (phase==='PHASE2'?'active-tab bg-amber-500 text-black':'bg-slate-100 text-slate-500 hover:bg-slate-200');
-        initCategoryUI(); attachFirebaseListener(); broadcastSettings(); saveState();
+        if(phase === 'PHASE2') document.getElementById('btn-print-cat').classList.remove('hidden'); else document.getElementById('btn-print-cat').classList.add('hidden');
+        initCategoryUI(); attachFirebaseListener(); saveState();
     }
 
     function updateCatSettings() { 
@@ -391,21 +346,26 @@
         renderArchitectScenarios(total, phase1); 
     }
 
+    // FIX CAS 2 : IMPORT ROBUSTE
     function processMasterImport() {
         var raw = document.getElementById('csv-input').value; 
         var lines = raw.split('\n');
         appState.masterData = [];
         for(var i=0; i<lines.length; i++) {
             var line = lines[i].trim();
-            if(!line || line.toLowerCase().indexOf('nom') > -1) continue;
-            var p = line.split(/\t|;/);
-            if(p.length < 5) p = line.split(/\s{2,}/); 
-            if(p.length >= 5) { 
-                var cName = p[0].trim();
-                var u12 = parseInt(p[p.length-1])||0;
-                var u10 = parseInt(p[p.length-2])||0;
-                var u8 = parseInt(p[p.length-3])||0;
-                var u6 = parseInt(p[p.length-4])||0;
+            if(!line || line.toLowerCase().indexOf('nom') === 0) continue;
+            
+            // On découpe la ligne par espaces multiples ou simples
+            var parts = line.split(/\s+/);
+            if(parts.length >= 5) { 
+                // On extrait les 4 derniers chiffres (U12, U10, U8, U6)
+                var u12 = parseInt(parts.pop())||0;
+                var u10 = parseInt(parts.pop())||0;
+                var u8 = parseInt(parts.pop())||0;
+                var u6 = parseInt(parts.pop())||0;
+                
+                // Tout ce qui reste au début, c'est le nom du club (ex: "RCT retard")
+                var cName = parts.join(' ').trim();
                 var isForeign = /zug|frankfurt|riedberg|heidelberg|neuenheim|crig/i.test(cName);
                 if (cName) appState.masterData.push({ id:'club_'+i, name: cName, foreign: isForeign, u6: u6, u8: u8, u10: u10, u12: u12 }); 
             }
@@ -480,61 +440,99 @@
     }
 
     function renderArchitectScenarios(total, phase) {
-        var list = document.getElementById('scenario-list'); list.innerHTML = ""; 
-        var maxT = MAX_TERRAINS[appState.activeCat]; var set = getCatSettings(); 
+        var list = document.getElementById('scenario-list'); 
+        list.innerHTML = ""; 
+        var maxT = MAX_TERRAINS[appState.activeCat]; 
+        var set = getCatSettings(); 
         var baseScenarios = RECIPES.filter(function(r){ return r.teams === total; }); 
         var scenarios = [];
-        baseScenarios.forEach(function(s){ scenarios.push(s); if(s.p1.str !== s.p2.str) scenarios.push({ title: s.title + " (Inversé)", p1: s.p2, p2: s.p1, icon: "🔄" }); });
+        
+        baseScenarios.forEach(function(s){ 
+            scenarios.push(s); 
+            if(s.p1.str !== s.p2.str) scenarios.push({ title: s.title + " (Inversé)", p1: s.p2, p2: s.p1, icon: "🔄" }); 
+        });
+        
         if(scenarios.length === 0) { 
-            for(var p6=0; p6<=total/6; p6++) { for(var p5=0; p5<=total/5; p5++) { for(var p4=0; p4<=total/4; p4++) { for(var p3=0; p3<=total/3; p3++) { 
-                if(p6*6 + p5*5 + p4*4 + p3*3 === total) { 
-                    var terrainsReq = p6*2 + p5*2 + p4*1 + p3*1; 
-                    if(terrainsReq <= maxT) { 
-                        var str = ((p6?p6+'x6 ':'') + (p5?p5+'x5 ':'') + (p4?p4+'x4 ':'') + (p3?p3+'x3 ':'')).trim(); 
-                        scenarios.push({ title: "Calculé", p1: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, p2: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, icon: "⚙️" }); 
+            for(var p6=0; p6<=total/6; p6++) { 
+                for(var p5=0; p5<=total/5; p5++) { 
+                    for(var p4=0; p4<=total/4; p4++) { 
+                        for(var p3=0; p3<=total/3; p3++) { 
+                            if(p6*6 + p5*5 + p4*4 + p3*3 === total) { 
+                                var terrainsReq = p6*2 + p5*2 + p4*1 + p3*1; 
+                                if(terrainsReq <= maxT) { 
+                                    var str = ((p6?p6+'x6 ':'') + (p5?p5+'x5 ':'') + (p4?p4+'x4 ':'') + (p3?p3+'x3 ':'')).trim(); 
+                                    scenarios.push({ title: "Calculé", p1: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, p2: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, icon: "⚙️" }); 
+                                } 
+                            } 
+                        } 
                     } 
                 } 
-            } } } } 
+            } 
         }
-        if(scenarios.length === 0) { list.innerHTML = '<p class="text-xs text-red-500 font-bold">⚠️ Aucun plan ne rentre sur '+maxT+' terrains.</p>'; return; }
+        
+        if(scenarios.length === 0) { list.innerHTML = '<p class="text-xs text-red-500 font-bold">⚠️ Aucun plan ne rentre sur '+maxT+' terrains. Utilisez le mode Manuel.</p>'; return; }
+
         scenarios.forEach(function(s) {
             var rotP1 = Math.max(s.p1.p6?15:0, s.p1.p5?10:0, s.p1.p4?6:0, s.p1.p3?3:0); 
             var rotP2 = Math.max(s.p2.p6?15:0, s.p2.p5?10:0, s.p2.p4?6:0, s.p2.p3?3:0);
             var durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; 
             var durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
             var timeWarning = (durP1 < 5 || durP2 < 5) ? '<span class="text-red-500 bg-red-50 px-1 rounded ml-2">⚠️ Impossible temporellement</span>' : '';
-            var slotsP2 = s.p2.p6*6 + s.p2.p5*5 + s.p2.p4*4 + s.p2.p3*3; var repechage = slotsP2 > total ? slotsP2 - total : 0; 
+            var slotsP2 = s.p2.p6*6 + s.p2.p5*5 + s.p2.p4*4 + s.p2.p3*3; 
+            var repechage = slotsP2 > total ? slotsP2 - total : 0; 
             var repBadge = repechage > 0 ? '<div class="bg-red-100 text-red-800 text-[9px] font-black px-2 py-1 rounded mt-2">⚠️ Phase 2 nécessitera '+repechage+' repêchage(s)</div>' : '';
-            var div = document.createElement('div'); div.className = 'scenario-card p-4 rounded-2xl bg-white ' + (phase.formatStr === s.title ? 'scenario-active' : 'border-slate-200');
+            
+            var div = document.createElement('div'); 
+            div.className = 'scenario-card p-4 rounded-2xl bg-white ' + (phase.formatStr === s.title ? 'scenario-active' : 'border-slate-200');
             div.innerHTML = '<h4 class="font-black text-sm text-slate-800 mb-2 border-b pb-2">'+s.icon+' '+s.title+'</h4><div class="grid grid-cols-2 gap-2 mb-2"><div class="bg-slate-50 p-2 rounded-lg"><span class="text-[9px] text-slate-400 uppercase font-bold block">Matin ('+rotP1+' Rot.)</span><span class="font-black text-indigo-600 text-sm">'+s.p1.str+'</span></div><div class="bg-slate-50 p-2 rounded-lg"><span class="text-[9px] text-slate-400 uppercase font-bold block">A-Midi ('+rotP2+' Rot.)</span><span class="font-black text-indigo-600 text-sm">'+s.p2.str+'</span></div></div><div class="text-[10px] text-slate-500 leading-tight">Match Matin calculé : <b class="'+(durP1<5?'text-red-500':'text-amber-600')+'">'+durP1+' min</b> '+timeWarning+'<br>Match A-Midi calculé : <b class="'+(durP2<5?'text-red-500':'text-amber-600')+'">'+durP2+' min</b></div>'+repBadge;
+            
             div.onclick = function() { applyDayPlan(s, (phase.teams && phase.teams.length) ? phase.teams : phase.reserve.concat(phase.poules.flatMap(function(p){return p.teams;})), durP1, durP2, repechage); }; 
             list.appendChild(div);
         });
     }
 
     function applyManualPlan() {
-        var total = parseInt(document.getElementById('active-cat-count').innerText); var maxT = MAX_TERRAINS[appState.activeCat];
+        var total = parseInt(document.getElementById('active-cat-count').innerText); 
+        var maxT = MAX_TERRAINS[appState.activeCat];
         var p1 = { p6: parseInt(document.getElementById('m-p1-6').value)||0, p5: parseInt(document.getElementById('m-p1-5').value)||0, p4: parseInt(document.getElementById('m-p1-4').value)||0, p3: parseInt(document.getElementById('m-p1-3').value)||0 };
         var p2 = { p6: parseInt(document.getElementById('m-p2-6').value)||0, p5: parseInt(document.getElementById('m-p2-5').value)||0, p4: parseInt(document.getElementById('m-p2-4').value)||0, p3: parseInt(document.getElementById('m-p2-3').value)||0 };
-        var t1 = p1.p6*6 + p1.p5*5 + p1.p4*4 + p1.p3*3; var t2 = p2.p6*6 + p2.p5*5 + p2.p4*4 + p2.p3*3;
+        var t1 = p1.p6*6 + p1.p5*5 + p1.p4*4 + p1.p3*3; 
+        var t2 = p2.p6*6 + p2.p5*5 + p2.p4*4 + p2.p3*3;
+        
         if(t1 === 0 && t2 === 0) return alert("Veuillez saisir un nombre de poules."); 
-        if(t1 === 0 && t2 > 0) { p1 = Object.assign({}, p2); t1 = t2; } if(t2 === 0 && t1 > 0) { p2 = Object.assign({}, p1); t2 = t1; }
-        if(t1 !== total) return alert("Erreur Matin : format pour "+t1+" équipes, mais vous en avez "+total+"."); 
-        if(t2 < total) return alert("Erreur Après-Midi : format pour "+t2+" places, impossible de caser les "+total+" équipes.");
-        var ter1 = p1.p6*2 + p1.p5*2 + p1.p4*1 + p1.p3*1; var ter2 = p2.p6*2 + p2.p5*2 + p2.p4*1 + p2.p3*1; 
-        if(ter1 > maxT || ter2 > maxT) { if(!confirm("⚠️ Format nécessite jusqu'à "+Math.max(ter1, ter2)+" terrains. Forcer ?")) return; }
+        if(t1 === 0 && t2 > 0) { p1 = Object.assign({}, p2); t1 = t2; } 
+        if(t2 === 0 && t1 > 0) { p2 = Object.assign({}, p1); t2 = t1; }
+        
+        // FIX CAS 1 : MODE MANUEL SOUPLE
+        if(t1 !== total) {
+            if(!confirm("⚠️ Le format que vous avez tapé prévoit " + t1 + " places, mais vous avez " + total + " équipes en mémoire.\n\nLes équipes en trop iront dans la Réserve. Continuer ?")) return;
+        }
+        if(t2 < Math.min(t1, total)) {
+            if(!confirm("⚠️ L'Après-Midi prévoit moins de places que le Matin. Continuer ?")) return;
+        }
+        
+        var ter1 = p1.p6*2 + p1.p5*2 + p1.p4*1 + p1.p3*1; 
+        var ter2 = p2.p6*2 + p2.p5*2 + p2.p4*1 + p2.p3*1; 
+        if(ter1 > maxT || ter2 > maxT) { if(!confirm("⚠️ Format nécessite jusqu'à "+Math.max(ter1, ter2)+" terrains (vous en avez "+maxT+"). Forcer la création ?")) return; }
+        
         p1.str = ((p1.p6?p1.p6+'x6 ':'')+(p1.p5?p1.p5+'x5 ':'')+(p1.p4?p1.p4+'x4 ':'')+(p1.p3?p1.p3+'x3 ':'')).trim(); 
         p2.str = ((p2.p6?p2.p6+'x6 ':'')+(p2.p5?p2.p5+'x5 ':'')+(p2.p4?p2.p4+'x4 ':'')+(p2.p3?p2.p3+'x3 ':'')).trim();
+        
         var set = getCatSettings(); 
-        var rotP1 = Math.max(p1.p6?15:0, p1.p5?10:0, p1.p4?6:0, p1.p3?3:0); var rotP2 = Math.max(p2.p6?15:0, p2.p5?10:0, p2.p4?6:0, p2.p3?3:0);
-        var durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; var durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
-        var repechage = t2 > total ? t2 - total : 0; 
-        var s = { title: "Mode Manuel", p1: p1, p2: p2 }; var phase1 = appState.cats[appState.activeCat].phase1;
+        var rotP1 = Math.max(p1.p6?15:0, p1.p5?10:0, p1.p4?6:0, p1.p3?3:0); 
+        var rotP2 = Math.max(p2.p6?15:0, p2.p5?10:0, p2.p4?6:0, p2.p3?3:0);
+        var durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; 
+        var durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
+        var repechage = t2 > t1 ? t2 - t1 : 0; 
+        
+        var s = { title: "Mode Manuel", p1: p1, p2: p2 }; 
+        var phase1 = appState.cats[appState.activeCat].phase1;
         applyDayPlan(s, (phase1.teams && phase1.teams.length) ? phase1.teams : phase1.reserve.concat(phase1.poules.flatMap(function(p){return p.teams;})), durP1, durP2, repechage);
     }
 
     function applyDayPlan(s, teams, durP1, durP2, repechage) {
-        var p1 = appState.cats[appState.activeCat].phase1; var p2 = appState.cats[appState.activeCat].phase2;
+        var p1 = appState.cats[appState.activeCat].phase1; 
+        var p2 = appState.cats[appState.activeCat].phase2;
         p1.formatStr = s.title; p1.validated = false; p1.poules = []; p1.reserve = []; 
         p2.targetConfig = { p6: s.p2.p6, p5: s.p2.p5, p4: s.p2.p4, p3: s.p2.p3, dur: durP2, rep: repechage };
 
@@ -548,7 +546,8 @@
             if(best) best.teams.push(t); else p1.reserve.push(t); 
         });
         
-        p2.poules = []; p2.reserve = []; p2.validated = false; var dummies = [];
+        p2.poules = []; p2.reserve = []; p2.validated = false;
+        var dummies = [];
         var maxLevel = p1.poules.length > 0 ? Math.max.apply(null, p1.poules.map(function(p){ return p.target; })) : 0;
         for (var level=1; level<=maxLevel; level++) {
             var countForLevel = p1.poules.filter(function(p){ return p.target >= level; }).length;
@@ -563,9 +562,13 @@
         makeP2(s.p2.p6, 6); makeP2(s.p2.p5, 5); makeP2(s.p2.p4, 4); makeP2(s.p2.p3, 3);
         
         var tIndex = 0; 
-        p2.poules.forEach(function(p){ p.placeRange = "Places " + (tIndex+1) + " à " + (tIndex+p.target); for(var i=0; i<p.target; i++) { if (tIndex < dummies.length) { p.teams.push(dummies[tIndex]); tIndex++; } } });
+        p2.poules.forEach(function(p){ 
+            p.placeRange = "Places " + (tIndex+1) + " à " + (tIndex+p.target); 
+            for(var i=0; i<p.target; i++) { if (tIndex < dummies.length) { p.teams.push(dummies[tIndex]); tIndex++; } } 
+        });
         
-        document.getElementById('summary-p1').innerText = s.p1.str; document.getElementById('summary-p2').innerText = s.p2.str;
+        document.getElementById('summary-p1').innerText = s.p1.str; 
+        document.getElementById('summary-p2').innerText = s.p2.str;
         document.getElementById('summary-time').innerHTML = '<span class="text-[10px] text-slate-500 font-bold block mb-1">DURÉES CALCULÉES :</span><span class="text-xs font-black text-amber-600">☀️ Matin: '+durP1+' min | 🌤️ A-Midi: '+durP2+' min</span>' + (repechage>0?'<br><span class="text-[10px] font-black text-red-500">⚠️ Phase 2 nécessitera '+repechage+' repêchage(s)</span>':'');
         
         appState.activePouleTab = p1.poules.length > 0 ? p1.poules[0].letter : 'A'; 
@@ -574,50 +577,70 @@
 
     function toggleArchitect(forceHide) {
         if(forceHide) { 
-            document.getElementById('scenario-list').classList.add('hidden'); document.getElementById('manual-mode-panel').classList.add('hidden'); document.getElementById('architect-settings').classList.add('hidden'); document.getElementById('scenario-summary').classList.remove('hidden'); document.getElementById('btn-edit-architect').classList.remove('hidden'); 
+            document.getElementById('scenario-list').classList.add('hidden'); 
+            document.getElementById('manual-mode-panel').classList.add('hidden'); 
+            document.getElementById('architect-settings').classList.add('hidden'); 
+            document.getElementById('scenario-summary').classList.remove('hidden'); 
+            document.getElementById('btn-edit-architect').classList.remove('hidden'); 
         } else { 
-            document.getElementById('scenario-list').classList.remove('hidden'); document.getElementById('manual-mode-panel').classList.remove('hidden'); document.getElementById('architect-settings').classList.remove('hidden'); document.getElementById('scenario-summary').classList.add('hidden'); document.getElementById('btn-edit-architect').classList.add('hidden'); appState.cats[appState.activeCat].phase1.formatStr = null; 
+            document.getElementById('scenario-list').classList.remove('hidden'); 
+            document.getElementById('manual-mode-panel').classList.remove('hidden'); 
+            document.getElementById('architect-settings').classList.remove('hidden'); 
+            document.getElementById('scenario-summary').classList.add('hidden'); 
+            document.getElementById('btn-edit-architect').classList.add('hidden'); 
+            appState.cats[appState.activeCat].phase1.formatStr = null; 
         }
     }
 
     function validateFormat() { 
-        var phase = getActivePhase(); var incomplete = false;
+        var phase = getActivePhase(); 
+        var incomplete = false;
         for(var i=0; i<phase.poules.length; i++) { if(phase.poules[i].teams.length !== phase.poules[i].target) incomplete = true; }
-        if(incomplete) { if(!confirm("Poules incomplètes. Continuer ?")) return; } 
+        if(incomplete) { if(!confirm("Il y a des poules incomplètes. Valider quand même l'ossature ?")) return; } 
         phase.validated = true; saveState(); renderBoard(); 
     }
 
     function generatePhase2() {
-        var p1 = appState.cats[appState.activeCat].phase1; var p2 = appState.cats[appState.activeCat].phase2;
+        var p1 = appState.cats[appState.activeCat].phase1; 
+        var p2 = appState.cats[appState.activeCat].phase2;
         if(!p1.validated) return alert("Validez d'abord la Phase 1.");
+        
         var allTeams = [];
         p1.poules.forEach(function(p){
             var rank = computeRanking(p);
             rank.forEach(function(r, i){ 
                 var teamPlayed = MATRICES[p.target].filter(function(m, mIdx){ var isPlayed = p.scores && p.scores[mIdx] && p.scores[mIdx].s1 !== '' && p.scores[mIdx].s2 !== ''; return isPlayed && (m.a === (r.id+1) || m.b === (r.id+1)); }).length;
                 if(teamPlayed === 0) teamPlayed = p.target - 1; 
-                var adjNote = "";
+                var adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : null;
+                var adjNote = (adj && adj.note) ? "[Ajust. " + (adj.val>0?'+'+adj.val:adj.val) + " : " + adj.note + "] " : "";
                 if(r.ogTeam && !r.ogTeam.isDummy) { allTeams.push({ id: r.ogTeam.id, club: r.ogTeam.club, name: r.ogTeam.name, mRank: i+1, avgPts: r.pts / teamPlayed, avgDiff: r.diff / teamPlayed, foreign: r.ogTeam.foreign, letter: p.letter, adjNote: adjNote }); }
             });
         });
+
         allTeams.sort(function(a, b){ 
             if(a.mRank !== b.mRank) return a.mRank - b.mRank; 
             if(Math.abs(a.avgPts - b.avgPts) > 0.01) return b.avgPts - a.avgPts; 
             if(Math.abs(a.avgDiff - b.avgDiff) > 0.01) return b.avgDiff - a.avgDiff; 
             return (b.foreign?1:0) - (a.foreign?1:0); 
         });
+        
         var rankCounts = {};
         var p2Teams = allTeams.map(function(t, idx){ 
             rankCounts[t.mRank] = (rankCounts[t.mRank] || 0) + 1; var relRank = rankCounts[t.mRank];
             var namePrefix = relRank === 1 ? "Meilleur " + t.mRank + (t.mRank===1?"er":"ème") : relRank + (relRank===1?"er":"ème") + " des " + t.mRank + (t.mRank===1?"ers":"èmes");
-            return { id: t.id, club: t.club, name: t.name + " (" + namePrefix + ")", level: idx+1, foreign: t.foreign, customNote: "Ratio: " + t.avgPts.toFixed(2) + " pts/m | Diff: " + t.avgDiff.toFixed(2) + "/m", isDummy: false }; 
+            return { id: t.id, club: t.club, name: t.name + " (" + namePrefix + ")", level: idx+1, foreign: t.foreign, customNote: t.adjNote + "Ratio: " + t.avgPts.toFixed(2) + " pts/m | Diff: " + t.avgDiff.toFixed(2) + "/m", isDummy: false }; 
         });
+        
         var cfg = p2.targetConfig || {p4: Math.floor(allTeams.length/4), p6:0, p5:0, p3:0, rep:0};
         p2.poules = []; p2.reserve = []; p2.validated = false;
         var makeP2 = function(n, target) { for(var i=0; i<n; i++) p2.poules.push({ letter: String.fromCharCode(65+p2.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {}, adjustments: {} }); };
         makeP2(cfg.p6, 6); makeP2(cfg.p5, 5); makeP2(cfg.p4, 4); makeP2(cfg.p3, 3);
+        
         var tIndex = 0; 
-        p2.poules.forEach(function(p){ p.placeRange = "Places " + (tIndex+1) + " à " + (tIndex+p.target); for(var i=0; i<p.target; i++) { if (tIndex < p2Teams.length) { p.teams.push(p2Teams[tIndex]); tIndex++; } } });
+        p2.poules.forEach(function(p){ 
+            p.placeRange = "Places " + (tIndex+1) + " à " + (tIndex+p.target); 
+            for(var i=0; i<p.target; i++) { if (tIndex < p2Teams.length) { p.teams.push(p2Teams[tIndex]); tIndex++; } } 
+        });
         for(var i=tIndex; i<p2Teams.length; i++) p2.reserve.push(p2Teams[i]);
         if(cfg.rep > 0) alert("Format appliqué. ATTENTION : " + cfg.rep + " place(s) vide(s) à combler par repêchage manuel.");
         appState.activePouleTab = 'A'; saveState(); initCategoryUI();
@@ -626,32 +649,21 @@
     function updateScore(pIdx, mIdx, field, val) { var p = getActivePhase().poules[pIdx]; if(!p.scores) p.scores = {}; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; p.scores[mIdx][field] = val; saveState(); renderBoard(); if (db) { var year = document.getElementById('config-year').value; var updateObj = {}; updateObj[field] = parseInt(val)||0; db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update(updateObj); } }
     function toggleLock(pIdx, mIdx, isLocked) { var p = getActivePhase().poules[pIdx]; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; p.scores[mIdx].locked = isLocked; saveState(); renderBoard(); if (db) { var year = document.getElementById('config-year').value; db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update({ locked: isLocked }); } }
     
-    function updateAdjNote(pIdx, tId, note) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {order: 999, note:''}; p.adjustments[tId].note = note; saveState(); renderBoard(); }
+    function updateAdjVal(pIdx, tId, val) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].val = val; saveState(); renderBoard(); }
+    function updateAdjNote(pIdx, tId, note) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].note = note; saveState(); renderBoard(); }
 
-    // --- NOUVELLE LOGIQUE DE CLASSEMENT (Avec points primordiaux) ---
     function computeRanking(p) {
-        var stats = p.teams.map(function(t, idx){ return { id: idx, ogTeam: t, name: (t ? t.name : '?'), pts: 0, diff: 0, pour: 0 }; });
+        var stats = p.teams.map(function(t, idx){ return { id: idx, ogTeam: t, name: (t ? t.name : '?'), pts: 0, diff: 0 }; });
         if(p.teams.length !== p.target) return stats;
         MATRICES[p.target].forEach(function(m, mIdx){
             if(p.scores && p.scores[mIdx] && p.scores[mIdx].s1 !== '' && p.scores[mIdx].s2 !== '') {
                 var sA = parseInt(p.scores[mIdx].s1), sB = parseInt(p.scores[mIdx].s2);
                 var tA = stats[m.a - 1], tB = stats[m.b - 1];
-                if(tA && tB) { 
-                    tA.diff += (sA - sB); tB.diff += (sB - sA); 
-                    tA.pour += sA; tB.pour += sB;
-                    if(sA > sB) { tA.pts += 3; tB.pts += 1; } else if (sA < sB) { tA.pts += 1; tB.pts += 3; } else { tA.pts += 2; tB.pts += 2; } 
-                }
+                if(tA && tB) { tA.diff += (sA - sB); tB.diff += (sB - sA); if(sA > sB) { tA.pts += 3; tB.pts += 1; } else if (sA < sB) { tA.pts += 1; tB.pts += 3; } else { tA.pts += 2; tB.pts += 2; } }
             }
         });
-        
-        return stats.sort(function(a,b){ 
-            if (b.pts !== a.pts) return b.pts - a.pts; // 1. Points
-            var ordA = p.adjustments && p.adjustments[a.id] && p.adjustments[a.id].order !== undefined ? p.adjustments[a.id].order : 999;
-            var ordB = p.adjustments && p.adjustments[b.id] && p.adjustments[b.id].order !== undefined ? p.adjustments[b.id].order : 999;
-            if (ordA !== ordB) return ordA - ordB; // 2. Drag & Drop forcé
-            if (b.diff !== a.diff) return b.diff - a.diff; // 3. Difference
-            return b.pour - a.pour; // 4. Essais pour
-        });
+        stats.forEach(function(s){ var adj = p.adjustments && p.adjustments[s.id] ? parseInt(p.adjustments[s.id].val)||0 : 0; s.pts += adj; });
+        return stats.sort(function(a,b){ return (b.pts - a.pts) || (b.diff - a.diff); });
     }
 
     function renderBoard() {
@@ -666,9 +678,9 @@
             document.getElementById('validation-zone').classList.remove('hidden'); document.getElementById('deploy-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden');
             document.getElementById('match-board').className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4';
             document.getElementById('match-board').innerHTML = phase.poules.map(function(p, i){
-                return '<div class="bg-white p-4 rounded-2xl border-2 shadow-sm '+(p.teams.length < p.target ? 'border-red-300 bg-red-50' : '')+'" ondragover="allowDrop(event)" ondrop="dropToPoule(event, '+i+')">' +
+                return '<div class="bg-white p-4 rounded-2xl border-2 shadow-sm '+(p.teams.length !== p.target ? 'border-red-300 bg-red-50' : '')+'" ondragover="allowDrop(event)" ondrop="dropToPoule(event, '+i+')">' +
                     '<h3 class="font-black italic uppercase mb-2 flex justify-between"><span>Poule '+p.letter+' <span class="text-[10px] opacity-40">('+p.teams.length+'/'+p.target+')</span></span><span class="text-[9px] text-indigo-500">'+(p.placeRange||'')+'</span></h3>' +
-                    (p.teams.length < p.target ? '<div class="text-[10px] font-black text-red-500 mb-2">⚠️ Manque '+(p.target - p.teams.length)+' équipe(s)</div>' : '') +
+                    (p.teams.length !== p.target ? '<div class="text-[10px] font-black text-red-500 mb-2">⚠️ '+(p.teams.length < p.target ? 'Manque '+(p.target - p.teams.length) : 'En trop : '+(p.teams.length - p.target))+' équipe(s)</div>' : '') +
                     '<div class="space-y-1 min-h-[50px]">' + p.teams.map(function(t, ti){
                         return '<div draggable="true" ondragstart="dragFromPoule(event, '+i+', '+ti+')" class="p-2 bg-slate-50 border rounded-lg text-xs font-bold flex justify-between items-center cursor-move shadow-sm hover:border-amber-400 '+(t && t.isDummy?'text-indigo-600 border-indigo-200 border-dashed bg-indigo-50/50':'')+'"><span class="truncate">'+(t ? t.name : '?')+' '+(t && t.customNote && !t.isDummy?'<span title="'+t.customNote+'" class="text-indigo-500 font-black cursor-help">ℹ️</span>':'')+'</span><span class="opacity-40 text-[9px] ml-2">N.'+(t ? t.level : '?')+'</span></div>';
                     }).join('') + '</div></div>';
@@ -678,13 +690,18 @@
             document.getElementById('poule-tabs').innerHTML = phase.poules.map(function(p){ return '<button onclick="appState.activePouleTab=\''+p.letter+'\';saveState();renderBoard()" class="px-6 py-2 rounded-lg font-black text-xs transition-all '+(appState.activePouleTab === p.letter ? 'active-poule-tab shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50')+'">Poule '+p.letter+'</button>'; }).join('');
             
             var pIdx = phase.poules.findIndex(function(x){ return x.letter === appState.activePouleTab; }); 
-            if (pIdx === -1) pIdx = 0; var p = phase.poules[pIdx]; if (!p) return;
+            if (pIdx === -1) pIdx = 0; 
+            var p = phase.poules[pIdx]; 
+            if (!p) return;
             
             document.getElementById('match-board').className = 'mt-4';
             var content = '';
             
+            // FIX CAS 1 : BOUTON DE SAUVETAGE POUR ADAPTER LA MATRICE
             if(p.teams.length !== p.target) {
-                content = '<div class="text-center py-10 opacity-30 italic">Ajustez les équipes.</div>';
+                var diff = p.target - p.teams.length;
+                var msg = diff > 0 ? "Il manque " + diff + " équipe(s)." : "Il y a " + Math.abs(diff) + " équipe(s) en trop.";
+                content = '<div class="text-center py-10"><span class="opacity-50 italic">'+msg+'</span><br><br><button onclick="getActivePhase().poules['+pIdx+'].target='+p.teams.length+';saveState();renderBoard()" class="bg-amber-500 text-black px-4 py-2 rounded-lg font-black uppercase text-[10px] shadow-md hover:scale-105 transition-transform mt-4">Adapter la matrice pour '+p.teams.length+' équipes</button></div>';
             } else {
                 var isGhostPhase = false;
                 for(var g=0; g<p.teams.length; g++) { if(p.teams[g] && p.teams[g].isDummy) isGhostPhase = true; }
@@ -699,20 +716,12 @@
 
                 var ranking = computeRanking(p);
                 var classRows = ranking.map(function(r, idx){
-                    var adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : {note:''};
+                    var adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : {val:'', note:''};
                     var lockedAttr = isGhostPhase ? 'disabled' : ''; var opacityClass = isGhostPhase ? 'opacity-50' : '';
-                    // NOUVEAUTÉ : DRAG & DROP CLASSEMENT
-                    return '<tr class="'+opacityClass+' cursor-move hover:bg-amber-50" draggable="true" ondragstart="dragRank(event, '+pIdx+', '+r.id+')" ondragover="allowDrop(event)" ondrop="dropRank(event, '+pIdx+', '+r.id+')">' + 
-                        '<td class="excel-yellow text-amber-600" title="Glisser pour forcer l\'ordre">☰ '+(idx+1)+'</td>' + 
-                        '<td class="'+(idx%2===0?'excel-blue':'')+' font-bold text-left px-2 '+(r.ogTeam && r.ogTeam.isDummy?'text-indigo-600 italic':'')+'">'+r.name+'</td>' + 
-                        '<td class="font-black">'+r.pts+'</td>' + 
-                        '<td class="'+(r.diff>0?'text-green-600':(r.diff<0?'text-red-600':''))+' font-bold">'+(r.diff>0?'+'+r.diff:r.diff)+'</td>' + 
-                        '<td class="text-center font-bold text-slate-500">'+r.pour+'</td>' + 
-                        '<td class="p-1"><input type="text" '+lockedAttr+' value="'+adj.note+'" class="w-full text-left px-2 font-normal outline-none bg-white border border-slate-300 rounded text-xs py-1 shadow-inner focus:border-amber-500" onblur="updateAdjNote('+pIdx+', '+r.id+', this.value)" placeholder="Ajustement / Confrontation..."></td>' + 
-                    '</tr>';
+                    return '<tr class="'+opacityClass+'"><td class="excel-yellow">'+(idx+1)+'</td><td class="'+(idx%2===0?'excel-blue':'')+' font-bold text-left px-2 '+(r.ogTeam && r.ogTeam.isDummy?'text-indigo-600 italic':'')+'">'+r.name+'</td><td class="font-black">'+r.pts+'</td><td class="'+(r.diff>0?'text-green-600':(r.diff<0?'text-red-600':''))+' font-bold">'+(r.diff>0?'+'+r.diff:r.diff)+'</td><td class="p-1"><input type="number" '+lockedAttr+' value="'+adj.val+'" class="w-12 text-center font-bold outline-none bg-white border border-slate-300 rounded text-xs py-1 shadow-inner focus:border-amber-500" onblur="updateAdjVal('+pIdx+', '+r.id+', this.value)" placeholder="0"></td><td class="p-1"><input type="text" '+lockedAttr+' value="'+adj.note+'" class="w-full text-left px-2 font-normal outline-none bg-white border border-slate-300 rounded text-xs py-1 shadow-inner focus:border-amber-500" onblur="updateAdjNote('+pIdx+', '+r.id+', this.value)" placeholder="Motif de l\'ajustement..."></td></tr>';
                 }).join('');
 
-                content = (isGhostPhase?'<div class="bg-indigo-100 text-indigo-800 text-center py-2 text-xs font-black uppercase tracking-widest rounded-xl mb-4">Vue Fantôme (Saisie bloquée)</div>':'') + '<div class="flex flex-col lg:flex-row gap-6 items-start w-full"><table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>'+matchesRows+'</tbody></table><div class="flex-1 w-full space-y-3"><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Pour</th><th>Motif Départage</th></tr></thead><tbody>'+classRows+'</tbody></table></div></div>';
+                content = (isGhostPhase?'<div class="bg-indigo-100 text-indigo-800 text-center py-2 text-xs font-black uppercase tracking-widest rounded-xl mb-4">Vue Fantôme (Saisie bloquée)</div>':'') + '<div class="flex flex-col lg:flex-row gap-6 items-start w-full"><table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>'+matchesRows+'</tbody></table><div class="flex-1 w-full space-y-3"><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajustement</th><th>Motif</th></tr></thead><tbody>'+classRows+'</tbody></table></div></div>';
             }
 
             document.getElementById('match-board').innerHTML = '<div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full" id="print-zone" ondragover="allowDrop(event)" ondrop="dropToPoule(event, '+pIdx+')"><div class="flex justify-between items-center mb-4 border-b pb-4"><h3 class="font-black italic uppercase text-xl">Poule '+p.letter+' <span class="text-[12px] text-indigo-500 ml-2">'+(p.placeRange||'')+'</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600">Détacher / Modifier vue globale</button></h3><select onchange="getActivePhase().poules['+pIdx+'].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none"><option value="1" '+(p.tUsed===1?'selected':'')+'>1 Terrain</option><option value="2" '+(p.tUsed===2?'selected':'')+'>2 Terrains</option></select></div>'+content+'</div>';
@@ -726,16 +735,12 @@
         }).join('') || '<div class="opacity-20 text-[10px] font-bold uppercase italic text-center">Glissez une équipe ici</div>';
     }
 
-    // --- LOGIQUE DRAG & DROP ---
     function allowDrop(e) { e.preventDefault(); }
     function dragFromPoule(e, pIdx, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ src: 'poule', pIdx:pIdx, tIdx:tIdx })); }
     function dragFromReserve(e, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ src: 'reserve', tIdx:tIdx })); }
-    
     function dropToPoule(e, targetPIdx) { 
         e.preventDefault(); 
-        var dStr = e.dataTransfer.getData("application/json");
-        if(!dStr) return;
-        var d = JSON.parse(dStr); if(d.src === 'rank') return;
+        var d = JSON.parse(e.dataTransfer.getData("application/json")); 
         var phase = getActivePhase(); 
         var team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : phase.reserve.splice(d.tIdx, 1)[0]; 
         if (team) { 
@@ -743,194 +748,13 @@
             phase.poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); 
         } 
     }
-    
     function dropToReserve(e) { 
         e.preventDefault(); 
-        var dStr = e.dataTransfer.getData("application/json"); if(!dStr) return;
-        var d = JSON.parse(dStr); if(d.src === 'rank') return;
+        var d = JSON.parse(e.dataTransfer.getData("application/json")); 
         var phase = getActivePhase(); 
         if (d.src === 'poule') { phase.reserve.push(phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); } 
     }
 
-    function dragRank(e, pIdx, tId) { 
-        e.dataTransfer.setData("application/json", JSON.stringify({ src: 'rank', pIdx: pIdx, tId: tId })); 
-        e.target.classList.add('drag-ghost');
-    }
-
-    function dropRank(e, pIdx, targetTeamId) {
-        e.preventDefault();
-        var dStr = e.dataTransfer.getData("application/json"); if(!dStr) return;
-        var d = JSON.parse(dStr);
-        if(d.src !== 'rank' || d.pIdx !== pIdx) return;
-        
-        var draggedTeamId = d.tId;
-        var p = getActivePhase().poules[pIdx];
-        var ranking = computeRanking(p);
-        
-        var fromIdx = ranking.findIndex(function(r){ return r.id === draggedTeamId; });
-        var toIdx = ranking.findIndex(function(r){ return r.id === targetTeamId; });
-        if(fromIdx < 0 || toIdx < 0) return;
-        
-        var moved = ranking.splice(fromIdx, 1)[0];
-        ranking.splice(toIdx, 0, moved);
-        
-        if(!p.adjustments) p.adjustments = {};
-        ranking.forEach(function(r, i) {
-            if(!p.adjustments[r.id]) p.adjustments[r.id] = {order: 999, note:''};
-            p.adjustments[r.id].order = i;
-        });
-        saveState(); renderBoard();
-    }
-
-    // --- NOUVEAUTÉ : BOUTON EXPORT EXCEL ---
-    function exportToExcelCat() {
-        var phase = getActivePhase();
-        if(!phase.poules || phase.poules.length === 0 || (phase.poules[0].teams[0] && phase.poules[0].teams[0].isDummy)) return alert("Aucun classement disponible.");
-        
-        var tsv = "Rang Poule\tRang Général\tEquipe\tPoints\tDiff\tPour\tObs\n";
-        var currentAbsRank = 1;
-        
-        phase.poules.forEach(function(p){
-            if(p.teams.length !== p.target) return;
-            var ranking = computeRanking(p);
-            ranking.forEach(function(r, idx){ 
-                var adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : {note:''};
-                tsv += (idx+1) + "\t" + (currentAbsRank+idx) + "\t" + r.name + "\t" + r.pts + "\t" + r.diff + "\t" + r.pour + "\t" + adj.note + "\n"; 
-            });
-            currentAbsRank += p.target;
-            tsv += "\n"; 
-        });
-        
-        navigator.clipboard.writeText(tsv).then(function(){
-            alert("✅ Classement complet copié !\nOuvrez votre Excel et collez directement (CTRL+V).");
-        }).catch(function(){ alert("Erreur lors de la copie."); });
-    }
-
-    // --- NOUVEAUTÉ : IMPORT JSON IA ---
-    function findOrCreateTeam(name, targetCat) {
-        var cat = targetCat || appState.activeCat;
-        var p1 = appState.cats[cat].phase1;
-        var p2 = appState.cats[cat].phase2;
-        
-        // On cherche dans toutes les équipes (Phase 1 et 2) pour assurer la continuité
-        var allTeams = (p1.teams || []).concat(p1.reserve || []).concat(p2.teams || []).concat(p2.reserve || []);
-        p1.poules.forEach(function(p) { allTeams = allTeams.concat(p.teams); });
-        p2.poules.forEach(function(p) { allTeams = allTeams.concat(p.teams); });
-        
-        var found = allTeams.find(function(t) { 
-            if(!t) return false;
-            var tClean = t.name.toLowerCase().trim();
-            var nClean = name.toLowerCase().trim();
-            // Accepte le nom pur, même si le système y a ajouté "(1er des 1ers)" en phase 2
-            return tClean === nClean || tClean.startsWith(nClean + " ("); 
-        });
-        if(found) return found;
-
-        var inMaster = appState.masterData.find(function(c) { return name.toLowerCase().indexOf(c.name.toLowerCase()) > -1; });
-        return { id: 'gem_' + Date.now() + Math.floor(Math.random()*1000), club: inMaster ? inMaster.name : name, level: 1, name: name, foreign: inMaster ? inMaster.foreign : false, customNote: 'Import JSON' };
-    }
-
-    function processImportGem() {
-        var raw = document.getElementById('import-gem-area').value;
-        raw = raw.replace(/[\u00A0]/g, " ").replace(new RegExp('```json', 'gi'), "").replace(new RegExp('```', 'g'), "").trim();
-        
-        if(!raw) return alert("Le champ est vide.");
-
-        try {
-            var data = JSON.parse(raw);
-            if(!confirm("⚠️ L'importation va écraser la structure de la phase actuelle ("+appState.currentPhase+"). Continuer ?")) return;
-            
-            var updatedCats = {};
-            
-            data.forEach(function(pData) {
-                var nb = pData.equipes.length;
-                if(!MATRICES[nb]) return;
-
-                var targetCat = appState.activeCat;
-                var targetLetter = pData.poule;
-
-                // Détection intelligente du préfixe de catégorie (ex: "U8-A" -> cat="U8", letter="A")
-                var match = pData.poule.match(/^(U6|U8|U10|U12)[\s-]*([A-Z])$/i);
-                if(match) {
-                    targetCat = match[1].toUpperCase();
-                    targetLetter = match[2].toUpperCase();
-                }
-
-                var phaseData = appState.cats[targetCat][appState.currentPhase.toLowerCase()];
-                
-                // On vide la phase de cette catégorie uniquement lors de la première poule rencontrée
-                if(!updatedCats[targetCat]) {
-                    phaseData.poules = [];
-                    phaseData.validated = true;
-                    updatedCats[targetCat] = true;
-                }
-                
-                var newPoule = {
-                    letter: targetLetter,
-                    target: nb,
-                    tUsed: pData.terrains ? pData.terrains.length : (nb>=5?2:1),
-                    terrainStart: pData.terrains ? pData.terrains[0] : 1,
-                    teams: pData.equipes.map(function(tName) { return findOrCreateTeam(tName, targetCat); }),
-                    scores: {}, adjustments: {}
-                };
-                phaseData.poules.push(newPoule);
-            });
-            
-            document.getElementById('modal-import-gem').classList.add('hidden');
-            document.getElementById('import-gem-area').value = '';
-            
-            // Si la catégorie actuellement à l'écran a été modifiée, on rafraîchit
-            if(updatedCats[appState.activeCat]) {
-                toggleArchitect(true); 
-                renderBoard();
-            }
-            saveState();
-            alert("✅ Import IA réussi ! Catégories impactées : " + Object.keys(updatedCats).join(', '));
-
-        } catch(e) { console.error(e); alert("❌ Format JSON invalide. Vérifiez la syntaxe."); }
-    }
-
-    // --- NOUVEAUTÉ : CREATION MANUELLE DE POULE ---
-    function updateManGemFields() {
-        var format = parseInt(document.getElementById('man-gem-format').value);
-        var container = document.getElementById('man-gem-teams');
-        container.innerHTML = '';
-        for(var i=1; i<=format; i++) {
-            container.innerHTML += '<div class="flex items-center gap-2"><label class="text-[10px] uppercase font-bold text-slate-500 w-12">Eq '+i+'</label><input type="text" id="man-gem-t'+i+'" class="flex-1 border rounded p-1 text-sm font-bold" placeholder="Nom..."></div>';
-        }
-    }
-
-    function processManualGem() {
-        var pouleLet = document.getElementById('man-gem-poule').value.toUpperCase().trim();
-        var terrains = document.getElementById('man-gem-terrains').value;
-        var format = parseInt(document.getElementById('man-gem-format').value);
-        
-        if(!pouleLet || !terrains) return alert("Veuillez remplir la lettre et les terrains.");
-        
-        var teamsArr = [];
-        for(var i=1; i<=format; i++) {
-            var tName = document.getElementById('man-gem-t'+i).value.trim();
-            if(!tName) return alert("Il manque le nom de l'équipe " + i);
-            teamsArr.push(findOrCreateTeam(tName));
-        }
-
-        var phase = getActivePhase();
-        phase.poules.push({
-            letter: pouleLet, target: format,
-            tUsed: terrains.split(',').length,
-            terrainStart: parseInt(terrains.split(',')[0]) || 1,
-            teams: teamsArr,
-            scores: {}, adjustments: {}
-        });
-
-        document.getElementById('man-gem-poule').value = String.fromCharCode(pouleLet.charCodeAt(0) + 1);
-        for(var i=1; i<=format; i++) document.getElementById('man-gem-t'+i).value = '';
-
-        saveState(); renderBoard();
-        alert("✅ Poule ajoutée !");
-    }
-
-    // --- FONCTIONS EXISTANTES ---
     function simulateScores() { 
         if(!confirm("🧪 Injecter scores aléatoires ?")) return; 
         getActivePhase().poules.forEach(function(p){ 
@@ -942,12 +766,16 @@
         saveState(); renderBoard(); deployCategory(); 
     }
 
+    // FIX CAS 3 : DEPLOIEMENT ET PHASES TERRAINS
     function deployCategory() {
         if (!db) return alert("Firebase non configuré."); 
         var year = document.getElementById('config-year').value; var updates = {}; var globalOrder = 1;
         var hasGhosts = false;
         getActivePhase().poules.forEach(function(p){ for(var i=0; i<p.teams.length; i++) { if(p.teams[i] && p.teams[i].isDummy) hasGhosts = true; } });
-        if(hasGhosts) { if(!confirm("⚠️ Vous allez déployer l'ossature fantôme aux terrains et au public. Continuer ?")) return; }
+        
+        if(hasGhosts) { 
+            if(!confirm("⚠️ Vous allez déployer l'ossature fantôme sur les téléphones du public.\n\nL'application Terrain RESTERA sur la Phase 1 pour ne pas perturber les matchs en cours. Continuer ?")) return; 
+        }
         
         getActivePhase().poules.forEach(function(p){
             if (p.teams.length === p.target) {
@@ -958,7 +786,18 @@
                 });
             }
         });
-        if(Object.keys(updates).length > 0) { db.ref().update(updates); alert("✅ Déploiement réussi !"); }
+        
+        if(Object.keys(updates).length > 0) { 
+            db.ref().update(updates).then(function() {
+                // Si ce n'est pas une vue fantôme, on met à jour la phase active pour les terrains
+                if(!hasGhosts) {
+                    var phaseUpdate = {};
+                    phaseUpdate['activePhase_' + appState.activeCat] = appState.currentPhase;
+                    db.ref('t3n/settings').update(phaseUpdate);
+                }
+                alert("✅ Déploiement réussi !");
+            }); 
+        }
     }
 
     function printCategoryResults() {
