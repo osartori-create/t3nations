@@ -2,7 +2,13 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v37 - Édition "Matin de Tournoi"</title>
+    <title>T3N Master v38 - Édition Intégrale</title>
+    <script>
+        window.onerror = function(message, source, lineno, colno, error) {
+            alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno + "\n\nPrenez une photo de ce message.");
+            return false;
+        };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -51,13 +57,22 @@
 <main class="p-6 max-w-[1900px] mx-auto">
     <section id="content-IMPORT" class="tab-content space-y-6">
         <div class="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm">
-            <h2 class="text-xl font-black uppercase mb-4 italic">1. Importation Sportive Globale</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-black uppercase italic">1. Importation Sportive Globale</h2>
+                <div class="flex gap-2">
+                    <button onclick="exportExcel()" class="text-[10px] bg-green-600 text-white px-3 py-1.5 rounded font-black uppercase hover:bg-green-700">Export Excel</button>
+                    <button onclick="exportJSON()" class="text-[10px] bg-indigo-600 text-white px-3 py-1.5 rounded font-black uppercase hover:bg-indigo-700">Export JSON</button>
+                    <label class="text-[10px] bg-slate-600 text-white px-3 py-1.5 rounded font-black uppercase hover:bg-slate-700 cursor-pointer">
+                        Import JSON <input type="file" class="hidden" accept=".json" onchange="importJSON(event)">
+                    </label>
+                </div>
+            </div>
             <textarea id="csv-input" rows="8" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Copiez les colonnes Excel (Nom Club | U6 | U8 | U10 | U12)"></textarea>
-            <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 shadow-lg active:scale-95 transition-all">Valider la base clubs</button>
+            <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 shadow-lg active:scale-95 transition-all">Valider & Synchroniser la base clubs</button>
         </div>
         <div id="master-table-container" class="bg-white p-6 rounded-[2.5rem] border border-slate-200 hidden shadow-sm">
             <table class="w-full text-left text-sm">
-                <thead class="bg-slate-50 text-[10px] font-black uppercase opacity-40"><tr><th class="p-3">Club</th><th class="p-3 text-center">Étranger</th><th class="p-3 text-center">U6</th><th class="p-3 text-center">U8</th><th class="p-3 text-center">U10</th><th class="p-3 text-center">U12</th></tr></thead>
+                <thead id="master-thead" class="bg-slate-50 text-[10px] font-black uppercase opacity-60 text-slate-700"></thead>
                 <tbody id="master-tbody" class="divide-y divide-slate-100 italic"></tbody>
             </table>
         </div>
@@ -121,7 +136,7 @@
                         <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500 hover:bg-slate-200 transition-all">Phase 2 (Classement)</button>
                     </nav>
                     <div class="flex items-center gap-4">
-                        <button onclick="printCategoryResults()" class="hidden text-[10px] font-black uppercase bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-300 transition-colors" id="btn-print-cat">🖨️ Imprimer Classement</button>
+                        <button onclick="printCategoryResults()" class="hidden text-[10px] font-black uppercase bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-300 transition-colors" id="btn-print-cat">🖨️ Imprimer</button>
                         <div class="text-right px-4 border-l">
                             <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
                             <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
@@ -209,12 +224,13 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_v37_resilient';
+    var STORAGE_KEY = 't3n_master_v38_integrale';
 
     var MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
-        4: [{a:1,b:2,arb:4},{a:3,b:4,arb:1},{a:1,b:3,arb:2},{a:2,b:4,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
+        // FIX : Matrice 4 corrigée selon la référence de l'image (1v3, 2v4, 3v4, 1v2, 1v4, 2v3)
+        4: [{a:1,b:3,arb:4},{a:2,b:4,arb:1},{a:3,b:4,arb:2},{a:1,b:2,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
         5: [{a:1,b:3,arb:5},{a:2,b:4,arb:3},{a:1,b:5,arb:2},{a:3,b:4,arb:1},{a:2,b:5,arb:4},{a:1,b:2,arb:4},{a:3,b:5,arb:2},{a:1,b:4,arb:5},{a:2,b:3,arb:1},{a:4,b:5,arb:3}],
         6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
     };
@@ -268,8 +284,6 @@
     
     function broadcastSettings() { 
         if(db) {
-            // FIX TERRAIN BUG : On ne broadcast PLUS la phase active automatiquement ici
-            // On le fera uniquement au moment du déploiement
             var updateObj = { activeYear: document.getElementById('config-year').value };
             db.ref('t3n/settings').update(updateObj); 
         }
@@ -346,7 +360,6 @@
         renderArchitectScenarios(total, phase1); 
     }
 
-    // FIX CAS 2 : IMPORT ROBUSTE
     function processMasterImport() {
         var raw = document.getElementById('csv-input').value; 
         var lines = raw.split('\n');
@@ -355,25 +368,60 @@
             var line = lines[i].trim();
             if(!line || line.toLowerCase().indexOf('nom') === 0) continue;
             
-            // On découpe la ligne par espaces multiples ou simples
             var parts = line.split(/\s+/);
             if(parts.length >= 5) { 
-                // On extrait les 4 derniers chiffres (U12, U10, U8, U6)
                 var u12 = parseInt(parts.pop())||0;
                 var u10 = parseInt(parts.pop())||0;
                 var u8 = parseInt(parts.pop())||0;
                 var u6 = parseInt(parts.pop())||0;
-                
-                // Tout ce qui reste au début, c'est le nom du club (ex: "RCT retard")
                 var cName = parts.join(' ').trim();
                 var isForeign = /zug|frankfurt|riedberg|heidelberg|neuenheim|crig/i.test(cName);
                 if (cName) appState.masterData.push({ id:'club_'+i, name: cName, foreign: isForeign, u6: u6, u8: u8, u10: u10, u12: u12 }); 
             }
         }
-        if(appState.masterData.length > 0) { saveState(); renderMasterTable(); alert("Liste importée avec succès !"); }
+        if(appState.masterData.length > 0) { 
+            syncTeamsWithMaster();
+            saveState(); 
+            renderMasterTable(); 
+            alert("Liste importée ! Les nouvelles équipes éventuelles ont été déposées dans les Réserves de chaque catégorie."); 
+        }
+    }
+    
+    // FIX CAS 2 : SYNCHRONISATION INTELLIGENTE DE LA RESERVE
+    function syncTeamsWithMaster() {
+        ['U6', 'U8', 'U10', 'U12'].forEach(function(cat) {
+            var phase1 = appState.cats[cat].phase1;
+            // On ne synchronise que si l'onglet a déjà été initialisé (pour ne pas casser le flow normal)
+            if(phase1.formatStr || phase1.poules.length > 0 || phase1.reserve.length > 0 || (phase1.teams && phase1.teams.length > 0)) {
+                var existingIds = [];
+                (phase1.teams || []).forEach(function(t){ if(t) existingIds.push(t.id); });
+                phase1.reserve.forEach(function(t){ if(t) existingIds.push(t.id); });
+                phase1.poules.forEach(function(p){ p.teams.forEach(function(t){ if(t) existingIds.push(t.id); }); });
+                
+                appState.masterData.forEach(function(c) {
+                    var count = c[cat.toLowerCase()];
+                    for(var i=1; i<=count; i++) {
+                        var tId = c.id+'_'+i;
+                        if(existingIds.indexOf(tId) === -1) {
+                            // C'est une nouvelle équipe non présente ! On la pousse en réserve
+                            phase1.reserve.push({ id: tId, club: c.name, level: i, name: c.name + ' ' + i, foreign: c.foreign, customNote: '' });
+                        }
+                    }
+                });
+            }
+        });
     }
 
+    // FIX UI : En-têtes avec Totaux
     function renderMasterTable() { 
+        var tC = appState.masterData.length, tF = 0, tU6 = 0, tU8 = 0, tU10 = 0, tU12 = 0;
+        appState.masterData.forEach(function(c) {
+            if(c.foreign) tF++;
+            tU6 += c.u6; tU8 += c.u8; tU10 += c.u10; tU12 += c.u12;
+        });
+        
+        document.getElementById('master-thead').innerHTML = '<tr><th class="p-3">Club ('+tC+')</th><th class="p-3 text-center">Étranger ('+tF+')</th><th class="p-3 text-center">U6 ('+tU6+')</th><th class="p-3 text-center">U8 ('+tU8+')</th><th class="p-3 text-center">U10 ('+tU10+')</th><th class="p-3 text-center">U12 ('+tU12+')</th></tr>';
+        
         document.getElementById('master-tbody').innerHTML = appState.masterData.map(function(c, i) {
             return '<tr><td class="p-3 font-bold uppercase text-xs">'+c.name+'</td><td class="p-3 text-center"><input type="checkbox" '+(c.foreign ? 'checked':'')+' onchange="appState.masterData['+i+'].foreign=this.checked;saveState()" class="accent-amber-500"></td><td class="p-3 text-center font-bold text-amber-600">'+c.u6+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u8+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u10+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u12+'</td></tr>';
         }).join(''); 
@@ -394,7 +442,7 @@
         document.getElementById('cfg-battement').value = set.battement; 
         document.getElementById('architect-settings').classList.remove('hidden');
         
-        if(appState.currentPhase === 'PHASE1' && !phase1.formatStr && phase1.poules.length === 0) { 
+        if(appState.currentPhase === 'PHASE1' && !phase1.formatStr && phase1.poules.length === 0 && phase1.reserve.length === 0) { 
             phase1.teams = []; 
             appState.masterData.forEach(function(c) { 
                 var count = c[appState.activeCat.toLowerCase()];
@@ -503,7 +551,6 @@
         if(t1 === 0 && t2 > 0) { p1 = Object.assign({}, p2); t1 = t2; } 
         if(t2 === 0 && t1 > 0) { p2 = Object.assign({}, p1); t2 = t1; }
         
-        // FIX CAS 1 : MODE MANUEL SOUPLE
         if(t1 !== total) {
             if(!confirm("⚠️ Le format que vous avez tapé prévoit " + t1 + " places, mais vous avez " + total + " équipes en mémoire.\n\nLes équipes en trop iront dans la Réserve. Continuer ?")) return;
         }
@@ -697,7 +744,6 @@
             document.getElementById('match-board').className = 'mt-4';
             var content = '';
             
-            // FIX CAS 1 : BOUTON DE SAUVETAGE POUR ADAPTER LA MATRICE
             if(p.teams.length !== p.target) {
                 var diff = p.target - p.teams.length;
                 var msg = diff > 0 ? "Il manque " + diff + " équipe(s)." : "Il y a " + Math.abs(diff) + " équipe(s) en trop.";
@@ -706,12 +752,16 @@
                 var isGhostPhase = false;
                 for(var g=0; g<p.teams.length; g++) { if(p.teams[g] && p.teams[g].isDummy) isGhostPhase = true; }
                 
+                // FIX UI : Palette de couleurs pour la colonne Terrain
+                var terrainColors = ['bg-slate-50', 'bg-blue-100', 'bg-green-100', 'bg-pink-100', 'bg-purple-100', 'bg-yellow-100', 'bg-teal-100', 'bg-orange-100', 'bg-rose-100'];
+                
                 var matchesRows = MATRICES[p.target].map(function(m, mIdx){
                     var tStr = p.tUsed === 2 ? ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                    var tColor = terrainColors[tStr % terrainColors.length];
                     var sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
                     var lockedAttr = isGhostPhase ? 'disabled' : ''; var opacityClass = isGhostPhase ? 'opacity-50' : '';
                     var tA = p.teams[m.a-1]; var tB = p.teams[m.b-1]; var tArb = p.teams[m.arb-1];
-                    return '<tr class="'+opacityClass+'"><td class="font-bold text-slate-500">T.'+tStr+'</td><td class="excel-yellow '+(tB && tB.isDummy?'text-indigo-600':'')+'">'+(tB ? tB.name : '?')+'</td><td class="bg-slate-50 p-0"><input type="number" '+lockedAttr+' class="w-full text-center font-black h-full py-2 outline-none" value="'+sc.s2+'" onchange="updateScore('+pIdx+', '+mIdx+', \'s2\', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" '+lockedAttr+' class="w-full text-center font-black h-full py-2 outline-none" value="'+sc.s1+'" onchange="updateScore('+pIdx+', '+mIdx+', \'s1\', this.value)"></td><td class="'+(tA && tA.isDummy?'text-indigo-600':'')+'">'+(tA ? tA.name : '?')+'</td><td class="text-orange-600">'+(tArb ? tArb.name : '?')+'</td><td><input type="checkbox" title="Lock Master" '+(sc.locked?'checked':'')+' onchange="toggleLock('+pIdx+', '+mIdx+', this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer" '+lockedAttr+'></td></tr>';
+                    return '<tr class="'+opacityClass+'"><td class="font-bold text-slate-700 '+tColor+'">T.'+tStr+'</td><td class="excel-yellow '+(tB && tB.isDummy?'text-indigo-600':'')+'">'+(tB ? tB.name : '?')+'</td><td class="bg-slate-50 p-0"><input type="number" '+lockedAttr+' class="w-full text-center font-black h-full py-2 outline-none" value="'+sc.s2+'" onchange="updateScore('+pIdx+', '+mIdx+', \'s2\', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" '+lockedAttr+' class="w-full text-center font-black h-full py-2 outline-none" value="'+sc.s1+'" onchange="updateScore('+pIdx+', '+mIdx+', \'s1\', this.value)"></td><td class="'+(tA && tA.isDummy?'text-indigo-600':'')+'">'+(tA ? tA.name : '?')+'</td><td class="text-orange-600">'+(tArb ? tArb.name : '?')+'</td><td><input type="checkbox" title="Lock Master" '+(sc.locked?'checked':'')+' onchange="toggleLock('+pIdx+', '+mIdx+', this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer" '+lockedAttr+'></td></tr>';
                 }).join('');
 
                 var ranking = computeRanking(p);
@@ -766,7 +816,6 @@
         saveState(); renderBoard(); deployCategory(); 
     }
 
-    // FIX CAS 3 : DEPLOIEMENT ET PHASES TERRAINS
     function deployCategory() {
         if (!db) return alert("Firebase non configuré."); 
         var year = document.getElementById('config-year').value; var updates = {}; var globalOrder = 1;
@@ -789,10 +838,8 @@
         
         if(Object.keys(updates).length > 0) { 
             db.ref().update(updates).then(function() {
-                // Si ce n'est pas une vue fantôme, on met à jour la phase active pour les terrains
                 if(!hasGhosts) {
-                    var phaseUpdate = {};
-                    phaseUpdate['activePhase_' + appState.activeCat] = appState.currentPhase;
+                    var phaseUpdate = {}; phaseUpdate['activePhase_' + appState.activeCat] = appState.currentPhase;
                     db.ref('t3n/settings').update(phaseUpdate);
                 }
                 alert("✅ Déploiement réussi !");
@@ -800,6 +847,7 @@
         }
     }
 
+    // --- OUTILS AVANCÉS (IA / EXPORT / PRINT) ---
     function printCategoryResults() {
         var phase = getActivePhase(); 
         if(!phase.poules || phase.poules.length === 0 || (phase.poules[0].teams[0] && phase.poules[0].teams[0].isDummy)) return alert("Classement non disponible pour l'impression.");
@@ -816,6 +864,60 @@
         var printWindow = window.open('', '_blank', 'width=800,height=600'); 
         printWindow.document.write('<html><head><title>Classement T3N</title></head><body>' + htmlContent + '</body></html>'); 
         printWindow.document.close(); printWindow.onload = function() { printWindow.print(); }
+    }
+
+    function exportJSON() {
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
+        var dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", dataStr);
+        dlAnchorElem.setAttribute("download", "t3n_backup_" + new Date().getTime() + ".json");
+        document.body.appendChild(dlAnchorElem);
+        dlAnchorElem.click();
+        document.body.removeChild(dlAnchorElem);
+    }
+
+    function importJSON(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                appState = JSON.parse(e.target.result);
+                saveState();
+                alert("Sauvegarde restaurée avec succès.");
+                location.reload();
+            } catch(err) { alert("Erreur de lecture du fichier JSON."); }
+        };
+        reader.readAsText(file);
+    }
+
+    function exportExcel() {
+        var csv = "Categorie;Phase;Poule;Terrain;Ordre;Equipe 1;Score 1;Score 2;Equipe 2;Arbitre\n";
+        ['U6','U8','U10','U12'].forEach(function(cat) {
+            ['phase1','phase2'].forEach(function(ph) {
+                var phase = appState.cats[cat][ph];
+                if(phase && phase.poules) {
+                    phase.poules.forEach(function(p){
+                        if(p.teams.length === p.target) {
+                            MATRICES[p.target].forEach(function(m, idx){
+                                var tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                                var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:''};
+                                var tA = p.teams[m.a-1] ? p.teams[m.a-1].name : '?';
+                                var tB = p.teams[m.b-1] ? p.teams[m.b-1].name : '?';
+                                var tArb = p.teams[m.arb-1] ? p.teams[m.arb-1].name : '?';
+                                csv += cat+";"+ph+";"+p.letter+";T."+tStr+";"+(idx+1)+";"+tA+";"+sc.s1+";"+sc.s2+";"+tB+";"+tArb+"\n";
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        var dlAnchorElem = document.createElement('a');
+        dlAnchorElem.setAttribute("href", "data:text/csv;charset=utf-8,%EF%BB%BF" + encodeURIComponent(csv));
+        dlAnchorElem.setAttribute("download", "t3n_export_planning.csv");
+        document.body.appendChild(dlAnchorElem);
+        dlAnchorElem.click();
+        document.body.removeChild(dlAnchorElem);
     }
 
     function computeTrophy(forceBroadcast) {
