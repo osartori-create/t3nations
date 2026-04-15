@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v38 - Édition Intégrale</title>
+    <title>T3N Master v39 - La Muraille</title>
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno + "\n\nPrenez une photo de ce message.");
@@ -224,12 +224,11 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_v38_integrale';
+    var STORAGE_KEY = 't3n_master_v39_muraille';
 
     var MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
-        // FIX : Matrice 4 corrigée selon la référence de l'image (1v3, 2v4, 3v4, 1v2, 1v4, 2v3)
         4: [{a:1,b:3,arb:4},{a:2,b:4,arb:1},{a:3,b:4,arb:2},{a:1,b:2,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
         5: [{a:1,b:3,arb:5},{a:2,b:4,arb:3},{a:1,b:5,arb:2},{a:3,b:4,arb:1},{a:2,b:5,arb:4},{a:1,b:2,arb:4},{a:3,b:5,arb:2},{a:1,b:4,arb:5},{a:2,b:3,arb:1},{a:4,b:5,arb:3}],
         6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
@@ -262,6 +261,16 @@
     function initCatState() { return { settings: { p1: 120, p2: 120, battement: 2 }, phase1: { poules: [], reserve: [], validated: false, formatStr: null }, phase2: { poules: [], reserve: [], validated: false, formatStr: null, targetConfig: null } }; }
     function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
     function getCatSettings() { return appState.cats[appState.activeCat].settings; }
+
+    // FONCTION CLÉ : Toujours compter les équipes physiquement présentes (pas la vieille liste)
+    function getCurrentTeams(phase1) {
+        if(phase1.poules.length > 0 || phase1.reserve.length > 0) {
+            var arr = phase1.reserve.slice();
+            phase1.poules.forEach(function(p){ arr = arr.concat(p.teams); });
+            return arr;
+        }
+        return phase1.teams || [];
+    }
 
     function initApp() {
         var saved = localStorage.getItem(STORAGE_KEY);
@@ -356,8 +365,8 @@
         set.battement = parseInt(document.getElementById('cfg-battement').value) || 2; 
         saveState(); 
         var phase1 = appState.cats[appState.activeCat].phase1; 
-        var total = (phase1.teams && phase1.teams.length) ? phase1.teams.length : (phase1.reserve.length + phase1.poules.reduce(function(s,p){ return s+p.teams.length; },0)); 
-        renderArchitectScenarios(total, phase1); 
+        var cTeams = getCurrentTeams(phase1);
+        renderArchitectScenarios(cTeams.length, phase1, cTeams); 
     }
 
     function processMasterImport() {
@@ -387,11 +396,9 @@
         }
     }
     
-    // FIX CAS 2 : SYNCHRONISATION INTELLIGENTE DE LA RESERVE
     function syncTeamsWithMaster() {
         ['U6', 'U8', 'U10', 'U12'].forEach(function(cat) {
             var phase1 = appState.cats[cat].phase1;
-            // On ne synchronise que si l'onglet a déjà été initialisé (pour ne pas casser le flow normal)
             if(phase1.formatStr || phase1.poules.length > 0 || phase1.reserve.length > 0 || (phase1.teams && phase1.teams.length > 0)) {
                 var existingIds = [];
                 (phase1.teams || []).forEach(function(t){ if(t) existingIds.push(t.id); });
@@ -403,8 +410,10 @@
                     for(var i=1; i<=count; i++) {
                         var tId = c.id+'_'+i;
                         if(existingIds.indexOf(tId) === -1) {
-                            // C'est une nouvelle équipe non présente ! On la pousse en réserve
-                            phase1.reserve.push({ id: tId, club: c.name, level: i, name: c.name + ' ' + i, foreign: c.foreign, customNote: '' });
+                            var newT = { id: tId, club: c.name, level: i, name: c.name + ' ' + i, foreign: c.foreign, customNote: '' };
+                            phase1.reserve.push(newT);
+                            // On l'ajoute aussi à la vieille liste pour garder tout le monde synchro
+                            if(phase1.teams) phase1.teams.push(newT);
                         }
                     }
                 });
@@ -412,7 +421,6 @@
         });
     }
 
-    // FIX UI : En-têtes avec Totaux
     function renderMasterTable() { 
         var tC = appState.masterData.length, tF = 0, tU6 = 0, tU8 = 0, tU10 = 0, tU12 = 0;
         appState.masterData.forEach(function(c) {
@@ -422,8 +430,9 @@
         
         document.getElementById('master-thead').innerHTML = '<tr><th class="p-3">Club ('+tC+')</th><th class="p-3 text-center">Étranger ('+tF+')</th><th class="p-3 text-center">U6 ('+tU6+')</th><th class="p-3 text-center">U8 ('+tU8+')</th><th class="p-3 text-center">U10 ('+tU10+')</th><th class="p-3 text-center">U12 ('+tU12+')</th></tr>';
         
+        // FIX VISUEL : J'ai ajouté saveState() ET renderMasterTable() sur le onchange de la checkbox
         document.getElementById('master-tbody').innerHTML = appState.masterData.map(function(c, i) {
-            return '<tr><td class="p-3 font-bold uppercase text-xs">'+c.name+'</td><td class="p-3 text-center"><input type="checkbox" '+(c.foreign ? 'checked':'')+' onchange="appState.masterData['+i+'].foreign=this.checked;saveState()" class="accent-amber-500"></td><td class="p-3 text-center font-bold text-amber-600">'+c.u6+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u8+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u10+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u12+'</td></tr>';
+            return '<tr><td class="p-3 font-bold uppercase text-xs">'+c.name+'</td><td class="p-3 text-center"><input type="checkbox" '+(c.foreign ? 'checked':'')+' onchange="appState.masterData['+i+'].foreign=this.checked;saveState();renderMasterTable()" class="accent-amber-500"></td><td class="p-3 text-center font-bold text-amber-600">'+c.u6+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u8+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u10+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u12+'</td></tr>';
         }).join(''); 
         document.getElementById('master-table-container').classList.remove('hidden'); 
     }
@@ -455,9 +464,11 @@
         if(appState.currentPhase === 'PHASE1') {
             document.getElementById('phase2-generator').classList.add('hidden'); 
             document.getElementById('architect-container').classList.remove('hidden');
-            var total = (phase1.teams && phase1.teams.length) ? phase1.teams.length : (phase1.reserve.length + phase1.poules.reduce(function(s,p){ return s+p.teams.length; },0)); 
-            document.getElementById('active-cat-count').innerText = total; 
-            renderArchitectScenarios(total, phase1); 
+            
+            // On compte la VRAIE quantité d'équipes actuelles
+            var cTeams = getCurrentTeams(phase1);
+            document.getElementById('active-cat-count').innerText = cTeams.length; 
+            renderArchitectScenarios(cTeams.length, phase1, cTeams); 
             toggleArchitect(!!phase1.formatStr);
         } else {
             document.getElementById('architect-container').classList.add('hidden');
@@ -487,7 +498,7 @@
         renderBoard(); renderReserve();
     }
 
-    function renderArchitectScenarios(total, phase) {
+    function renderArchitectScenarios(total, phase, teamsArray) {
         var list = document.getElementById('scenario-list'); 
         list.innerHTML = ""; 
         var maxT = MAX_TERRAINS[appState.activeCat]; 
@@ -534,14 +545,17 @@
             div.className = 'scenario-card p-4 rounded-2xl bg-white ' + (phase.formatStr === s.title ? 'scenario-active' : 'border-slate-200');
             div.innerHTML = '<h4 class="font-black text-sm text-slate-800 mb-2 border-b pb-2">'+s.icon+' '+s.title+'</h4><div class="grid grid-cols-2 gap-2 mb-2"><div class="bg-slate-50 p-2 rounded-lg"><span class="text-[9px] text-slate-400 uppercase font-bold block">Matin ('+rotP1+' Rot.)</span><span class="font-black text-indigo-600 text-sm">'+s.p1.str+'</span></div><div class="bg-slate-50 p-2 rounded-lg"><span class="text-[9px] text-slate-400 uppercase font-bold block">A-Midi ('+rotP2+' Rot.)</span><span class="font-black text-indigo-600 text-sm">'+s.p2.str+'</span></div></div><div class="text-[10px] text-slate-500 leading-tight">Match Matin calculé : <b class="'+(durP1<5?'text-red-500':'text-amber-600')+'">'+durP1+' min</b> '+timeWarning+'<br>Match A-Midi calculé : <b class="'+(durP2<5?'text-red-500':'text-amber-600')+'">'+durP2+' min</b></div>'+repBadge;
             
-            div.onclick = function() { applyDayPlan(s, (phase.teams && phase.teams.length) ? phase.teams : phase.reserve.concat(phase.poules.flatMap(function(p){return p.teams;})), durP1, durP2, repechage); }; 
+            div.onclick = function() { applyDayPlan(s, teamsArray, durP1, durP2, repechage); }; 
             list.appendChild(div);
         });
     }
 
     function applyManualPlan() {
-        var total = parseInt(document.getElementById('active-cat-count').innerText); 
+        var phase1 = appState.cats[appState.activeCat].phase1;
+        var cTeams = getCurrentTeams(phase1);
+        var total = cTeams.length; 
         var maxT = MAX_TERRAINS[appState.activeCat];
+        
         var p1 = { p6: parseInt(document.getElementById('m-p1-6').value)||0, p5: parseInt(document.getElementById('m-p1-5').value)||0, p4: parseInt(document.getElementById('m-p1-4').value)||0, p3: parseInt(document.getElementById('m-p1-3').value)||0 };
         var p2 = { p6: parseInt(document.getElementById('m-p2-6').value)||0, p5: parseInt(document.getElementById('m-p2-5').value)||0, p4: parseInt(document.getElementById('m-p2-4').value)||0, p3: parseInt(document.getElementById('m-p2-3').value)||0 };
         var t1 = p1.p6*6 + p1.p5*5 + p1.p4*4 + p1.p3*3; 
@@ -573,8 +587,7 @@
         var repechage = t2 > t1 ? t2 - t1 : 0; 
         
         var s = { title: "Mode Manuel", p1: p1, p2: p2 }; 
-        var phase1 = appState.cats[appState.activeCat].phase1;
-        applyDayPlan(s, (phase1.teams && phase1.teams.length) ? phase1.teams : phase1.reserve.concat(phase1.poules.flatMap(function(p){return p.teams;})), durP1, durP2, repechage);
+        applyDayPlan(s, cTeams, durP1, durP2, repechage);
     }
 
     function applyDayPlan(s, teams, durP1, durP2, repechage) {
@@ -752,7 +765,6 @@
                 var isGhostPhase = false;
                 for(var g=0; g<p.teams.length; g++) { if(p.teams[g] && p.teams[g].isDummy) isGhostPhase = true; }
                 
-                // FIX UI : Palette de couleurs pour la colonne Terrain
                 var terrainColors = ['bg-slate-50', 'bg-blue-100', 'bg-green-100', 'bg-pink-100', 'bg-purple-100', 'bg-yellow-100', 'bg-teal-100', 'bg-orange-100', 'bg-rose-100'];
                 
                 var matchesRows = MATRICES[p.target].map(function(m, mIdx){
@@ -847,7 +859,6 @@
         }
     }
 
-    // --- OUTILS AVANCÉS (IA / EXPORT / PRINT) ---
     function printCategoryResults() {
         var phase = getActivePhase(); 
         if(!phase.poules || phase.poules.length === 0 || (phase.poules[0].teams[0] && phase.poules[0].teams[0].isDummy)) return alert("Classement non disponible pour l'impression.");
@@ -953,6 +964,7 @@
         document.getElementById('trophy-tbody').innerHTML = sortedList.map(function(c, idx){ return '<tr class="hover:bg-slate-50 transition-colors"><td class="p-4 font-black '+(idx<3?'text-amber-500':'text-slate-400')+'">'+(idx+1)+'</td><td class="p-4 font-bold text-slate-800 uppercase">'+c.name+'</td><td class="p-4 text-center text-xs font-bold '+(c.U8===999?'text-slate-300':'text-blue-500')+'">'+(c.U8===999?'-':(c.U8<=10?c.U8+'e ('+pointsMap[c.U8]+'pt)':'11+'))+'</td><td class="p-4 text-center text-xs font-bold '+(c.U10===999?'text-slate-300':'text-slate-600')+'">'+(c.U10===999?'-':(c.U10<=10?c.U10+'e ('+pointsMap[c.U10]+'pt)':'11+'))+'</td><td class="p-4 text-center text-xs font-bold '+(c.U12===999?'text-slate-300':'text-red-500')+'">'+(c.U12===999?'-':(c.U12<=10?c.U12+'e ('+pointsMap[c.U12]+'pt)':'11+'))+'</td><td class="p-4 text-center font-black text-amber-600 text-lg">'+c.pts+'</td></tr>'; }).join('');
     }
 
+    // FIX PURGES : On nettoie la mémoire locale EN PLUS du cloud
     function purge(type) {
         if(!db) return alert("Firebase non configuré."); 
         var year = document.getElementById('config-year').value; var cat = document.getElementById('maint-cat').value;
@@ -972,9 +984,16 @@
                 }); 
             } 
         } 
-        else { 
-            if (confirm("Supprimer l'élément ["+type+"] pour les "+cat+" ?")) { 
-                db.ref('t3n/'+year+'/'+cat+'_'+appState.currentPhase+'/'+type).remove().then(function(){ alert("Purge terminée."); }); 
+        else if (type==='teams') { 
+            if (confirm("Effacer l'ossature locale et cloud pour les "+cat+" ?")) { 
+                // 1. On vide le cloud pour cette phase
+                db.ref('t3n/'+year+'/'+cat+'_'+appState.currentPhase+'/matches').remove().then(function(){ 
+                    // 2. On RAZ la catégorie dans la mémoire du navigateur
+                    appState.cats[cat] = initCatState();
+                    saveState();
+                    alert("Purge terminée. L'interface va se recharger."); 
+                    location.reload(); // 3. On recharge pour forcer la re-lecture depuis la base club
+                }); 
             } 
         }
     }
