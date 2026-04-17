@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v40 - Auto-Sync</title>
+    <title>T3N Master v41 - Blindage</title>
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno + "\n\nPrenez une photo de ce message.");
@@ -182,9 +182,9 @@
             <div class="flex justify-between items-center mb-8 border-b pb-4">
                 <div>
                     <h2 class="text-3xl font-black uppercase text-slate-800 flex items-center gap-3">🏆 Bouclier T3N</h2>
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Génère le classement global et le pousse en version définitive sur le public.</p>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Le classement se synchronise en direct. Validez-le à la fin.</p>
                 </div>
-                <button onclick="computeTrophy(true, true)" class="bg-amber-500 text-black px-6 py-3 rounded-xl font-black uppercase shadow-lg hover:bg-amber-400 active:scale-95 transition-all">Actualiser & Diffuser le Podium Définitif</button>
+                <button onclick="computeTrophy(true, true)" class="bg-green-500 text-white px-6 py-3 rounded-xl font-black uppercase shadow-lg hover:bg-green-600 active:scale-95 transition-all">✅ Valider le Classement Définitif</button>
             </div>
             
             <div id="trophy-podium" class="flex justify-center items-end h-64 gap-4 mb-12 hidden"></div>
@@ -224,7 +224,7 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_v40_autosync';
+    var STORAGE_KEY = 't3n_master_v41_shield';
 
     var MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
@@ -319,7 +319,6 @@
                     phaseData.poules[pIdx].scores[mIdx].s2 = data.s2; 
                     phaseData.poules[pIdx].scores[mIdx].locked = data.locked; 
                     saveState(); renderBoard(); 
-                    // AUTO-SYNC TROPHEE LORS D'UNE SAISIE TERRAIN EN PHASE 2
                     if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
                 } 
             }
@@ -715,7 +714,6 @@
             var updateObj = {}; updateObj[field] = parseInt(val)||0; 
             db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update(updateObj); 
         } 
-        // AUTO-SYNC TROPHEE
         if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
     }
 
@@ -728,11 +726,10 @@
             var year = document.getElementById('config-year').value; 
             db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update({ locked: isLocked }); 
         } 
-        // AUTO-SYNC TROPHEE
         if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
     }
     
-    function updateAdjVal(pIdx, tId, val) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].val = val; saveState(); renderBoard(); }
+    function updateAdjVal(pIdx, tId, val) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].val = val; saveState(); renderBoard(); if (appState.currentPhase === 'PHASE2') computeTrophy(true, false); }
     function updateAdjNote(pIdx, tId, note) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].note = note; saveState(); renderBoard(); }
 
     function computeRanking(p) {
@@ -954,7 +951,7 @@
         document.body.removeChild(dlAnchorElem);
     }
 
-    // FIX AUTO-SYNC : Ajout du paramètre isDefinitive
+    // FIX BLINDAGE FIREBASE : JSON.stringify pour éviter le bug de conversion des tableaux
     function computeTrophy(forceBroadcast, isDefinitive) {
         document.getElementById('trophy-empty').classList.add('hidden'); document.getElementById('trophy-podium').classList.remove('hidden'); document.getElementById('trophy-list').classList.remove('hidden');
         var clubs = {}; appState.masterData.forEach(function(c){ clubs[c.name] = { name: c.name, U8: 999, U10: 999, U12: 999, pts: 0 }; });
@@ -975,14 +972,14 @@
 
         renderTrophy(sorted);
         
-        // Push sur Firebase avec le nouveau format structuré (statut + ranking)
         if (forceBroadcast && db) { 
             var year = document.getElementById('config-year').value; 
-            db.ref('t3n/'+year+'/trophy').set({
-                status: isDefinitive ? 'definitif' : 'provisoire',
-                ranking: sorted
+            // On utilise "trophy_data" pour ne pas interférer avec l'ancien nœud cassé
+            db.ref('t3n/'+year+'/trophy_data').set({
+                status: isDefinitive ? 'valide' : 'provisoire',
+                payload: JSON.stringify(sorted) // Le secret est ici !
             }); 
-            if(isDefinitive) alert("🏆 Podium DÉFINITIF calculé et propulsé sur les téléphones du public !"); 
+            if(isDefinitive) alert("✅ Podium DÉFINITIF propulsé sur les téléphones du public !"); 
         }
     }
 
