@@ -113,11 +113,12 @@
     let localPhase = 'PHASE1';
     let activePoule = null; 
     let currentMatchesData = {};
+    let currentStandingsData = {};
 
     let globalSettings = {};
     let matchesRef = null;
+    let standingsRef = null;
     let trophyRef = null;
-    const pointsMap = {1:10, 2:9, 3:8, 4:7, 5:6, 6:5, 7:4, 8:3, 9:2, 10:1};
 
     let clickCount = 0;
     let clickTimer = null;
@@ -188,8 +189,13 @@
 
     function loadData() {
         if (!db || !globalSettings.activeYear) return;
-        const year = globalSettings.activeYear; const path = `t3n/${year}/${activeMain}_${localPhase}/matches`;
-        if (matchesRef) matchesRef.off(); matchesRef = db.ref(path);
+        const year = globalSettings.activeYear; 
+        
+        const pathMatches = `t3n/${year}/${activeMain}_${localPhase}/matches`;
+        if (matchesRef) matchesRef.off(); matchesRef = db.ref(pathMatches);
+
+        const pathStandings = `t3n/${year}/${activeMain}_${localPhase}/standings`;
+        if (standingsRef) standingsRef.off(); standingsRef = db.ref(pathStandings);
         
         document.getElementById('poules-container').innerHTML = `<div class="flex flex-col items-center justify-center py-20 opacity-50"><div class="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div><span class="text-[10px] font-black uppercase tracking-widest">Mise à jour terrain...</span></div>`;
         document.getElementById('poule-nav').innerHTML = ''; 
@@ -215,6 +221,14 @@
             
             buildPouleNav(pouleKeys);
             renderActivePoule();
+        });
+
+        // V42 : On écoute le palmarès officiel de la catégorie, validé par le Master
+        standingsRef.on('value', snap => {
+            if (snap.exists()) {
+                currentStandingsData = snap.val();
+                renderActivePoule();
+            }
         });
     }
 
@@ -243,25 +257,45 @@
 
         let matches = currentMatchesData[pLetter]; 
         matches.sort((a, b) => a.ordre - b.ordre);
-        let teamsObj = {};
         
+        let formsObj = {};
+        let fallbackTeamsObj = {};
+        
+        // On passe sur les matchs pour récupérer la "Form" (V, D, N) et calculer le backup
         matches.forEach(m => {
-            if(!teamsObj[m.t1]) teamsObj[m.t1] = { name: m.t1, pts: 0, diff: 0, played: 0, form: [] };
-            if(!teamsObj[m.t2]) teamsObj[m.t2] = { name: m.t2, pts: 0, diff: 0, played: 0, form: [] };
-            let s1 = parseInt(m.s1), s2 = parseInt(m.s2);
-            if (s1 > 0 || s2 > 0 || m.locked) { 
-                teamsObj[m.t1].played++; teamsObj[m.t2].played++; teamsObj[m.t1].diff += (s1 - s2); teamsObj[m.t2].diff += (s2 - s1);
-                if (s1 > s2) { teamsObj[m.t1].pts+=3; teamsObj[m.t2].pts+=1; teamsObj[m.t1].form.push('W'); teamsObj[m.t2].form.push('L'); } 
-                else if (s1 < s2) { teamsObj[m.t1].pts+=1; teamsObj[m.t2].pts+=3; teamsObj[m.t1].form.push('L'); teamsObj[m.t2].form.push('W'); } 
-                else { teamsObj[m.t1].pts+=2; teamsObj[m.t2].pts+=2; teamsObj[m.t1].form.push('D'); teamsObj[m.t2].form.push('D'); }
+            if(!formsObj[m.t1]) formsObj[m.t1] = [];
+            if(!formsObj[m.t2]) formsObj[m.t2] = [];
+            if(!fallbackTeamsObj[m.t1]) fallbackTeamsObj[m.t1] = { name: m.t1, pts: 0, diff: 0 };
+            if(!fallbackTeamsObj[m.t2]) fallbackTeamsObj[m.t2] = { name: m.t2, pts: 0, diff: 0 };
+            
+            let s1 = (m.s1 !== undefined && m.s1 !== '') ? parseInt(m.s1) : NaN;
+            let s2 = (m.s2 !== undefined && m.s2 !== '') ? parseInt(m.s2) : NaN;
+            
+            if (!isNaN(s1) && !isNaN(s2)) { 
+                fallbackTeamsObj[m.t1].diff += (s1 - s2); fallbackTeamsObj[m.t2].diff += (s2 - s1);
+                if (s1 > s2) { fallbackTeamsObj[m.t1].pts+=3; fallbackTeamsObj[m.t2].pts+=1; formsObj[m.t1].push('W'); formsObj[m.t2].push('L'); } 
+                else if (s1 < s2) { fallbackTeamsObj[m.t1].pts+=1; fallbackTeamsObj[m.t2].pts+=3; formsObj[m.t1].push('L'); formsObj[m.t2].push('W'); } 
+                else { fallbackTeamsObj[m.t1].pts+=2; fallbackTeamsObj[m.t2].pts+=2; formsObj[m.t1].push('D'); formsObj[m.t2].push('D'); }
             }
         });
 
-        let ranking = Object.values(teamsObj).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
+        let ranking = [];
+        // V42 : On lit le classement poussé par le Master, qui inclut le 0-0 et les ajustements manuels
+        if (currentStandingsData && currentStandingsData[pLetter]) {
+            ranking = JSON.parse(currentStandingsData[pLetter]);
+            ranking.forEach(r => { r.form = formsObj[r.name] || []; });
+        } else {
+            // Backup au cas où le master n'a pas encore fait de synchro
+            ranking = Object.values(fallbackTeamsObj).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
+            ranking.forEach(r => { r.form = formsObj[r.name] || []; });
+        }
         
         let classRows = ranking.map((r, idx) => {
             let formHtml = r.form.slice(-3).map(f => `<span class="form-dot ${f==='W'?'bg-win':(f==='L'?'bg-loss':'bg-draw')}"></span>`).join('');
-            let isGhost = r.name.toLowerCase().includes('meilleur') || r.name.toLowerCase().includes(' des ');
+            
+            // Correction de l'identification des équipes fantômes pour éviter le grisage en Phase 2
+            let isGhost = r.isDummy !== undefined ? r.isDummy : /^(meilleur|\d+(er|ème)|repêché)/i.test(r.name);
+            
             return `<div class="flex items-center justify-between py-2 border-b border-slate-700/30 ${isGhost?'opacity-40':''}">
                 <div class="w-6 text-center text-xs font-black text-slate-500">${idx+1}</div>
                 <div class="flex-1 font-bold text-sm truncate px-2 ${isGhost?'italic text-slate-400':'text-white'}">${r.name}</div>
@@ -271,14 +305,15 @@
         }).join('');
 
         let matchRows = matches.map((m) => {
-            let isPlayed = m.s1 > 0 || m.s2 > 0 || m.locked;
-            let isGhost = m.t1.toLowerCase().includes('meilleur') || m.t1.toLowerCase().includes(' des ');
+            let isPlayed = (m.s1 !== undefined && m.s1 !== '') && (m.s2 !== undefined && m.s2 !== '');
+            let isGhost = /^(meilleur|\d+(er|ème)|repêché)/i.test(m.t1);
+            let scoreStr = isPlayed ? `${m.s2} - ${m.s1}` : `VS`;
             
             return `<div class="match-card ${catColorClass} rounded-xl p-3 mb-3 shadow-md flex flex-col relative overflow-hidden ${isGhost?'opacity-40':''}">
                 <div class="absolute top-0 right-0 bg-slate-900/80 px-2 py-0.5 rounded-bl-lg text-[8px] font-black uppercase text-slate-500">${m.terrain}</div>
                 <div class="flex justify-between items-center mt-2">
                     <div class="flex-1 font-bold text-xs sm:text-sm text-slate-300 truncate pr-2 text-right">${m.t2}</div>
-                    <div class="bg-black/50 px-3 py-1.5 rounded-lg border ${isPlayed ? 'border-amber-500/50 text-white' : 'border-slate-700/50 text-slate-600'} font-black text-lg min-w-[70px] text-center tracking-wider">${m.s2} - ${m.s1}</div>
+                    <div class="bg-black/50 px-3 py-1.5 rounded-lg border ${isPlayed ? 'border-amber-500/50 text-white' : 'border-slate-700/50 text-slate-600'} font-black text-lg min-w-[70px] text-center tracking-wider">${scoreStr}</div>
                     <div class="flex-1 font-bold text-xs sm:text-sm text-slate-300 truncate pl-2 text-left">${m.t1}</div>
                 </div>
             </div>`;
@@ -301,13 +336,12 @@
         </div>`;
     }
 
-    // FIX BLINDAGE : On lit la chaîne JSON envoyée par le Master
     function loadTrophy() {
         if (!db || !globalSettings.activeYear) return; 
         const year = globalSettings.activeYear;
         
         if (trophyRef) trophyRef.off(); 
-        trophyRef = db.ref(`t3n/${year}/trophy_data`); // Nouveau noeud robuste
+        trophyRef = db.ref(`t3n/${year}/trophy_data`);
         
         document.getElementById('trophy-container').innerHTML = `<div class="flex flex-col items-center justify-center py-20 opacity-50"><div class="text-4xl animate-bounce mb-4">🏆</div><span class="text-[10px] font-black uppercase tracking-widest">Préparation du Palmarès...</span></div>`;
         
@@ -320,7 +354,7 @@
             try {
                 let dbData = snap.val();
                 let isProvisional = dbData.status !== 'valide';
-                let sortedList = JSON.parse(dbData.payload); // Décompression de l'armure JSON
+                let sortedList = JSON.parse(dbData.payload);
 
                 if (!sortedList || sortedList.length === 0) return;
 
