@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v41 - Blindage</title>
+    <title>T3N Master v42 - Sync Totale</title>
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno + "\n\nPrenez une photo de ce message.");
@@ -224,7 +224,7 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_v41_shield';
+    var STORAGE_KEY = 't3n_master_v42_synctotale';
 
     var MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
@@ -297,6 +297,29 @@
         }
     }
 
+    // --- SYNCHRONISATION DU PALMARES POULES (FOURGON BLINDÉ) ---
+    function syncStandings() {
+        if (!db) return;
+        var year = document.getElementById('config-year').value;
+        var phase = getActivePhase();
+        var standings = {};
+        phase.poules.forEach(function(p) {
+            if(p.teams.length === p.target) {
+                var rank = computeRanking(p);
+                var rankData = rank.map(function(r) {
+                    return {
+                        name: r.name,
+                        pts: r.pts,
+                        diff: r.diff,
+                        isDummy: (r.ogTeam && r.ogTeam.isDummy) ? true : false
+                    };
+                });
+                standings[p.letter] = JSON.stringify(rankData); // Compression
+            }
+        });
+        db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/standings').update(standings);
+    }
+
     var syncListener = null;
     function attachFirebaseListener() {
         if (!db) return; 
@@ -319,6 +342,7 @@
                     phaseData.poules[pIdx].scores[mIdx].s2 = data.s2; 
                     phaseData.poules[pIdx].scores[mIdx].locked = data.locked; 
                     saveState(); renderBoard(); 
+                    syncStandings(); // On pousse le classement dès qu'un terrain modifie un score !
                     if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
                 } 
             }
@@ -711,9 +735,12 @@
         saveState(); renderBoard(); 
         if (db) { 
             var year = document.getElementById('config-year').value; 
-            var updateObj = {}; updateObj[field] = parseInt(val)||0; 
+            var updateObj = {}; 
+            // V42 : On pousse une chaine vide si c'est vide, sinon un nombre. (Corrige le bug du 0-0)
+            updateObj[field] = val === '' ? '' : parseInt(val); 
             db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update(updateObj); 
         } 
+        syncStandings();
         if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
     }
 
@@ -726,11 +753,27 @@
             var year = document.getElementById('config-year').value; 
             db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update({ locked: isLocked }); 
         } 
+        syncStandings();
         if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
     }
     
-    function updateAdjVal(pIdx, tId, val) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].val = val; saveState(); renderBoard(); if (appState.currentPhase === 'PHASE2') computeTrophy(true, false); }
-    function updateAdjNote(pIdx, tId, note) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].note = note; saveState(); renderBoard(); }
+    function updateAdjVal(pIdx, tId, val) { 
+        var p = getActivePhase().poules[pIdx]; 
+        if(!p.adjustments) p.adjustments = {}; 
+        if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; 
+        p.adjustments[tId].val = val; 
+        saveState(); renderBoard(); 
+        syncStandings();
+        if (appState.currentPhase === 'PHASE2') computeTrophy(true, false); 
+    }
+    
+    function updateAdjNote(pIdx, tId, note) { 
+        var p = getActivePhase().poules[pIdx]; 
+        if(!p.adjustments) p.adjustments = {}; 
+        if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; 
+        p.adjustments[tId].note = note; 
+        saveState(); renderBoard(); 
+    }
 
     function computeRanking(p) {
         var stats = p.teams.map(function(t, idx){ return { id: idx, ogTeam: t, name: (t ? t.name : '?'), pts: 0, diff: 0 }; });
@@ -862,8 +905,17 @@
             if (p.teams.length === p.target) {
                 MATRICES[p.target].forEach(function(m, idx){
                     var tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
-                    var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:0, s2:0, locked:false};
-                    updates['t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(idx+1)] = { t1: (p.teams[m.a-1]?p.teams[m.a-1].name:'?'), t2: (p.teams[m.b-1]?p.teams[m.b-1].name:'?'), arb: (p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'), s1: sc.s1||0, s2: sc.s2||0, locked: sc.locked||false, terrain: 'Terrain '+tStr, status:'en_attente', poule: p.letter, ordre: globalOrder++ };
+                    var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
+                    
+                    // V42: On laisse les chaines vides telles quelles pour différencier d'un vrai score 0-0
+                    updates['t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(idx+1)] = { 
+                        t1: (p.teams[m.a-1]?p.teams[m.a-1].name:'?'), 
+                        t2: (p.teams[m.b-1]?p.teams[m.b-1].name:'?'), 
+                        arb: (p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'), 
+                        s1: sc.s1 === '' ? '' : parseInt(sc.s1), 
+                        s2: sc.s2 === '' ? '' : parseInt(sc.s2), 
+                        locked: sc.locked||false, terrain: 'Terrain '+tStr, status:'en_attente', poule: p.letter, ordre: globalOrder++ 
+                    };
                 });
             }
         });
@@ -874,6 +926,7 @@
                     var phaseUpdate = {}; phaseUpdate['activePhase_' + appState.activeCat] = appState.currentPhase;
                     db.ref('t3n/settings').update(phaseUpdate);
                 }
+                syncStandings(); // On pousse la 1ère version du classement
                 alert("✅ Déploiement réussi !");
             }); 
         }
@@ -951,7 +1004,6 @@
         document.body.removeChild(dlAnchorElem);
     }
 
-    // FIX BLINDAGE FIREBASE : JSON.stringify pour éviter le bug de conversion des tableaux
     function computeTrophy(forceBroadcast, isDefinitive) {
         document.getElementById('trophy-empty').classList.add('hidden'); document.getElementById('trophy-podium').classList.remove('hidden'); document.getElementById('trophy-list').classList.remove('hidden');
         var clubs = {}; appState.masterData.forEach(function(c){ clubs[c.name] = { name: c.name, U8: 999, U10: 999, U12: 999, pts: 0 }; });
@@ -974,10 +1026,9 @@
         
         if (forceBroadcast && db) { 
             var year = document.getElementById('config-year').value; 
-            // On utilise "trophy_data" pour ne pas interférer avec l'ancien nœud cassé
             db.ref('t3n/'+year+'/trophy_data').set({
                 status: isDefinitive ? 'valide' : 'provisoire',
-                payload: JSON.stringify(sorted) // Le secret est ici !
+                payload: JSON.stringify(sorted)
             }); 
             if(isDefinitive) alert("✅ Podium DÉFINITIF propulsé sur les téléphones du public !"); 
         }
@@ -1007,7 +1058,8 @@
                 db.ref('t3n/'+year+'/'+cat+'_'+appState.currentPhase+'/matches').once('value').then(function(snap){ 
                     if(snap.exists()) { 
                         var ups = {}; 
-                        snap.forEach(function(c){ ups[c.key+'/s1']=0; ups[c.key+'/s2']=0; ups[c.key+'/status']='en_attente'; }); 
+                        // V42 : On efface proprement les scores
+                        snap.forEach(function(c){ ups[c.key+'/s1']=''; ups[c.key+'/s2']=''; ups[c.key+'/status']='en_attente'; }); 
                         db.ref('t3n/'+year+'/'+cat+'_'+appState.currentPhase+'/matches').update(ups).then(function(){ alert("Scores réinitialisés !"); }); 
                     } 
                 }); 
