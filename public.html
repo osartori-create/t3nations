@@ -26,11 +26,9 @@
         .bg-draw { background-color: #94a3b8; } 
         .bg-loss { background-color: #ef4444; }
         
-        /* Cacher la scrollbar native pour les pilules de navigation */
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* CSS du Dashboard Secret */
         #secret-dashboard { background-color: #000; color: #fff; font-family: monospace; }
         .sec-table { width: 100%; font-size: 10px; text-align: left; border-collapse: collapse; }
         .sec-table th { background: #111; padding: 4px; border-bottom: 1px solid #333; color: #888; }
@@ -121,7 +119,6 @@
     let trophyRef = null;
     const pointsMap = {1:10, 2:9, 3:8, 4:7, 5:6, 6:5, 7:4, 8:3, 9:2, 10:1};
 
-    // Variables Secret Dashboard
     let clickCount = 0;
     let clickTimer = null;
     let isSecretActive = false;
@@ -131,7 +128,6 @@
     function initApp() {
         if(!db) return;
         
-        // Listener Secret
         document.getElementById('logo-trigger').addEventListener('click', () => {
             clickCount++;
             if(clickCount === 1) {
@@ -155,7 +151,7 @@
 
     function setMainTab(tab) {
         activeMain = tab;
-        activePoule = null; // Reset de la poule à chaque changement de catégorie
+        activePoule = null; 
         
         document.querySelectorAll('.nav-item').forEach(b => { 
             b.classList.remove('active', 'active-u8', 'active-u12'); 
@@ -196,7 +192,7 @@
         if (matchesRef) matchesRef.off(); matchesRef = db.ref(path);
         
         document.getElementById('poules-container').innerHTML = `<div class="flex flex-col items-center justify-center py-20 opacity-50"><div class="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div><span class="text-[10px] font-black uppercase tracking-widest">Mise à jour terrain...</span></div>`;
-        document.getElementById('poule-nav').innerHTML = ''; // Nettoyage de la nav
+        document.getElementById('poule-nav').innerHTML = ''; 
 
         matchesRef.on('value', snap => {
             if (!snap.exists()) { 
@@ -305,54 +301,32 @@
         </div>`;
     }
 
-    // --- LE BLINDAGE DU TROPHEE ---
+    // FIX BLINDAGE : On lit la chaîne JSON envoyée par le Master
     function loadTrophy() {
         if (!db || !globalSettings.activeYear) return; 
         const year = globalSettings.activeYear;
         
         if (trophyRef) trophyRef.off(); 
-        trophyRef = db.ref(`t3n/${year}/trophy`);
+        trophyRef = db.ref(`t3n/${year}/trophy_data`); // Nouveau noeud robuste
         
         document.getElementById('trophy-container').innerHTML = `<div class="flex flex-col items-center justify-center py-20 opacity-50"><div class="text-4xl animate-bounce mb-4">🏆</div><span class="text-[10px] font-black uppercase tracking-widest">Préparation du Palmarès...</span></div>`;
         
         trophyRef.on('value', snap => {
+            if (!snap.exists()) { 
+                document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><span class="text-5xl block mb-4 opacity-50">🛡️</span><p class="font-black text-lg uppercase tracking-widest">Palmarès en attente</p><p class="text-[10px] uppercase opacity-60 mt-2">Le bouclier sera calculé à l'issue de la phase 2.</p></div>`; 
+                return; 
+            }
+            
             try {
-                if (!snap.exists()) { 
-                    document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><span class="text-5xl block mb-4 opacity-50">🛡️</span><p class="font-black text-lg uppercase tracking-widest">Palmarès en attente</p><p class="text-[10px] uppercase opacity-60 mt-2">Le bouclier sera calculé à l'issue de la phase 2.</p></div>`; 
-                    return; 
-                }
-                
-                let data = snap.val();
-                let sortedList = [];
-                let isProvisional = true;
+                let dbData = snap.val();
+                let isProvisional = dbData.status !== 'valide';
+                let sortedList = JSON.parse(dbData.payload); // Décompression de l'armure JSON
 
-                // Lecture ultra-robuste
-                if (Array.isArray(data)) {
-                    sortedList = data;
-                    isProvisional = false; // Sécurité si ancien format
-                } else if (data && typeof data === 'object') {
-                    if (data.ranking) {
-                        sortedList = Array.isArray(data.ranking) ? data.ranking : Object.values(data.ranking);
-                    }
-                    if (data.status) {
-                        isProvisional = (data.status === 'provisoire');
-                    }
-                }
-
-                // Gérer le moment où les équipes n'ont pas encore marqué de points
-                if (!sortedList || sortedList.length === 0) {
-                    document.getElementById('trophy-container').innerHTML = `
-                    <div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10">
-                        <span class="text-5xl block mb-4 opacity-50">🛡️</span>
-                        <p class="font-black text-lg uppercase tracking-widest">Calcul en cours...</p>
-                        <p class="text-[10px] uppercase opacity-60 mt-2">Les premiers points arrivent dans quelques instants.</p>
-                    </div>`;
-                    return;
-                }
+                if (!sortedList || sortedList.length === 0) return;
 
                 let badgeHtml = isProvisional 
                     ? `<div class="inline-block bg-indigo-900/50 border border-indigo-500 text-indigo-300 px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest animate-pulse mb-6 shadow-[0_0_15px_rgba(99,102,241,0.3)]">⚠️ Classement Provisoire (Matchs en cours)</div>`
-                    : `<div class="inline-block bg-green-900/50 border border-green-500 text-green-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-[0_0_15px_rgba(34,197,94,0.3)]">✅ Classement Définitif</div>`;
+                    : `<div class="inline-block bg-green-900/50 border border-green-500 text-green-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-[0_0_15px_rgba(34,197,94,0.3)]">✅ Classement Validé & Définitif</div>`;
                 
                 let pHtml = '';
                 if(sortedList[1]) pHtml += `<div class="flex flex-col items-center justify-end h-40"><div class="text-center font-bold text-[10px] sm:text-xs mb-2 text-slate-300 truncate w-20 sm:w-28 uppercase">${sortedList[1].name}</div><div class="bg-slate-600 border border-slate-500 w-20 sm:w-28 h-3/4 rounded-t-2xl flex flex-col items-center pt-3 shadow-inner"><span class="text-2xl">🥈</span><span class="font-black text-sm sm:text-base mt-1 text-slate-300">${sortedList[1].pts}p</span></div></div>`;
@@ -376,14 +350,12 @@
                     <div class="flex justify-center items-end h-56 gap-2 mb-8">${pHtml}</div>
                     <div class="bg-slate-900/50 rounded-2xl p-2">${tbody}</div>
                 </div>`;
-                
-            } catch (error) {
-                console.error("Erreur de synchronisation du palmarès:", error);
+            } catch (err) {
+                console.error("Erreur lecture trophée:", err);
             }
         });
     }
 
-    // --- FONCTIONS DU MODE SECRET ---
     function launchSecretDashboard() {
         if (!globalSettings.activeYear) return;
         isSecretActive = true;
