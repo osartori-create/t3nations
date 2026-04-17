@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v39 - La Muraille</title>
+    <title>T3N Master v40 - Auto-Sync</title>
     <script>
         window.onerror = function(message, source, lineno, colno, error) {
             alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno + "\n\nPrenez une photo de ce message.");
@@ -182,9 +182,9 @@
             <div class="flex justify-between items-center mb-8 border-b pb-4">
                 <div>
                     <h2 class="text-3xl font-black uppercase text-slate-800 flex items-center gap-3">🏆 Bouclier T3N</h2>
-                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">L'actualisation propulsera ce classement final vers l'application du public.</p>
+                    <p class="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Génère le classement global et le pousse en version définitive sur le public.</p>
                 </div>
-                <button onclick="computeTrophy()" class="bg-amber-500 text-black px-6 py-3 rounded-xl font-black uppercase shadow-lg hover:bg-amber-400 active:scale-95 transition-all">Actualiser & Diffuser le Podium</button>
+                <button onclick="computeTrophy(true, true)" class="bg-amber-500 text-black px-6 py-3 rounded-xl font-black uppercase shadow-lg hover:bg-amber-400 active:scale-95 transition-all">Actualiser & Diffuser le Podium Définitif</button>
             </div>
             
             <div id="trophy-podium" class="flex justify-center items-end h-64 gap-4 mb-12 hidden"></div>
@@ -197,7 +197,7 @@
                 </table>
             </div>
             <div id="trophy-empty" class="text-center py-20 text-slate-400 font-bold uppercase tracking-widest">
-                Cliquez sur Actualiser pour générer le palmarès.<br><span class="text-[10px] normal-case opacity-70">Nécessite que les phases 2 soient générées.</span>
+                Aucune donnée de Phase 2.<br><span class="text-[10px] normal-case opacity-70">Le trophée se calcule sur les résultats de l'après-midi.</span>
             </div>
         </div>
     </section>
@@ -224,7 +224,7 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_v39_muraille';
+    var STORAGE_KEY = 't3n_master_v40_autosync';
 
     var MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
@@ -262,7 +262,6 @@
     function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
     function getCatSettings() { return appState.cats[appState.activeCat].settings; }
 
-    // FONCTION CLÉ : Toujours compter les équipes physiquement présentes (pas la vieille liste)
     function getCurrentTeams(phase1) {
         if(phase1.poules.length > 0 || phase1.reserve.length > 0) {
             var arr = phase1.reserve.slice();
@@ -320,6 +319,8 @@
                     phaseData.poules[pIdx].scores[mIdx].s2 = data.s2; 
                     phaseData.poules[pIdx].scores[mIdx].locked = data.locked; 
                     saveState(); renderBoard(); 
+                    // AUTO-SYNC TROPHEE LORS D'UNE SAISIE TERRAIN EN PHASE 2
+                    if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
                 } 
             }
         });
@@ -346,7 +347,7 @@
             initCategoryUI(); 
             attachFirebaseListener(); 
         }
-        if(id === 'TROPHEE') computeTrophy(false);
+        if(id === 'TROPHEE') computeTrophy(false, false);
         saveState();
     }
 
@@ -412,7 +413,6 @@
                         if(existingIds.indexOf(tId) === -1) {
                             var newT = { id: tId, club: c.name, level: i, name: c.name + ' ' + i, foreign: c.foreign, customNote: '' };
                             phase1.reserve.push(newT);
-                            // On l'ajoute aussi à la vieille liste pour garder tout le monde synchro
                             if(phase1.teams) phase1.teams.push(newT);
                         }
                     }
@@ -430,7 +430,6 @@
         
         document.getElementById('master-thead').innerHTML = '<tr><th class="p-3">Club ('+tC+')</th><th class="p-3 text-center">Étranger ('+tF+')</th><th class="p-3 text-center">U6 ('+tU6+')</th><th class="p-3 text-center">U8 ('+tU8+')</th><th class="p-3 text-center">U10 ('+tU10+')</th><th class="p-3 text-center">U12 ('+tU12+')</th></tr>';
         
-        // FIX VISUEL : J'ai ajouté saveState() ET renderMasterTable() sur le onchange de la checkbox
         document.getElementById('master-tbody').innerHTML = appState.masterData.map(function(c, i) {
             return '<tr><td class="p-3 font-bold uppercase text-xs">'+c.name+'</td><td class="p-3 text-center"><input type="checkbox" '+(c.foreign ? 'checked':'')+' onchange="appState.masterData['+i+'].foreign=this.checked;saveState();renderMasterTable()" class="accent-amber-500"></td><td class="p-3 text-center font-bold text-amber-600">'+c.u6+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u8+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u10+'</td><td class="p-3 text-center font-bold text-amber-600">'+c.u12+'</td></tr>';
         }).join(''); 
@@ -465,7 +464,6 @@
             document.getElementById('phase2-generator').classList.add('hidden'); 
             document.getElementById('architect-container').classList.remove('hidden');
             
-            // On compte la VRAIE quantité d'équipes actuelles
             var cTeams = getCurrentTeams(phase1);
             document.getElementById('active-cat-count').innerText = cTeams.length; 
             renderArchitectScenarios(cTeams.length, phase1, cTeams); 
@@ -706,8 +704,33 @@
         appState.activePouleTab = 'A'; saveState(); initCategoryUI();
     }
 
-    function updateScore(pIdx, mIdx, field, val) { var p = getActivePhase().poules[pIdx]; if(!p.scores) p.scores = {}; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; p.scores[mIdx][field] = val; saveState(); renderBoard(); if (db) { var year = document.getElementById('config-year').value; var updateObj = {}; updateObj[field] = parseInt(val)||0; db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update(updateObj); } }
-    function toggleLock(pIdx, mIdx, isLocked) { var p = getActivePhase().poules[pIdx]; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; p.scores[mIdx].locked = isLocked; saveState(); renderBoard(); if (db) { var year = document.getElementById('config-year').value; db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update({ locked: isLocked }); } }
+    function updateScore(pIdx, mIdx, field, val) { 
+        var p = getActivePhase().poules[pIdx]; 
+        if(!p.scores) p.scores = {}; 
+        if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; 
+        p.scores[mIdx][field] = val; 
+        saveState(); renderBoard(); 
+        if (db) { 
+            var year = document.getElementById('config-year').value; 
+            var updateObj = {}; updateObj[field] = parseInt(val)||0; 
+            db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update(updateObj); 
+        } 
+        // AUTO-SYNC TROPHEE
+        if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
+    }
+
+    function toggleLock(pIdx, mIdx, isLocked) { 
+        var p = getActivePhase().poules[pIdx]; 
+        if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; 
+        p.scores[mIdx].locked = isLocked; 
+        saveState(); renderBoard(); 
+        if (db) { 
+            var year = document.getElementById('config-year').value; 
+            db.ref('t3n/'+year+'/'+appState.activeCat+'_'+appState.currentPhase+'/matches/P'+p.letter+'_M'+(mIdx+1)).update({ locked: isLocked }); 
+        } 
+        // AUTO-SYNC TROPHEE
+        if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
+    }
     
     function updateAdjVal(pIdx, tId, val) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].val = val; saveState(); renderBoard(); }
     function updateAdjNote(pIdx, tId, note) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].note = note; saveState(); renderBoard(); }
@@ -931,7 +954,8 @@
         document.body.removeChild(dlAnchorElem);
     }
 
-    function computeTrophy(forceBroadcast) {
+    // FIX AUTO-SYNC : Ajout du paramètre isDefinitive
+    function computeTrophy(forceBroadcast, isDefinitive) {
         document.getElementById('trophy-empty').classList.add('hidden'); document.getElementById('trophy-podium').classList.remove('hidden'); document.getElementById('trophy-list').classList.remove('hidden');
         var clubs = {}; appState.masterData.forEach(function(c){ clubs[c.name] = { name: c.name, U8: 999, U10: 999, U12: 999, pts: 0 }; });
 
@@ -950,7 +974,16 @@
         var sorted = Object.keys(clubs).map(function(k){return clubs[k];}).filter(function(c){return c.pts > 0;}).sort(function(a, b){ if (b.pts !== a.pts) return b.pts - a.pts; if (a.U12 !== b.U12) return a.U12 - b.U12; if (a.U10 !== b.U10) return a.U10 - b.U10; return a.U8 - b.U8; });
 
         renderTrophy(sorted);
-        if (forceBroadcast && db) { var year = document.getElementById('config-year').value; db.ref('t3n/'+year+'/trophy').set(sorted); alert("🏆 Podium calculé et propulsé sur les téléphones du public !"); }
+        
+        // Push sur Firebase avec le nouveau format structuré (statut + ranking)
+        if (forceBroadcast && db) { 
+            var year = document.getElementById('config-year').value; 
+            db.ref('t3n/'+year+'/trophy').set({
+                status: isDefinitive ? 'definitif' : 'provisoire',
+                ranking: sorted
+            }); 
+            if(isDefinitive) alert("🏆 Podium DÉFINITIF calculé et propulsé sur les téléphones du public !"); 
+        }
     }
 
     function renderTrophy(sortedList) {
@@ -964,7 +997,6 @@
         document.getElementById('trophy-tbody').innerHTML = sortedList.map(function(c, idx){ return '<tr class="hover:bg-slate-50 transition-colors"><td class="p-4 font-black '+(idx<3?'text-amber-500':'text-slate-400')+'">'+(idx+1)+'</td><td class="p-4 font-bold text-slate-800 uppercase">'+c.name+'</td><td class="p-4 text-center text-xs font-bold '+(c.U8===999?'text-slate-300':'text-blue-500')+'">'+(c.U8===999?'-':(c.U8<=10?c.U8+'e ('+pointsMap[c.U8]+'pt)':'11+'))+'</td><td class="p-4 text-center text-xs font-bold '+(c.U10===999?'text-slate-300':'text-slate-600')+'">'+(c.U10===999?'-':(c.U10<=10?c.U10+'e ('+pointsMap[c.U10]+'pt)':'11+'))+'</td><td class="p-4 text-center text-xs font-bold '+(c.U12===999?'text-slate-300':'text-red-500')+'">'+(c.U12===999?'-':(c.U12<=10?c.U12+'e ('+pointsMap[c.U12]+'pt)':'11+'))+'</td><td class="p-4 text-center font-black text-amber-600 text-lg">'+c.pts+'</td></tr>'; }).join('');
     }
 
-    // FIX PURGES : On nettoie la mémoire locale EN PLUS du cloud
     function purge(type) {
         if(!db) return alert("Firebase non configuré."); 
         var year = document.getElementById('config-year').value; var cat = document.getElementById('maint-cat').value;
@@ -986,13 +1018,11 @@
         } 
         else if (type==='teams') { 
             if (confirm("Effacer l'ossature locale et cloud pour les "+cat+" ?")) { 
-                // 1. On vide le cloud pour cette phase
                 db.ref('t3n/'+year+'/'+cat+'_'+appState.currentPhase+'/matches').remove().then(function(){ 
-                    // 2. On RAZ la catégorie dans la mémoire du navigateur
                     appState.cats[cat] = initCatState();
                     saveState();
                     alert("Purge terminée. L'interface va se recharger."); 
-                    location.reload(); // 3. On recharge pour forcer la re-lecture depuis la base club
+                    location.reload(); 
                 }); 
             } 
         }
