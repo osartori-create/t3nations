@@ -26,6 +26,10 @@
         .bg-draw { background-color: #94a3b8; } 
         .bg-loss { background-color: #ef4444; }
         
+        /* Cacher la scrollbar native pour les pilules de navigation */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
         /* CSS du Dashboard Secret */
         #secret-dashboard { background-color: #000; color: #fff; font-family: monospace; }
         .sec-table { width: 100%; font-size: 10px; text-align: left; border-collapse: collapse; }
@@ -35,8 +39,8 @@
 </head>
 <body class="font-sans min-h-screen" onload="initApp()">
 
-    <header class="glass-panel sticky top-0 z-40 px-4 py-3 shadow-lg border-b border-slate-800">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
+    <header class="glass-panel sticky top-0 z-40 px-4 py-3 shadow-lg border-b border-slate-800 flex flex-col gap-3">
+        <div class="max-w-7xl mx-auto w-full flex justify-between items-center">
             <div id="logo-trigger" class="cursor-pointer select-none">
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter text-white drop-shadow-md">T3N <span class="text-amber-500">LIVE</span></h1>
                 <div class="flex items-center gap-2 mt-0.5">
@@ -49,6 +53,10 @@
                 <button onclick="setPhase('PHASE1')" id="tab-PHASE1" class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase transition-colors bg-amber-500 text-black shadow-sm">Matin</button>
                 <button onclick="setPhase('PHASE2')" id="tab-PHASE2" class="px-4 py-1.5 rounded-full text-[10px] font-black uppercase transition-colors text-slate-400 hover:text-white">A-Midi</button>
             </div>
+        </div>
+
+        <div id="poule-nav-container" class="max-w-7xl mx-auto w-full hidden">
+            <div id="poule-nav" class="flex gap-2 overflow-x-auto pb-1 hide-scrollbar w-full snap-x"></div>
         </div>
     </header>
 
@@ -105,6 +113,9 @@
 
     let activeMain = 'U10';
     let localPhase = 'PHASE1';
+    let activePoule = null; 
+    let currentMatchesData = {};
+
     let globalSettings = {};
     let matchesRef = null;
     let trophyRef = null;
@@ -144,6 +155,8 @@
 
     function setMainTab(tab) {
         activeMain = tab;
+        activePoule = null; // Reset de la poule à chaque changement de catégorie
+        
         document.querySelectorAll('.nav-item').forEach(b => { 
             b.classList.remove('active', 'active-u8', 'active-u12'); 
         });
@@ -153,6 +166,7 @@
 
         if (tab === 'TROPHEE') {
             document.getElementById('phase-nav').classList.add('opacity-0', 'pointer-events-none'); 
+            document.getElementById('poule-nav-container').classList.add('hidden');
             document.getElementById('poules-container').classList.add('hidden'); 
             document.getElementById('trophy-container').classList.remove('hidden');
             loadTrophy();
@@ -161,6 +175,7 @@
             if (tab === 'U12') btn.classList.add('active-u12');
             
             document.getElementById('phase-nav').classList.remove('opacity-0', 'pointer-events-none'); 
+            document.getElementById('poule-nav-container').classList.remove('hidden');
             document.getElementById('trophy-container').classList.add('hidden'); 
             document.getElementById('poules-container').classList.remove('hidden');
             loadData();
@@ -169,6 +184,7 @@
 
     function setPhase(phase) {
         localPhase = phase;
+        activePoule = null;
         document.getElementById('tab-PHASE1').className = `px-4 py-1.5 rounded-full text-[10px] font-black uppercase transition-colors ${phase==='PHASE1'?'bg-amber-500 text-black shadow-sm':'text-slate-400 hover:text-white'}`;
         document.getElementById('tab-PHASE2').className = `px-4 py-1.5 rounded-full text-[10px] font-black uppercase transition-colors ${phase==='PHASE2'?'bg-amber-500 text-black shadow-sm':'text-slate-400 hover:text-white'}`;
         loadData();
@@ -180,85 +196,116 @@
         if (matchesRef) matchesRef.off(); matchesRef = db.ref(path);
         
         document.getElementById('poules-container').innerHTML = `<div class="flex flex-col items-center justify-center py-20 opacity-50"><div class="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div><span class="text-[10px] font-black uppercase tracking-widest">Mise à jour terrain...</span></div>`;
+        document.getElementById('poule-nav').innerHTML = ''; // Nettoyage de la nav
 
         matchesRef.on('value', snap => {
-            if (!snap.exists()) { document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><span class="text-4xl block mb-4 opacity-50">🏟️</span><p class="font-black text-lg uppercase tracking-widest">Aucun match</p><p class="text-[10px] uppercase opacity-60 mt-2">Le calendrier n'est pas encore dévoilé pour cette phase.</p></div>`; return; }
-            let matchesByPoule = {}; snap.forEach(child => { let m = child.val(); if (!matchesByPoule[m.poule]) matchesByPoule[m.poule] = []; matchesByPoule[m.poule].push(m); });
-            renderDashboard(matchesByPoule);
+            if (!snap.exists()) { 
+                document.getElementById('poule-nav-container').classList.add('hidden');
+                document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><span class="text-4xl block mb-4 opacity-50">🏟️</span><p class="font-black text-lg uppercase tracking-widest">Aucun match</p><p class="text-[10px] uppercase opacity-60 mt-2">Le calendrier n'est pas encore dévoilé pour cette phase.</p></div>`; 
+                return; 
+            }
+            document.getElementById('poule-nav-container').classList.remove('hidden');
+            
+            let matchesByPoule = {}; 
+            snap.forEach(child => { 
+                let m = child.val(); 
+                if (!matchesByPoule[m.poule]) matchesByPoule[m.poule] = []; 
+                matchesByPoule[m.poule].push(m); 
+            });
+            
+            currentMatchesData = matchesByPoule;
+            let pouleKeys = Object.keys(currentMatchesData).sort();
+            if(!activePoule || !pouleKeys.includes(activePoule)) activePoule = pouleKeys[0];
+            
+            buildPouleNav(pouleKeys);
+            renderActivePoule();
         });
     }
 
-    function renderDashboard(matchesByPoule) {
-        let html = ''; let pouleKeys = Object.keys(matchesByPoule).sort();
+    // NOUVEAU : Construction de la barre de navigation
+    function buildPouleNav(pouleKeys) {
+        let navHtml = '';
+        pouleKeys.forEach(p => {
+            let isActive = p === activePoule;
+            navHtml += `<button onclick="switchPoule('${p}')" class="px-5 py-1.5 rounded-full font-black text-xs transition-all whitespace-nowrap snap-center shrink-0 border ${isActive ? 'bg-amber-500 text-black border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.3)]' : 'bg-slate-800/80 text-slate-400 border-slate-700'}">Poule ${p}</button>`;
+        });
+        document.getElementById('poule-nav').innerHTML = navHtml;
+    }
+
+    function switchPoule(p) {
+        activePoule = p;
+        let pouleKeys = Object.keys(currentMatchesData).sort();
+        buildPouleNav(pouleKeys);
+        renderActivePoule();
+    }
+
+    function renderActivePoule() {
+        if (!activePoule || !currentMatchesData[activePoule]) return;
+        
+        let pLetter = activePoule;
         let catColorClass = activeMain === 'U8' ? 'match-u8' : (activeMain === 'U12' ? 'match-u12' : 'match-u10');
         let textAccent = activeMain === 'U8' ? 'text-blue-400' : (activeMain === 'U12' ? 'text-red-400' : 'text-amber-400');
 
-        pouleKeys.forEach(pLetter => {
-            let matches = matchesByPoule[pLetter]; matches.sort((a, b) => a.ordre - b.ordre);
-            let teamsObj = {};
-            matches.forEach(m => {
-                if(!teamsObj[m.t1]) teamsObj[m.t1] = { name: m.t1, pts: 0, diff: 0, played: 0, form: [] };
-                if(!teamsObj[m.t2]) teamsObj[m.t2] = { name: m.t2, pts: 0, diff: 0, played: 0, form: [] };
-                let s1 = parseInt(m.s1), s2 = parseInt(m.s2);
-                if (s1 > 0 || s2 > 0 || m.locked) { 
-                    teamsObj[m.t1].played++; teamsObj[m.t2].played++; teamsObj[m.t1].diff += (s1 - s2); teamsObj[m.t2].diff += (s2 - s1);
-                    if (s1 > s2) { teamsObj[m.t1].pts+=3; teamsObj[m.t2].pts+=1; teamsObj[m.t1].form.push('W'); teamsObj[m.t2].form.push('L'); } 
-                    else if (s1 < s2) { teamsObj[m.t1].pts+=1; teamsObj[m.t2].pts+=3; teamsObj[m.t1].form.push('L'); teamsObj[m.t2].form.push('W'); } 
-                    else { teamsObj[m.t1].pts+=2; teamsObj[m.t2].pts+=2; teamsObj[m.t1].form.push('D'); teamsObj[m.t2].form.push('D'); }
-                }
-            });
+        let matches = currentMatchesData[pLetter]; 
+        matches.sort((a, b) => a.ordre - b.ordre);
+        let teamsObj = {};
+        
+        matches.forEach(m => {
+            if(!teamsObj[m.t1]) teamsObj[m.t1] = { name: m.t1, pts: 0, diff: 0, played: 0, form: [] };
+            if(!teamsObj[m.t2]) teamsObj[m.t2] = { name: m.t2, pts: 0, diff: 0, played: 0, form: [] };
+            let s1 = parseInt(m.s1), s2 = parseInt(m.s2);
+            if (s1 > 0 || s2 > 0 || m.locked) { 
+                teamsObj[m.t1].played++; teamsObj[m.t2].played++; teamsObj[m.t1].diff += (s1 - s2); teamsObj[m.t2].diff += (s2 - s1);
+                if (s1 > s2) { teamsObj[m.t1].pts+=3; teamsObj[m.t2].pts+=1; teamsObj[m.t1].form.push('W'); teamsObj[m.t2].form.push('L'); } 
+                else if (s1 < s2) { teamsObj[m.t1].pts+=1; teamsObj[m.t2].pts+=3; teamsObj[m.t1].form.push('L'); teamsObj[m.t2].form.push('W'); } 
+                else { teamsObj[m.t1].pts+=2; teamsObj[m.t2].pts+=2; teamsObj[m.t1].form.push('D'); teamsObj[m.t2].form.push('D'); }
+            }
+        });
 
-            let ranking = Object.values(teamsObj).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
+        let ranking = Object.values(teamsObj).sort((a, b) => b.pts - a.pts || b.diff - a.diff);
+        
+        // RENDU CLASSEMENT
+        let classRows = ranking.map((r, idx) => {
+            let formHtml = r.form.slice(-3).map(f => `<span class="form-dot ${f==='W'?'bg-win':(f==='L'?'bg-loss':'bg-draw')}"></span>`).join('');
+            let isGhost = r.name.toLowerCase().includes('meilleur') || r.name.toLowerCase().includes(' des ');
+            return `<div class="flex items-center justify-between py-2 border-b border-slate-700/30 ${isGhost?'opacity-40':''}">
+                <div class="w-6 text-center text-xs font-black text-slate-500">${idx+1}</div>
+                <div class="flex-1 font-bold text-sm truncate px-2 ${isGhost?'italic text-slate-400':'text-white'}">${r.name}</div>
+                <div class="w-12 text-center text-[10px] font-bold ${r.diff>0?'text-green-400':(r.diff<0?'text-red-400':'text-slate-500')}">${r.diff>0?'+'+r.diff:r.diff}</div>
+                <div class="w-10 text-center font-black ${textAccent} text-base">${r.pts}</div>
+            </div>`;
+        }).join('');
+
+        // RENDU MATCHS (CARTES)
+        let matchRows = matches.map((m) => {
+            let isPlayed = m.s1 > 0 || m.s2 > 0 || m.locked;
+            let isGhost = m.t1.toLowerCase().includes('meilleur') || m.t1.toLowerCase().includes(' des ');
             
-            // RENDU CLASSEMENT
-            let classRows = ranking.map((r, idx) => {
-                let formHtml = r.form.slice(-3).map(f => `<span class="form-dot ${f==='W'?'bg-win':(f==='L'?'bg-loss':'bg-draw')}"></span>`).join('');
-                let isGhost = r.name.toLowerCase().includes('meilleur') || r.name.toLowerCase().includes(' des ');
-                return `<div class="flex items-center justify-between py-2 border-b border-slate-700/30 ${isGhost?'opacity-40':''}">
-                    <div class="w-6 text-center text-xs font-black text-slate-500">${idx+1}</div>
-                    <div class="flex-1 font-bold text-sm truncate px-2 ${isGhost?'italic text-slate-400':'text-white'}">${r.name}</div>
-                    <div class="w-12 text-center text-[10px] font-bold ${r.diff>0?'text-green-400':(r.diff<0?'text-red-400':'text-slate-500')}">${r.diff>0?'+'+r.diff:r.diff}</div>
-                    <div class="w-10 text-center font-black ${textAccent} text-base">${r.pts}</div>
-                </div>`;
-            }).join('');
-
-            // RENDU MATCHS (CARTES)
-            let matchRows = matches.map((m) => {
-                let isPlayed = m.s1 > 0 || m.s2 > 0 || m.locked;
-                let isGhost = m.t1.toLowerCase().includes('meilleur') || m.t1.toLowerCase().includes(' des ');
-                
-                return `<div class="match-card ${catColorClass} rounded-xl p-3 mb-3 shadow-md flex flex-col relative overflow-hidden ${isGhost?'opacity-40':''}">
-                    <div class="absolute top-0 right-0 bg-slate-900/80 px-2 py-0.5 rounded-bl-lg text-[8px] font-black uppercase text-slate-500">${m.terrain}</div>
-                    <div class="flex justify-between items-center mt-2">
-                        <div class="flex-1 font-bold text-xs sm:text-sm text-slate-300 truncate pr-2 text-right">${m.t2}</div>
-                        <div class="bg-black/50 px-3 py-1.5 rounded-lg border ${isPlayed ? 'border-amber-500/50 text-white' : 'border-slate-700/50 text-slate-600'} font-black text-lg min-w-[70px] text-center tracking-wider">${m.s2} - ${m.s1}</div>
-                        <div class="flex-1 font-bold text-xs sm:text-sm text-slate-300 truncate pl-2 text-left">${m.t1}</div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            html += `
-            <div class="mb-10 animate-fade-in">
-                <div class="flex items-center gap-3 mb-3">
-                    <h2 class="text-2xl font-black italic uppercase text-white tracking-tighter">Poule ${pLetter}</h2>
-                    <div class="h-px flex-1 bg-slate-700"></div>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-                    <div class="glass-panel p-4 rounded-3xl shadow-lg">
-                        <div class="flex text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-700 pb-2 mb-2">
-                            <div class="w-6 text-center">#</div><div class="flex-1 px-2">Équipe</div><div class="w-12 text-center">Diff</div><div class="w-10 text-center">Pts</div>
-                        </div>
-                        ${classRows}
-                    </div>
-                    
-                    <div class="bg-slate-800/20 p-2 rounded-3xl border border-slate-700/30 max-h-[400px] overflow-y-auto">
-                        ${matchRows}
-                    </div>
+            return `<div class="match-card ${catColorClass} rounded-xl p-3 mb-3 shadow-md flex flex-col relative overflow-hidden ${isGhost?'opacity-40':''}">
+                <div class="absolute top-0 right-0 bg-slate-900/80 px-2 py-0.5 rounded-bl-lg text-[8px] font-black uppercase text-slate-500">${m.terrain}</div>
+                <div class="flex justify-between items-center mt-2">
+                    <div class="flex-1 font-bold text-xs sm:text-sm text-slate-300 truncate pr-2 text-right">${m.t2}</div>
+                    <div class="bg-black/50 px-3 py-1.5 rounded-lg border ${isPlayed ? 'border-amber-500/50 text-white' : 'border-slate-700/50 text-slate-600'} font-black text-lg min-w-[70px] text-center tracking-wider">${m.s2} - ${m.s1}</div>
+                    <div class="flex-1 font-bold text-xs sm:text-sm text-slate-300 truncate pl-2 text-left">${m.t1}</div>
                 </div>
             </div>`;
-        });
-        document.getElementById('poules-container').innerHTML = html;
+        }).join('');
+
+        document.getElementById('poules-container').innerHTML = `
+        <div class="animate-fade-in pb-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div class="glass-panel p-4 rounded-3xl shadow-lg">
+                    <div class="flex text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-700 pb-2 mb-2">
+                        <div class="w-6 text-center">#</div><div class="flex-1 px-2">Équipe</div><div class="w-12 text-center">Diff</div><div class="w-10 text-center">Pts</div>
+                    </div>
+                    ${classRows}
+                </div>
+                
+                <div class="bg-slate-800/20 p-2 rounded-3xl border border-slate-700/30 max-h-[60vh] overflow-y-auto hide-scrollbar">
+                    ${matchRows}
+                </div>
+            </div>
+        </div>`;
     }
 
     function loadTrophy() {
@@ -268,11 +315,28 @@
         document.getElementById('trophy-container').innerHTML = `<div class="flex flex-col items-center justify-center py-20 opacity-50"><div class="text-4xl animate-bounce mb-4">🏆</div><span class="text-[10px] font-black uppercase tracking-widest">Préparation du Palmarès...</span></div>`;
         
         trophyRef.on('value', snap => {
-            if (!snap.exists()) { document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><span class="text-5xl block mb-4 opacity-50">🛡️</span><p class="font-black text-lg uppercase tracking-widest">Palmarès en attente</p><p class="text-[10px] uppercase opacity-60 mt-2">Le bouclier sera calculé à l'issue de la phase 2.</p></div>`; return; }
+            if (!snap.exists()) { 
+                document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><span class="text-5xl block mb-4 opacity-50">🛡️</span><p class="font-black text-lg uppercase tracking-widest">Palmarès en attente</p><p class="text-[10px] uppercase opacity-60 mt-2">Le bouclier sera calculé à l'issue de la phase 2.</p></div>`; 
+                return; 
+            }
             
-            // FIX TECHNIQUE : Firebase peut renvoyer un Objet au lieu d'un Tableau. On force la conversion.
-            let rawData = snap.val();
-            let sortedList = Array.isArray(rawData) ? rawData : Object.values(rawData);
+            let data = snap.val();
+            let sortedList = [];
+            let isProvisional = false;
+
+            // Rétrocompatibilité et nouveau format
+            if (Array.isArray(data)) {
+                sortedList = data;
+            } else if (data.ranking) {
+                sortedList = Array.isArray(data.ranking) ? data.ranking : Object.values(data.ranking);
+                isProvisional = (data.status === 'provisoire');
+            }
+
+            if (sortedList.length === 0) return;
+
+            let badgeHtml = isProvisional 
+                ? `<div class="inline-block bg-indigo-900/50 border border-indigo-500 text-indigo-300 px-4 py-1.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest animate-pulse mb-6 shadow-[0_0_15px_rgba(99,102,241,0.3)]">⚠️ Classement Provisoire (Matchs en cours)</div>`
+                : `<div class="inline-block bg-green-900/50 border border-green-500 text-green-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 shadow-[0_0_15px_rgba(34,197,94,0.3)]">✅ Classement Définitif</div>`;
             
             let pHtml = '';
             if(sortedList[1]) pHtml += `<div class="flex flex-col items-center justify-end h-40"><div class="text-center font-bold text-[10px] sm:text-xs mb-2 text-slate-300 truncate w-20 sm:w-28 uppercase">${sortedList[1].name}</div><div class="bg-slate-600 border border-slate-500 w-20 sm:w-28 h-3/4 rounded-t-2xl flex flex-col items-center pt-3 shadow-inner"><span class="text-2xl">🥈</span><span class="font-black text-sm sm:text-base mt-1 text-slate-300">${sortedList[1].pts}p</span></div></div>`;
@@ -291,6 +355,7 @@
             </div>`).join('');
             
             document.getElementById('trophy-container').innerHTML = `
+            <div class="text-center w-full">${badgeHtml}</div>
             <div class="glass-panel p-4 sm:p-8 rounded-[2.5rem] shadow-2xl mb-8">
                 <div class="flex justify-center items-end h-56 gap-2 mb-8">${pHtml}</div>
                 <div class="bg-slate-900/50 rounded-2xl p-2">${tbody}</div>
@@ -302,7 +367,7 @@
     function launchSecretDashboard() {
         if (!globalSettings.activeYear) return;
         isSecretActive = true;
-        document.body.style.overflow = 'hidden'; // Stop le scroll global
+        document.body.style.overflow = 'hidden'; 
         document.getElementById('secret-dashboard').classList.remove('hidden');
         loadSecretData();
     }
