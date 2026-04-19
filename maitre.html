@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T3N Master -retour basev43</title>
+    <title>T3N Master - V53 Absolute Pro</title>
     
     <link rel="manifest" href="manifest.json">
     <script>
@@ -24,7 +24,7 @@
         .scenario-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 12px; cursor: pointer; background: white; margin-bottom: 8px; transition: all 0.2s; }
         .scenario-card:hover { border-color: #cbd5e1; }
         .scenario-active { border-color: var(--primary-color) !important; background: #fffbeb !important; }
-        .forfait { opacity: 0.4; filter: grayscale(1); text-decoration: line-through; }
+        .forfait { opacity: 0.3; filter: grayscale(1); text-decoration: line-through; }
         .sas-overlay { backdrop-filter: blur(8px); background: rgba(15, 23, 42, 0.9); }
         .excel-table { border-collapse: collapse; width: 100%; text-align: center; font-size: 12px; }
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 8px; }
@@ -38,10 +38,10 @@
 <div id="sas-entree" class="fixed inset-0 z-[100] sas-overlay flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border-4" style="border-color: var(--primary-color);">
         <h2 class="text-3xl font-black italic mb-2 text-center uppercase">T3N <span style="color: var(--primary-color);">MASTER</span></h2>
-        <p class="text-[10px] text-center text-slate-400 font-bold uppercase mb-6 tracking-widest">Version Fiable & PWA</p>
+        <p class="text-[10px] text-center text-slate-400 font-bold uppercase mb-6 tracking-widest">Version Fiable & Architecte Intégral</p>
         <input type="text" id="sas-id" class="w-full bg-slate-100 p-4 rounded-xl font-black uppercase mb-4 outline-none border focus:border-amber-500" placeholder="ID DU TOURNOI (ex: T3N2026)">
         <input type="number" id="sas-pin" class="w-full bg-slate-100 p-4 rounded-xl font-black text-2xl tracking-widest text-center mb-6 outline-none border focus:border-amber-500" placeholder="CODE PIN (ex: 1234)">
-        <button onclick="validerSas()" class="w-full bg-slate-900 text-white p-5 rounded-xl font-black uppercase tracking-widest hover:bg-slate-800 transition-colors shadow-lg">Démarrer</button>
+        <button onclick="validerSas()" class="w-full bg-slate-900 text-white p-5 rounded-xl font-black uppercase tracking-widest hover:bg-slate-800 transition-colors shadow-lg">Démarrer Session</button>
     </div>
 </div>
 
@@ -50,20 +50,22 @@
         <div class="flex items-center gap-3">
             <img id="header-logo-club" class="h-10 w-auto hidden rounded">
             <h1 class="text-2xl font-black italic uppercase tracking-tighter" id="header-title">T3N MASTER</h1>
-            <img id="header-logo-year" class="h-10 w-auto hidden rounded">
         </div>
         <nav class="flex gap-2 bg-white/5 p-1.5 rounded-xl items-center">
             <button onclick="showTab('IMPORT')" id="tab-IMPORT" class="tab-btn active-tab">Import</button>
-            <button onclick="showTab('U6')" id="tab-U6" class="tab-btn">U6</button>
-            <button onclick="showTab('U8')" id="tab-U8" class="tab-btn">U8</button>
-            <button onclick="showTab('U10')" id="tab-U10" class="tab-btn">U10</button>
-            <button onclick="showTab('U12')" id="tab-U12" class="tab-btn">U12</button>
+            <button onclick="showTab('U6')" id="tab-U6" class="tab-btn">U6 (0)</button>
+            <button onclick="showTab('U8')" id="tab-U8" class="tab-btn">U8 (0)</button>
+            <button onclick="showTab('U10')" id="tab-U10" class="tab-btn">U10 (0)</button>
+            <button onclick="showTab('U12')" id="tab-U12" class="tab-btn">U12 (0)</button>
             <div class="w-px h-6 bg-slate-600 mx-2"></div>
             <button onclick="showTab('TROPHEE')" id="tab-TROPHEE" class="tab-btn text-amber-400">🏆 Trophée</button>
             <button onclick="showTab('MAINTENANCE')" id="tab-MAINTENANCE" class="tab-btn text-red-400">⚙️ Outils</button>
         </nav>
     </div>
-    <div id="save-indicator" class="text-[10px] font-bold text-green-400 opacity-0 transition-opacity tracking-widest uppercase">💾 Sync OK</div>
+    <div class="flex items-center gap-4">
+        <button onclick="simulateScores()" class="text-[9px] bg-indigo-600 text-white font-black uppercase px-3 py-1.5 rounded-lg hover:bg-indigo-500">Test Factice</button>
+        <span id="save-indicator" class="text-[10px] font-bold text-green-400 opacity-0 transition-opacity tracking-widest uppercase">💾 Sync OK</span>
+    </div>
 </header>
 
 <main class="p-6 max-w-[1800px] mx-auto no-print">
@@ -84,9 +86,9 @@
 
             <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
                 <h2 class="text-xl font-black uppercase italic mb-2 text-slate-800 border-b pb-2">2. Importation Sportive</h2>
-                <p class="text-[10px] font-bold text-slate-400 uppercase mb-4">Format Excel requis : Nom du Club | U6 | U8 | U10 | U12</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-4">Tolérant : Copiez "Nom Club U6 U8 U10 U12" (Espaces ou Tabulations)</p>
                 <textarea id="csv-input" rows="5" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Copiez les colonnes de votre Excel ici..."></textarea>
-                <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-xl font-black uppercase hover:bg-slate-800 shadow-md transition-all">Analyser et Importer les équipes</button>
+                <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-xl font-black uppercase hover:bg-slate-800 shadow-md transition-all">Analyser et Importer</button>
             </div>
         </div>
 
@@ -103,8 +105,18 @@
                     <p class="text-[10px] font-black text-slate-400 uppercase mb-6"><span id="active-cat-count" class="text-indigo-600 text-sm">0</span> équipes actives</p>
                     
                     <div id="architect-panel">
-                        <h3 class="text-[10px] font-black uppercase text-indigo-600 border-b pb-2 mb-4 tracking-widest">📐 Architecte Dynamique</h3>
-                        <div id="scenario-list" class="space-y-3 mb-4 max-h-[35vh] overflow-y-auto pr-2"></div>
+                        <h3 class="text-[10px] font-black uppercase text-indigo-600 border-b pb-2 mb-4 tracking-widest">📐 Architecte Auto</h3>
+                        <div id="scenario-list" class="space-y-2 mb-4 max-h-[30vh] overflow-y-auto pr-2"></div>
+                        
+                        <div class="mt-6 pt-4 border-t border-slate-100">
+                            <h3 class="text-[10px] font-black uppercase text-slate-500 mb-3 tracking-widest">🛠️ Mode Manuel</h3>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="addManualPoule(5)" class="bg-slate-100 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-slate-200 flex-1">+ P5</button>
+                                <button onclick="addManualPoule(4)" class="bg-slate-100 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-slate-200 flex-1">+ P4</button>
+                                <button onclick="addManualPoule(3)" class="bg-slate-100 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-slate-200 flex-1">+ P3</button>
+                                <button onclick="resetPoules()" class="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-red-100 w-full mt-1">Vider l'ossature</button>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="phase2-panel" class="hidden text-center space-y-4">
@@ -112,7 +124,7 @@
                             <p class="text-[10px] font-black text-indigo-800 uppercase mb-2">Péréquation Auto</p>
                             <p class="text-[9px] font-bold text-indigo-600">Génère les poules de l'après-midi en séparant les clubs étrangers et en triant par classement du matin.</p>
                         </div>
-                        <button onclick="generatePhase2()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase shadow-md hover:bg-indigo-700 transition-colors">Générer les poules AM</button>
+                        <button onclick="generatePhase2()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase shadow-md hover:bg-indigo-700 transition-colors">Générer Péréquation</button>
                     </div>
                     
                     <hr class="my-6 border-slate-100">
@@ -125,19 +137,19 @@
                 <div class="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
                     <nav class="flex gap-2">
                         <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-5 py-2.5 text-[10px] font-black uppercase rounded-xl active-tab shadow-sm">Matin (Brassage)</button>
-                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-5 py-2.5 text-[10px] font-black uppercase rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100">A-Midi (Classement)</button>
+                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-5 py-2.5 text-[10px] font-black uppercase rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 border">A-Midi (Classement)</button>
                     </nav>
                     <div class="flex gap-2 px-2">
-                        <button onclick="imprimerPouleActive()" class="bg-slate-800 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md hover:bg-slate-900 flex items-center gap-2">🖨️ <span class="hidden sm:inline">Imprimer la poule</span></button>
+                        <button onclick="imprimerPouleActive()" class="bg-slate-800 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase shadow-md hover:bg-slate-900 flex items-center gap-2">🖨️ <span class="hidden sm:inline">Imprimer Poule</span></button>
                     </div>
                 </div>
 
                 <div id="validation-zone" class="hidden bg-amber-50 border border-amber-300 p-6 rounded-3xl flex justify-between items-center shadow-sm">
                     <div>
-                        <p class="font-black text-amber-900 uppercase text-xs">Ajustez l'ossature par glisser-déposer</p>
-                        <p class="text-[10px] text-amber-700 mt-1 font-bold">Une fois les poules complètes, validez pour générer la grille des matchs.</p>
+                        <p class="font-black text-amber-900 uppercase text-xs">Saisie de l'ossature en cours</p>
+                        <p class="text-[10px] text-amber-700 mt-1 font-bold">Glissez les équipes. Une fois terminées, validez pour générer la grille des matchs.</p>
                     </div>
-                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase shadow-md hover:bg-amber-400">Valider</button>
+                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase shadow-md hover:bg-amber-400">Valider Format</button>
                 </div>
 
                 <div id="poule-tabs" class="hidden flex gap-2 overflow-x-auto bg-slate-200/50 p-2 rounded-xl"></div>
@@ -146,9 +158,9 @@
                 <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-3xl shadow-xl flex justify-between items-center border-b-4 border-amber-500">
                     <div>
                         <p class="text-amber-500 font-black uppercase italic text-sm">Déploiement Live Terrain</p>
-                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Envoie les matchs et scores actuels vers la base de données des arbitres.</p>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Envoie les matchs et scores actuels vers la base des arbitres.</p>
                     </div>
-                    <button onclick="deployCategory()" class="bg-amber-500 text-black px-8 py-4 rounded-xl font-black uppercase shadow-lg hover:bg-amber-400 transition-colors">Mettre à jour le Direct</button>
+                    <button onclick="deployCategory()" class="bg-amber-500 text-black px-8 py-4 rounded-xl font-black uppercase shadow-lg hover:bg-amber-400 transition-colors">Diffuser le Direct</button>
                 </div>
             </div>
         </div>
@@ -197,20 +209,21 @@
                     </div>
                 </div>
 
-                <div class="bg-red-50 p-6 rounded-2xl border-2 border-red-200 space-y-4 shadow-inner">
-                    <h3 class="font-black uppercase text-xs text-red-600 tracking-widest mb-2 border-b border-red-200 pb-2">💣 Danger Zone</h3>
-                    <p class="text-[10px] text-red-800 font-bold mb-4">La réinitialisation efface l'intégralité du tournoi (Clubs, Poules, Scores) de cet ordinateur.</p>
-                    <button onclick="resetGeneral()" class="w-full py-4 bg-red-600 text-white rounded-xl text-[11px] font-black uppercase shadow-md hover:bg-red-700 transition-colors">RESET GÉNÉRAL DU TOURNOI</button>
+                <div class="bg-red-50 p-6 rounded-2xl border-2 border-red-200 space-y-4 shadow-inner flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-black uppercase text-xs text-red-600 tracking-widest mb-2 border-b border-red-200 pb-2">💣 Danger Zone</h3>
+                        <p class="text-[10px] text-red-800 font-bold mb-4">La réinitialisation efface l'intégralité du tournoi (Clubs, Poules, Scores) de cet ordinateur.</p>
+                    </div>
+                    <button onclick="resetGeneral()" class="w-full py-4 bg-red-600 text-white rounded-xl text-[11px] font-black uppercase shadow-md hover:bg-red-700 transition-colors mt-auto">RESET GÉNÉRAL DU TOURNOI</button>
                 </div>
             </div>
         </div>
     </section>
-
 </main>
 
 <script>
     // --- VARIABLES ET CONFIGURATION ---
-    var STORAGE_KEY = 't3n_master_pro_v43_fiable';
+    var STORAGE_KEY = 't3n_master_pro_v53_architect';
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
         4: [{a:1,b:3,arb:4},{a:2,b:4,arb:1},{a:3,b:4,arb:2},{a:1,b:2,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
@@ -257,13 +270,24 @@
         document.getElementById('cfg-tournoi-name').value = appState.branding.name;
         document.getElementById('cfg-theme-color').value = appState.branding.color;
         updateBranding(true);
-        if(appState.masterData.length) renderMasterTable();
+        if(appState.masterData.length) { renderMasterTable(); updateTabCounts(); }
         showTab('IMPORT');
     }
 
     function saveState() { 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); 
         var ind = document.getElementById('save-indicator'); if(ind) { ind.classList.remove('opacity-0'); setTimeout(()=>ind.classList.add('opacity-0'), 1500); }
+    }
+
+    function updateTabCounts() {
+        ['U6', 'U8', 'U10', 'U12'].forEach(cat => {
+            var ph = appState.cats[cat].phase1;
+            var count = 0;
+            ph.reserve.forEach(t => { if(!t.isForfait) count++; });
+            ph.poules.forEach(p => p.teams.forEach(t => { if(t && !t.isForfait) count++; }));
+            var btn = document.getElementById('tab-'+cat);
+            if(btn) btn.innerText = `${cat} (${count})`;
+        });
     }
 
     // --- BRANDING ---
@@ -274,7 +298,6 @@
         document.getElementById('main-header').style.borderBottomColor = appState.branding.color;
         document.getElementById('header-title').innerText = appState.branding.name;
         if (appState.branding.logoClub) { document.getElementById('header-logo-club').src = appState.branding.logoClub; document.getElementById('header-logo-club').classList.remove('hidden'); }
-        if (appState.branding.logoYear) { document.getElementById('header-logo-year').src = appState.branding.logoYear; document.getElementById('header-logo-year').classList.remove('hidden'); }
         if (!isInit) saveState();
     }
 
@@ -282,17 +305,14 @@
         var file = input.files[0]; if (!file) return;
         var reader = new FileReader();
         reader.onload = function(e) {
-            var img = new Image();
-            img.onload = function() {
+            var img = new Image(); img.onload = function() {
                 var canvas = document.createElement('canvas'); var ctx = canvas.getContext('2d');
                 var max = 200; var w = img.width; var h = img.height;
                 if (w > h) { if (w > max) { h *= max / w; w = max; } } else { if (h > max) { w *= max / h; h = max; } }
                 canvas.width = w; canvas.height = h; ctx.drawImage(img, 0, 0, w, h);
                 appState.branding[key] = canvas.toDataURL('image/png', 0.7); updateBranding();
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+            }; img.src = e.target.result;
+        }; reader.readAsDataURL(file);
     }
 
     // --- IMPORTATION EXCEL ---
@@ -302,22 +322,31 @@
         appState.masterData = [];
         
         lines.forEach((l, i) => {
-            var line = l.trim(); 
+            var line = l.trim().replace(/\t/g, ' '); 
             if(!line || line.toLowerCase().includes('club') || line.toLowerCase().includes('nom')) return; 
             
             var parts = line.split(/\s+/);
-            if(parts.length >= 5) {
-                var u12 = parseInt(parts.pop()) || 0;
-                var u10 = parseInt(parts.pop()) || 0;
-                var u8 = parseInt(parts.pop()) || 0;
-                var u6 = parseInt(parts.pop()) || 0;
+            if(parts.length >= 2) {
+                var nums = [];
+                // Extraction intelligente des nombres en partant de la fin
+                while(parts.length > 0 && !isNaN(parts[parts.length-1])) {
+                    nums.unshift(parseInt(parts.pop()));
+                }
+                
                 var name = parts.join(' ');
                 var isForeign = /zug|frankfurt|riedberg|heidelberg|neuenheim|crig|berlin/i.test(name);
-                appState.masterData.push({ id:'club_'+i, name: name, foreign: isForeign, u6:u6, u8:u8, u10:u10, u12:u12 });
+                
+                // Alignement U6, U8, U10, U12 (gauche à droite dans les chiffres donnés)
+                var u6 = nums.length > 0 ? nums[0] : 0;
+                var u8 = nums.length > 1 ? nums[1] : 0;
+                var u10 = nums.length > 2 ? nums[2] : 0;
+                var u12 = nums.length > 3 ? nums[3] : 0;
+                
+                if(name) appState.masterData.push({ id:'club_'+i, name: name, foreign: isForeign, u6:u6, u8:u8, u10:u10, u12:u12 });
             }
         });
-        syncTeamsWithMaster(); saveState(); renderMasterTable();
-        alert("Importation réussie !");
+        syncTeamsWithMaster(); saveState(); renderMasterTable(); updateTabCounts();
+        alert("Analyse et Importation terminées !");
     }
 
     function syncTeamsWithMaster() {
@@ -333,8 +362,8 @@
     }
 
     function renderMasterTable() {
-        document.getElementById('master-thead').innerHTML = `<tr><th class="p-3">Club</th><th class="text-center">Étranger</th><th class="text-center">U6</th><th class="text-center">U8</th><th class="text-center">U10</th><th class="text-center">U12</th></tr>`;
-        document.getElementById('master-tbody').innerHTML = appState.masterData.map((c, i) => `<tr><td class="p-3 font-bold uppercase text-xs text-slate-800">${c.name}</td><td class="text-center"><input type="checkbox" ${c.foreign?'checked':''} onchange="appState.masterData[${i}].foreign=this.checked;saveState();syncTeamsWithMaster();"></td><td class="text-center font-bold text-indigo-600">${c.u6}</td><td class="text-center font-bold text-indigo-600">${c.u8}</td><td class="text-center font-bold text-indigo-600">${c.u10}</td><td class="text-center font-bold text-indigo-600">${c.u12}</td></tr>`).join('');
+        document.getElementById('master-thead').innerHTML = `<tr><th class="p-3">Club</th><th class="text-center">Étranger</th><th class="text-center text-indigo-600">U6</th><th class="text-center text-indigo-600">U8</th><th class="text-center text-indigo-600">U10</th><th class="text-center text-indigo-600">U12</th></tr>`;
+        document.getElementById('master-tbody').innerHTML = appState.masterData.map((c, i) => `<tr><td class="p-3 font-bold uppercase text-xs text-slate-800">${c.name}</td><td class="text-center"><input type="checkbox" ${c.foreign?'checked':''} onchange="appState.masterData[${i}].foreign=this.checked;saveState();syncTeamsWithMaster();updateTabCounts();"></td><td class="text-center font-bold">${c.u6}</td><td class="text-center font-bold">${c.u8}</td><td class="text-center font-bold">${c.u10}</td><td class="text-center font-bold">${c.u12}</td></tr>`).join('');
         document.getElementById('master-table-container').classList.remove('hidden');
     }
 
@@ -366,110 +395,120 @@
 
     function initCategoryUI() {
         document.getElementById('active-cat-title').innerText = "Catégorie " + appState.activeCat; 
-        var catData = appState.cats[appState.activeCat];
-        var phData = catData[appState.currentPhase.toLowerCase()];
+        var phKey = appState.currentPhase.toLowerCase();
+        var phData = appState.cats[appState.activeCat][phKey];
         
-        if(appState.currentPhase === 'PHASE1') {
-            document.getElementById('architect-panel').classList.remove('hidden');
-            document.getElementById('phase2-panel').classList.add('hidden');
-            renderArchitect(phData);
-        } else {
-            document.getElementById('architect-panel').classList.add('hidden');
-            document.getElementById('phase2-panel').classList.remove('hidden');
-        }
+        renderArchitect(phData, phKey);
         renderBoard(phData); 
         renderReserve();
     }
 
-    // --- ARCHITECTE DYNAMIQUE ---
+    // --- ARCHITECTE DYNAMIQUE & MANUEL ---
     function generatePlans(total) {
         var plans = [];
         if (total < 6) return plans;
         
-        // Plan optimal (Priorité aux poules de 4)
-        var p4 = Math.floor(total / 4);
-        var rem = total % 4;
-        var p3 = 0, p5 = 0;
+        // 1. Opti (Poules 4)
+        var p4 = Math.floor(total / 4); var rem = total % 4; var p3 = 0, p5 = 0;
+        if (rem === 1) { p4 -= 2; p3 = 3; } else if (rem === 2) { p4 -= 1; p3 = 2; } else if (rem === 3) { p3 = 1; }
+        if (p4 >= 0) plans.push({ id: 'optimal', title: "Optimal (Équilibré)", p4: p4, p3: p3, p5: 0 });
         
-        if (rem === 1) { p4 -= 2; p3 = 3; }
-        else if (rem === 2) { p4 -= 1; p3 = 2; }
-        else if (rem === 3) { p3 = 1; }
+        // 2. Grandes poules (Poules 5)
+        if(total >= 10) {
+            var p5_a = Math.floor(total/5); var rem5 = total % 5; var p4_a = 0;
+            if(rem5 === 4) p4_a = 1; else if(rem5 === 3) { p5_a -= 1; p4_a = 2; } else if(rem5 === 2) { p5_a -= 2; p4_a = 3; } else if(rem5 === 1) { p5_a -= 3; p4_a = 4; }
+            if(p5_a >= 0 && (p5_a !== p5 || p4_a !== p4)) plans.push({ id: 'large', title: "Grandes Poules (P5/P4)", p5: p5_a, p4: p4_a, p3: 0 });
+        }
         
-        if (p4 >= 0) plans.push({ id: 1, title: "Optimal", p4: p4, p3: p3, p5: 0 });
-        
-        // Plan alternatif (Priorité aux poules de 5 si beaucoup d'équipes, ou tout 3)
-        if (total >= 10 && total % 5 === 0) {
-            plans.push({ id: 2, title: "Grandes Poules", p4: 0, p3: 0, p5: total/5 });
-        } else if (total % 3 === 0) {
-            plans.push({ id: 2, title: "Poules Rapides", p4: 0, p3: total/3, p5: 0 });
+        // 3. Rapide (Poules 3)
+        if(total >= 9) {
+            var p3_s = Math.floor(total/3); var rem3 = total % 3; var p4_s = 0;
+            if(rem3 === 1) { p3_s -= 1; p4_s = 1; } else if(rem3 === 2) { p3_s -= 2; p4_s = 2; }
+            if(p3_s >= 0 && (p3_s !== p3 || p4_s !== p4)) plans.push({ id: 'fast', title: "Format Rapide (P3 max)", p3: p3_s, p4: p4_s, p5: 0 });
         }
         return plans;
     }
 
-    function renderArchitect(phase) {
-        var teams = getActiveTeams(phase);
-        var total = teams.length;
+    function renderArchitect(phaseObj, phaseKey) {
+        var list = document.getElementById('scenario-list'); list.innerHTML = "";
+        
+        // On calcule toujours sur la base des équipes actives du Matin
+        var teamsP1 = getActiveTeams(appState.cats[appState.activeCat].phase1);
+        var total = teamsP1.length;
+        
         document.getElementById('active-cat-count').innerText = total;
         
-        var list = document.getElementById('scenario-list'); list.innerHTML = "";
         if(total < 6) {
-            list.innerHTML = `<p class="text-[10px] text-red-500 font-bold p-3 text-center border border-red-200 rounded-xl bg-red-50 uppercase">Minimum 6 équipes requises.</p>`;
-            return;
+            list.innerHTML = `<p class="text-[10px] text-red-500 font-bold p-3 text-center border border-red-200 rounded-xl bg-red-50 uppercase tracking-widest">Minimum 6 équipes</p>`;
+        } else {
+            var plans = generatePlans(total);
+            plans.forEach(plan => {
+                var str = [];
+                if(plan.p5) str.push(`${plan.p5} Poule(s) de 5`);
+                if(plan.p4) str.push(`${plan.p4} Poule(s) de 4`);
+                if(plan.p3) str.push(`${plan.p3} Poule(s) de 3`);
+                var formatStr = str.join(' + ');
+
+                var div = document.createElement('div');
+                div.className = "scenario-card " + (phaseObj.formatStr === formatStr ? 'scenario-active shadow-sm':'');
+                div.innerHTML = `<p class="font-black text-[11px] uppercase text-slate-800">${plan.title}</p><p class="opacity-70 text-[9px] font-bold mt-1 text-indigo-600 tracking-widest">${formatStr}</p>`;
+                div.onclick = () => { applyPlan(plan, formatStr, teamsP1, phaseKey); };
+                list.appendChild(div);
+            });
         }
-
-        var plans = generatePlans(total);
-        plans.forEach(plan => {
-            var str = [];
-            if(plan.p5) str.push(`${plan.p5} Poule(s) de 5`);
-            if(plan.p4) str.push(`${plan.p4} Poule(s) de 4`);
-            if(plan.p3) str.push(`${plan.p3} Poule(s) de 3`);
-            var formatStr = str.join(' + ');
-
-            var div = document.createElement('div');
-            div.className = "scenario-card " + (phase.formatStr === formatStr ? 'scenario-active shadow-sm':'');
-            div.innerHTML = `<p class="font-black text-[11px] uppercase text-slate-800">${plan.title}</p><p class="opacity-70 text-[10px] font-bold mt-1 text-indigo-600">${formatStr}</p>`;
-            div.onclick = () => { applyPlan(plan, formatStr, teams); };
-            list.appendChild(div);
-        });
     }
 
-    function applyPlan(plan, formatStr, teams) {
-        var ph = getActivePhase(); 
-        var p2 = appState.cats[appState.activeCat].phase2;
+    function applyPlan(plan, formatStr, teams, phaseKey) {
+        var ph = appState.cats[appState.activeCat][phaseKey];
+        ph.formatStr = formatStr; ph.poules = []; ph.validated = false;
         
-        ph.formatStr = formatStr; ph.poules = []; ph.reserve = []; ph.validated = false;
+        if(phaseKey === 'phase1') ph.reserve = [...teams];
+        else ph.reserve = [];
         
-        var addPoules = (n, target, dest) => { for(var i=0; i<n; i++) dest.poules.push({ letter: String.fromCharCode(65+dest.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {} }); };
+        var addPoules = (n, target) => { for(var i=0; i<n; i++) ph.poules.push({ letter: String.fromCharCode(65+ph.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {} }); };
         
-        if(plan.p5) addPoules(plan.p5, 5, ph); 
-        if(plan.p4) addPoules(plan.p4, 4, ph); 
-        if(plan.p3) addPoules(plan.p3, 3, ph);
+        if(plan.p5) addPoules(plan.p5, 5); 
+        if(plan.p4) addPoules(plan.p4, 4); 
+        if(plan.p3) addPoules(plan.p3, 3);
         
-        var sorted = teams.sort((a,b) => a.level - b.level);
-        sorted.forEach(t => {
-            var bestPoule = ph.poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x=>x.club===t.club).length - b.teams.filter(x=>x.club===t.club).length) || (a.teams.length - b.teams.length))[0];
-            if(bestPoule) bestPoule.teams.push(t); else ph.reserve.push(t);
-        });
-
-        // Phase 2 Miroir
-        p2.poules = []; p2.validated = false;
-        if(plan.p5) addPoules(plan.p5, 5, p2); 
-        if(plan.p4) addPoules(plan.p4, 4, p2); 
-        if(plan.p3) addPoules(plan.p3, 3, p2);
-        
-        var tIdx = 0; 
-        p2.poules.forEach(p => { for(var i=0; i<p.target; i++) p.teams.push({ id:'ghost_'+(++tIdx), name: 'Place '+tIdx, isDummy: true }); });
+        if(phaseKey === 'phase1') {
+            var sorted = teams.sort((a,b) => a.level - b.level);
+            ph.reserve = [];
+            sorted.forEach(t => {
+                var bestPoule = ph.poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x=>x.club===t.club).length - b.teams.filter(x=>x.club===t.club).length) || (a.teams.length - b.teams.length))[0];
+                if(bestPoule) bestPoule.teams.push(t); else ph.reserve.push(t);
+            });
+        } else {
+            // Création des poules fantômes pour Phase 2
+            var tIdx = 0;
+            ph.poules.forEach(p => { for(var i=0; i<p.target; i++) p.teams.push({ id:'ghost_'+(++tIdx), name: 'Place '+tIdx, isDummy: true }); });
+        }
         
         saveState(); initCategoryUI();
     }
 
-    // --- DRAG & DROP ET GESTION DES FORFAITS ---
-    function toggleForfait(tId) {
+    function addManualPoule(size) {
         var ph = getActivePhase();
-        var teamFound = null;
-        ph.reserve.forEach(t => { if(t.id === tId) teamFound = t; });
-        ph.poules.forEach(p => { p.teams.forEach(t => { if(t && t.id === tId) teamFound = t; }); });
-        if (teamFound) { teamFound.isForfait = !teamFound.isForfait; saveState(); initCategoryUI(); }
+        ph.poules.push({ letter: String.fromCharCode(65+ph.poules.length), target: size, tUsed: size>=5?2:1, teams: [], scores: {} });
+        ph.formatStr = "Manuel";
+        saveState(); initCategoryUI();
+    }
+
+    function resetPoules() {
+        if(!confirm("Réinitialiser l'ossature actuelle ?")) return;
+        var ph = getActivePhase();
+        ph.poules.forEach(p => { p.teams.forEach(t => { if(!t.isDummy) ph.reserve.push(t); }); });
+        ph.poules = []; ph.formatStr = null; ph.validated = false;
+        saveState(); initCategoryUI();
+    }
+
+    // --- DRAG & DROP ET FORFAITS ---
+    function toggleForfait(tId) {
+        var ph = appState.cats[appState.activeCat].phase1; // Forfait is global Phase 1 property
+        var found = null;
+        ph.reserve.forEach(t => { if(t.id === tId) found = t; });
+        ph.poules.forEach(p => { p.teams.forEach(t => { if(t && t.id === tId) found = t; }); });
+        if (found) { found.isForfait = !found.isForfait; saveState(); updateTabCounts(); initCategoryUI(); }
     }
 
     function allowDrop(e) { e.preventDefault(); }
@@ -492,8 +531,9 @@
         if(zone) {
             zone.innerHTML = r.map((t, i) => {
                 var isForfait = t.isForfait ? 'forfait' : '';
-                return `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold cursor-move shadow-sm hover:border-indigo-300 transition-colors relative pr-8 ${isForfait}">${t.name}<button onclick="toggleForfait('${t.id}')" class="absolute top-1 right-1 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-[8px] hover:bg-red-500 hover:text-white transition-colors">🚫</button></div>`;
-            }).join('')||'<p class="text-center opacity-30 text-[10px] py-4 w-full uppercase font-bold tracking-widest">Zone de réserve vide</p>'; 
+                var btn = !t.isDummy ? `<button onclick="toggleForfait('${t.id}')" class="absolute top-1 right-1 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-[8px] hover:bg-red-500 hover:text-white transition-colors">🚫</button>` : '';
+                return `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold cursor-move shadow-sm hover:border-indigo-300 transition-colors relative pr-8 ${isForfait}">${t.name}${btn}</div>`;
+            }).join('')||'<p class="text-center opacity-30 text-[10px] py-4 w-full uppercase font-bold tracking-widest">Zone vide</p>'; 
         }
     }
 
@@ -515,7 +555,8 @@
                     <div class="space-y-1.5 min-h-[60px]">
                         ${p.teams.map((t, tIdx) => {
                             var isForfait = t.isForfait ? 'forfait' : '';
-                            return `<div draggable="true" ondragstart="dragFromPoule(event, ${pIdx}, ${tIdx})" class="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold cursor-move shadow-sm flex justify-between relative pr-8 ${isForfait}"><span class="truncate">${t.name}</span><button onclick="toggleForfait('${t.id}')" class="absolute top-1 right-1 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-[8px] hover:bg-red-500 hover:text-white transition-colors">🚫</button></div>`;
+                            var btn = !t.isDummy ? `<button onclick="toggleForfait('${t.id}')" class="absolute top-1 right-1 w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-[8px] hover:bg-red-500 hover:text-white transition-colors">🚫</button>` : '';
+                            return `<div draggable="true" ondragstart="dragFromPoule(event, ${pIdx}, ${tIdx})" class="p-2 bg-white border border-slate-200 rounded-xl text-[10px] font-bold cursor-move shadow-sm flex justify-between relative pr-8 ${isForfait}"><span class="truncate">${t.name}</span>${btn}</div>`;
                         }).join('')}
                     </div>
                 </div>
@@ -560,7 +601,7 @@
 
     function validateFormat() { getActivePhase().validated = true; saveState(); renderBoard(getActivePhase()); }
 
-    // --- PÉRÉQUATION PHASE 2 ---
+    // --- PÉRÉQUATION PHASE 2 & SCORES ---
     function generatePhase2() {
         var cat = appState.cats[appState.activeCat]; var p1 = cat.phase1; var p2 = cat.phase2; 
         if(!p1.validated) return alert("Validation de la phase du matin requise.");
@@ -571,16 +612,34 @@
             ranks.forEach((r, idx) => { if(r.ogTeam && !r.ogTeam.isDummy && !r.ogTeam.isForfait) all.push({ ...r.ogTeam, rank: idx+1, pts: r.pts, diff: r.diff }); }); 
         });
         
-        // Tri : Rang > Points > Diff > Étranger
         all.sort((a,b) => a.rank - b.rank || b.pts - a.pts || b.diff - a.diff || (b.foreign?1:0)-(a.foreign?1:0));
         
-        var tIdx = 0; 
-        p2.poules.forEach(p => { p.teams = []; for(var i=0; i<p.target; i++) { if(all[tIdx]) p.teams.push(all[tIdx++]); } });
+        if(p2.poules.length > 0) {
+            var tIdx = 0; 
+            p2.poules.forEach(p => { p.teams = []; for(var i=0; i<p.target; i++) { if(all[tIdx]) p.teams.push(all[tIdx++]); } });
+        } else {
+            p2.formatStr = p1.formatStr; p2.poules = [];
+            p1.poules.forEach(p => { p2.poules.push({ letter: p.letter, target: p.target, tUsed: p.tUsed, teams: [], scores: {} }); });
+            var tIdx = 0; 
+            p2.poules.forEach(p => { for(var i=0; i<p.target; i++) { if(all[tIdx]) p.teams.push(all[tIdx++]); } });
+        }
         
-        appState.currentPhase = 'PHASE2'; saveState(); initCategoryUI();
+        appState.currentPhase = 'PHASE2'; saveState(); switchCatPhase('PHASE2');
     }
 
-    // --- CALCULS (CLASSEMENT ET SCORES) ---
+    function simulateScores() {
+        var ph = getActivePhase();
+        if(!ph.validated) return alert("Validez le format d'abord.");
+        ph.poules.forEach(p => {
+            MATRICES[p.target].forEach((m, idx) => {
+                if (!p.scores[idx]) p.scores[idx] = {};
+                p.scores[idx].s1 = Math.floor(Math.random() * 4);
+                p.scores[idx].s2 = Math.floor(Math.random() * 4);
+            });
+        });
+        saveState(); renderBoard(ph);
+    }
+
     function getActiveTeams(ph) { 
         var t = []; 
         ph.reserve.forEach(x => { if(!x.isForfait) t.push(x); }); 
@@ -589,7 +648,7 @@
     }
     
     function computeRanking(p) {
-        var s = p.teams.map((t, idx) => ({ id: idx, ogTeam: t, name: t?.name||'?', pts: 0, diff: 0 }));
+        var s = p.teams.map((t, idx) => ({ id: idx, ogTeam: t, name: t?.name||'?', pts: 0, diff: 0, foreign: t?.foreign }));
         Object.keys(p.scores).forEach(mi => {
             var sc = p.scores[mi]; if(sc.s1==='' || sc.s2==='') return; var m = MATRICES[p.target][mi]; if(!m) return;
             var s1 = parseInt(sc.s1), s2 = parseInt(sc.s2); var tA = s[m.a-1], tB = s[m.b-1];
@@ -626,7 +685,7 @@
         db.ref().update(ups).then(() => alert("✅ Direct mis à jour sur les terrains !"));
     }
 
-    // --- TROPHEE ---
+    // --- TROPHEE ET EXCEL ---
     function computeTrophy() {
         var cs = {}; appState.masterData.forEach(c => cs[c.name] = { name: c.name, U6: 99, U8: 99, U10: 99, U12: 99, pts: 0 });
         ['U6', 'U8', 'U10', 'U12'].forEach(cat => { 
@@ -644,7 +703,6 @@
         document.getElementById('trophy-tbody').innerHTML = sorted.map((c,i) => `<tr><td class="font-black text-center">${i+1}</td><td class="text-left font-bold px-4 uppercase text-xs">${c.name}</td><td class="text-center text-slate-400">${c.U6===99?'-':c.U6}</td><td class="text-center text-slate-400">${c.U8===99?'-':c.U8}</td><td class="text-center text-slate-400">${c.U10===99?'-':c.U10}</td><td class="text-center text-slate-400">${c.U12===99?'-':c.U12}</td><td class="font-black text-amber-600 text-lg text-center">${c.pts}</td></tr>`).join('');
     }
 
-    // --- IMPRESSION EXCEL PRO ---
     function imprimerPouleActive() {
         var cat = appState.activeCat; var ph = getActivePhase(); var pIdx = ph.poules.findIndex(x => x.letter === appState.activePouleTab); var p = ph.poules[pIdx]; if(!p) return;
         var currentT = 1; ph.poules.slice(0, pIdx).forEach(prev => currentT += prev.tUsed);
@@ -658,7 +716,7 @@
         if(!confirm("Confirmer la purge " + type + " pour " + cat + " ?")) return;
         if(type === 'scores') { appState.cats[cat].phase1.poules.forEach(p => p.scores = {}); appState.cats[cat].phase2.poules.forEach(p => p.scores = {}); } 
         else { appState.cats[cat] = initCatState(); }
-        saveState(); location.reload();
+        saveState(); updateTabCounts(); location.reload();
     }
 
     function resetGeneral() {
@@ -668,9 +726,6 @@
         appState.cats = { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() };
         saveState(); location.reload();
     }
-
-    function exportJSON() { var blob = new Blob([JSON.stringify(appState)], {type: 'application/json'}); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `t3n_backup_${appState.tournoiId}.json`; a.click(); }
-    function importJSON(e) { var f = e.target.files[0]; if(!f) return; var r = new FileReader(); r.onload = (ex) => { appState = JSON.parse(ex.target.result); saveState(); location.reload(); }; r.readAsText(f); }
 </script>
 </body>
 </html>
