@@ -2,12 +2,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>T3N Master v43 - Pro & Multi-Tournois</title>
+    <title>T3N Master v44 - Édition Complète</title>
     <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno + "\n\nPrenez une photo.");
-            return false;
-        };
+        window.onerror = function(message, source, lineno, colno, error) { alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno); return false; };
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
@@ -29,64 +26,67 @@
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 6px 4px; }
         .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
         .excel-yellow { background-color: #fef08a; font-weight: 900; }
-        .excel-blue { background-color: #e0f2fe; }
+        
+        /* CSS D'IMPRESSION (Masque les menus, garde les tableaux) */
+        @media print { 
+            .no-print { display: none !important; } 
+            body { background: white !important; font-size: 10pt; }
+            .tab-content { display: block !important; }
+            .excel-table { border: 2px solid #000; width: 100%; }
+            .excel-table th, .excel-table td { border: 1px solid #000; padding: 4px; }
+            #match-board { margin: 0; padding: 0; border: none; box-shadow: none; }
+            .shadow-sm, .shadow-lg, .shadow-xl { box-shadow: none !important; }
+            .rounded-2xl, .rounded-[2.5rem], .rounded-[2rem] { border-radius: 0 !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen" onload="initApp()">
 
-<div id="sas-entree" class="fixed inset-0 z-[100] sas-overlay flex items-center justify-center p-4">
+<div id="sas-entree" class="fixed inset-0 z-[100] sas-overlay flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border-4" style="border-color: var(--primary-color);">
         <h2 class="text-3xl font-black uppercase italic mb-2">MASTER <span style="color: var(--primary-color);" class="text-4xl">LIVE</span></h2>
-        <p class="text-xs text-slate-400 font-bold uppercase mb-6 tracking-widest">Initialisation du tournoi</p>
-        
+        <p class="text-xs text-slate-400 font-bold uppercase mb-6 tracking-widest">Initialisation</p>
         <div class="space-y-4">
             <div>
-                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">ID Unique du Tournoi (ex: IDOR2026)</label>
-                <input type="text" id="sas-id" class="w-full bg-slate-100 p-4 rounded-2xl font-black uppercase outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);" placeholder="NOM_DU_TOURNOI">
+                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">ID Unique (ex: T3N2026)</label>
+                <input type="text" id="sas-id" class="w-full bg-slate-100 p-4 rounded-2xl font-black uppercase outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);">
             </div>
             <div>
-                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Code PIN Arbitres (4 chiffres)</label>
-                <input type="number" id="sas-pin" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-2xl tracking-[1rem] text-center outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);" placeholder="0000">
+                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Code PIN (4 chiffres)</label>
+                <input type="number" id="sas-pin" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-2xl tracking-[1rem] text-center outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);">
             </div>
-            <button onclick="validerSas()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase hover:bg-slate-800 shadow-xl transition-transform active:scale-95">Démarrer</button>
+            <button onclick="validerSas()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase hover:bg-slate-800">Démarrer</button>
         </div>
     </div>
 </div>
 
-<div id="qr-modal" class="fixed inset-0 z-[110] sas-overlay hidden flex-col items-center justify-center p-4">
+<div id="qr-modal" class="fixed inset-0 z-[110] sas-overlay hidden flex-col items-center justify-center p-4 no-print">
     <div class="bg-white rounded-[2rem] p-6 max-w-5xl w-full shadow-2xl flex flex-col max-h-[95vh]">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
             <h2 class="text-2xl font-black uppercase italic">📱 Centre de Partage</h2>
             <button onclick="document.getElementById('qr-modal').classList.add('hidden')" class="bg-slate-200 text-slate-800 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg font-black transition-colors">X FERMER</button>
         </div>
-        
         <div class="mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <label class="text-[10px] font-black uppercase text-slate-500 flex items-center gap-2">URL de votre site public (Firebase Hosting)</label>
-            <input type="text" id="cfg-base-url" onchange="appState.branding.baseUrl = this.value; saveState(); renderQRCodes();" class="w-full bg-white border border-slate-300 p-2 mt-1 rounded-lg font-bold text-sm outline-none" placeholder="https://votre-projet.web.app">
+            <label class="text-[10px] font-black uppercase text-slate-500 flex items-center gap-2">URL de votre site (ex: https://mon-nom.github.io/t3nations)</label>
+            <input type="text" id="cfg-base-url" onchange="appState.branding.baseUrl = this.value; saveState(); renderQRCodes();" class="w-full bg-white border border-slate-300 p-2 mt-1 rounded-lg font-bold text-sm outline-none">
         </div>
-
         <div class="overflow-y-auto flex-1 hide-scrollbar space-y-6 pr-2">
             <div>
-                <h3 class="font-black text-slate-800 uppercase mb-3 flex items-center gap-2">👨‍👩‍👧‍👦 Lien Public (Live)</h3>
+                <h3 class="font-black text-slate-800 uppercase mb-3">👨‍👩‍👧‍👦 Lien Public (Live)</h3>
                 <div class="bg-amber-50 p-4 rounded-2xl flex items-center gap-6 border border-amber-200">
                     <div id="qr-public" class="bg-white p-2 rounded-xl shadow-sm"></div>
-                    <div>
-                        <p class="text-xs font-bold text-slate-600 mb-1">Scannez pour suivre le classement en direct.</p>
-                        <a id="link-public" href="#" target="_blank" class="text-amber-600 font-black text-sm underline break-all"></a>
-                    </div>
+                    <div><p class="text-xs font-bold text-slate-600 mb-1">Scannez pour suivre les scores.</p><a id="link-public" href="#" target="_blank" class="text-amber-600 font-black text-sm underline break-all"></a></div>
                 </div>
             </div>
-
             <div>
-                <h3 class="font-black text-slate-800 uppercase mb-3 flex items-center gap-2">🏉 Liens Arbitres / Terrains</h3>
-                <p class="text-[10px] font-bold text-slate-400 uppercase mb-4">Ces liens contiennent la clé de sécurité. À flasher avec les téléphones des chefs de plateau.</p>
+                <h3 class="font-black text-slate-800 uppercase mb-3">🏉 Liens Arbitres (Sécurisés par code PIN)</h3>
                 <div id="qr-terrains" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4"></div>
             </div>
         </div>
     </div>
 </div>
 
-<header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 sticky top-0 z-50 transition-colors" id="main-header" style="border-bottom-color: var(--primary-color);">
+<header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 sticky top-0 z-50 no-print" id="main-header" style="border-bottom-color: var(--primary-color);">
     <div class="flex items-center gap-6">
         <div class="flex items-center gap-3">
             <img id="header-logo-club" class="h-10 w-auto hidden rounded bg-white p-0.5">
@@ -94,226 +94,187 @@
             <img id="header-logo-year" class="h-10 w-auto hidden rounded bg-white p-0.5">
         </div>
         <nav class="flex gap-1 bg-white/5 p-1 rounded-xl">
-            <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase active-tab" id="tab-IMPORT">Config & Import</button>
+            <button onclick="showTab('IMPORT')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase active-tab" id="tab-IMPORT">Import</button>
             <button onclick="showTab('U6')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U6">U6</button>
             <button onclick="showTab('U8')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U8">U8</button>
             <button onclick="showTab('U10')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U10">U10</button>
             <button onclick="showTab('U12')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase" id="tab-U12">U12</button>
             <button onclick="showTab('TROPHEE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-4 text-amber-300 border border-amber-500/30" id="tab-TROPHEE">🏆 Trophée</button>
             <button onclick="showTab('MAINTENANCE')" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-1 text-red-400 border border-red-500/20" id="tab-MAINTENANCE">Outils</button>
-            <button onclick="openQRModal()" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-2 text-white bg-indigo-600 border border-indigo-500 shadow-md hover:bg-indigo-500">📱 QR</button>
+            <button onclick="openQRModal()" class="tab-btn px-4 py-2 rounded-lg font-black text-[10px] uppercase ml-2 text-white bg-indigo-600">📱 QR</button>
         </nav>
     </div>
     <div class="flex gap-4 items-center">
-        <span id="sync-status" class="text-[9px] text-green-400 font-black uppercase tracking-widest animate-pulse hidden">● ID : <span id="display-id" class="text-white">---</span></span>
-        <div id="save-indicator" class="text-[10px] text-slate-400 font-bold italic transition-opacity duration-500 opacity-0">💾 Sauvegardé</div>
-        <button onclick="simulateScores()" class="text-[9px] bg-slate-700 text-white font-black uppercase px-3 py-1 rounded hover:bg-slate-600">Test Factice</button>
+        <span id="sync-status" class="text-[9px] text-green-400 font-black uppercase tracking-widest animate-pulse hidden">● ID: <span id="display-id" class="text-white">---</span></span>
+        <div id="save-indicator" class="text-[10px] text-slate-400 font-bold italic transition-opacity duration-500 opacity-0">💾 OK</div>
     </div>
 </header>
 
 <main class="p-6 max-w-[1900px] mx-auto">
     <section id="content-IMPORT" class="tab-content space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-                <h2 class="text-xl font-black uppercase italic mb-4">1. Personnalisation</h2>
-                <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400">Nom Public de l'événement</label>
-                            <input type="text" id="cfg-tournoi-name" onchange="updateBranding()" class="w-full bg-slate-50 p-3 rounded-xl border-none outline-none font-bold">
-                        </div>
-                        <div>
-                            <label class="text-[10px] font-black uppercase text-slate-400">Couleur du Thème</label>
-                            <select id="cfg-theme-color" onchange="updateBranding()" class="w-full bg-slate-50 p-3 rounded-xl border-none outline-none font-bold">
-                                <option value="#f59e0b">Ambre (T3N)</option>
-                                <option value="#2563eb">Bleu Royal</option>
-                                <option value="#dc2626">Rouge Sport</option>
-                                <option value="#059669">Vert Pelouse</option>
-                                <option value="#7c3aed">Violet Intense</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="border-2 border-dashed border-slate-200 p-4 rounded-2xl text-center bg-slate-50 hover:border-slate-400 transition-colors">
-                            <p class="text-[9px] font-black uppercase text-slate-500 mb-2">Logo 1 (Club/Comité)</p>
-                            <input type="file" id="img-logo-club" accept="image/png, image/jpeg" class="hidden" onchange="handleImage(this, 'logoClub')">
-                            <button onclick="document.getElementById('img-logo-club').click()" class="bg-white border border-slate-200 px-4 py-2 rounded-lg text-[10px] font-black uppercase shadow-sm">Choisir Image</button>
-                        </div>
-                        <div class="border-2 border-dashed border-slate-200 p-4 rounded-2xl text-center bg-slate-50 hover:border-slate-400 transition-colors">
-                            <p class="text-[9px] font-black uppercase text-slate-500 mb-2">Logo 2 (Année/Sponsor)</p>
-                            <input type="file" id="img-logo-year" accept="image/png, image/jpeg" class="hidden" onchange="handleImage(this, 'logoYear')">
-                            <button onclick="document.getElementById('img-logo-year').click()" class="bg-white border border-slate-200 px-4 py-2 rounded-lg text-[10px] font-black uppercase shadow-sm">Choisir Image</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-black uppercase italic">2. Import Sportif</h2>
-                    <label class="text-[10px] bg-slate-600 text-white px-3 py-1.5 rounded font-black uppercase hover:bg-slate-700 cursor-pointer">
-                        Restaurer JSON <input type="file" class="hidden" accept=".json" onchange="importJSON(event)">
-                    </label>
-                </div>
-                <textarea id="csv-input" rows="4" class="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-mono text-xs outline-none focus:border-amber-500" placeholder="Copiez les colonnes Excel (Nom Club | U6 | U8 | U10 | U12)"></textarea>
-                <button onclick="processMasterImport()" class="w-full mt-4 bg-slate-900 text-white p-4 rounded-2xl font-black uppercase hover:bg-slate-800 shadow-lg active:scale-95 transition-all">Générer les équipes</button>
+        <div class="flex justify-between items-center no-print">
+            <h2 class="text-2xl font-black uppercase italic">Paramètres & Clubs</h2>
+            <div class="flex gap-2">
+                <button onclick="exportClubsCSV()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-colors">📥 Export Excel Clubs</button>
+                <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-colors">🖨️ Imprimer Liste</button>
             </div>
         </div>
-
-        <div id="master-table-container" class="bg-white p-6 rounded-[2.5rem] border border-slate-200 hidden shadow-sm">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+                <div class="space-y-4">
+                    <div class="flex gap-4">
+                        <div class="flex-1"><label class="text-[10px] font-black uppercase text-slate-400">Nom du Tournoi</label><input type="text" id="cfg-tournoi-name" onchange="updateBranding()" class="w-full bg-slate-50 p-2 rounded-xl font-bold outline-none mt-1"></div>
+                        <div class="w-1/3"><label class="text-[10px] font-black uppercase text-slate-400">Couleur</label><input type="color" id="cfg-theme-color" onchange="updateBranding()" class="w-full h-10 rounded-xl cursor-pointer mt-1"></div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="flex-1 border-2 border-dashed border-slate-200 p-2 rounded-xl text-center hover:border-slate-400"><p class="text-[9px] font-black uppercase text-slate-500">Logo 1</p><input type="file" id="img-logo-club" accept="image/*" class="hidden" onchange="handleImage(this, 'logoClub')"><button onclick="document.getElementById('img-logo-club').click()" class="bg-white border text-[9px] px-2 py-1 rounded mt-1">Choisir</button></div>
+                        <div class="flex-1 border-2 border-dashed border-slate-200 p-2 rounded-xl text-center hover:border-slate-400"><p class="text-[9px] font-black uppercase text-slate-500">Logo 2</p><input type="file" id="img-logo-year" accept="image/*" class="hidden" onchange="handleImage(this, 'logoYear')"><button onclick="document.getElementById('img-logo-year').click()" class="bg-white border text-[9px] px-2 py-1 rounded mt-1">Choisir</button></div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200">
+                <textarea id="csv-input" rows="4" class="w-full bg-slate-50 border-2 rounded-xl p-3 font-mono text-xs outline-none" placeholder="Coller colonnes Excel : Club | U6 | U8 | U10 | U12"></textarea>
+                <button onclick="processMasterImport()" class="w-full mt-2 bg-slate-900 text-white py-3 rounded-xl font-black uppercase">Générer les équipes</button>
+            </div>
+        </div>
+        <div id="master-table-container" class="bg-white p-6 rounded-[2rem] border border-slate-200 hidden">
+            <h2 class="text-xl font-black uppercase mb-4 print-only hidden">LISTE DES CLUBS ENGAGÉS</h2>
             <table class="w-full text-left text-sm">
-                <thead id="master-thead" class="bg-slate-50 text-[10px] font-black uppercase opacity-60 text-slate-700"></thead>
+                <thead id="master-thead" class="bg-slate-50 text-[10px] font-black uppercase text-slate-700"></thead>
                 <tbody id="master-tbody" class="divide-y divide-slate-100 italic"></tbody>
             </table>
         </div>
     </section>
 
-    <section id="content-CAT" class="tab-content hidden">
+    <section id="content-CAT" class="tab-content hidden space-y-4">
+        <div class="flex justify-between items-center no-print bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+            <div class="flex items-center gap-4">
+                <h2 class="text-3xl font-black uppercase" id="active-cat-title">...</h2>
+                <nav class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-3 py-1.5 text-[10px] font-black uppercase rounded-lg active-tab">Matin</button>
+                    <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-3 py-1.5 text-[10px] font-black uppercase rounded-lg bg-white">Après-Midi</button>
+                </nav>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button onclick="exportCategoryExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-colors">📥 Excel Catégorie</button>
+                <button onclick="window.print()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase transition-colors">🖨️ Imprimer</button>
+                <div class="border-l pl-4 ml-2 text-right"><span class="text-[10px] font-bold opacity-40 uppercase">Terrains</span><br><span id="terrain-counter" class="text-xl font-black text-green-600">0</span></div>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            
-            <div class="xl:col-span-3 space-y-6">
-                <div class="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24">
-                    <h2 class="text-4xl font-black uppercase" id="active-cat-title">...</h2>
-                    <p class="text-[10px] font-black opacity-40 uppercase mb-4"><span id="active-cat-count">0</span> équipes actives détectées</p>
+            <div class="xl:col-span-3 space-y-6 no-print">
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm sticky top-24">
+                    <p class="text-[10px] font-black opacity-40 uppercase mb-4"><span id="active-cat-count">0</span> équipes actives</p>
                     
                     <div id="architect-container">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-xs font-black uppercase tracking-widest text-indigo-600 flex items-center gap-2">📐 Architecte</h3>
-                            <button onclick="toggleArchitect(false)" id="btn-edit-architect" class="text-[9px] text-slate-400 font-bold hidden bg-slate-100 px-2 py-1 rounded">Modifier</button>
+                        <div class="flex justify-between items-center mb-2"><h3 class="text-xs font-black uppercase text-indigo-600">📐 Architecte</h3><button onclick="toggleArchitect(false)" id="btn-edit-architect" class="text-[9px] text-slate-400 font-bold hidden bg-slate-100 px-2 py-1 rounded">Modifier</button></div>
+                        <div id="architect-settings" class="flex gap-1 mb-4 bg-slate-50 p-2 rounded-xl border">
+                            <label class="text-[8px] font-black uppercase text-slate-500 w-1/3">Matin (m)<input type="number" id="cfg-creneau-p1" onchange="updateCatSettings()" class="w-full bg-white border rounded p-1 mt-1 text-center" value="120"></label>
+                            <label class="text-[8px] font-black uppercase text-slate-500 w-1/3">A-Midi (m)<input type="number" id="cfg-creneau-p2" onchange="updateCatSettings()" class="w-full bg-white border rounded p-1 mt-1 text-center" value="120"></label>
+                            <label class="text-[8px] font-black uppercase text-slate-500 w-1/3">Batt. (m)<input type="number" id="cfg-battement" onchange="updateCatSettings()" class="w-full bg-white border rounded p-1 mt-1 text-center" value="2"></label>
                         </div>
+                        <div id="scenario-list" class="space-y-2 mb-4 max-h-[30vh] overflow-y-auto pr-1"></div>
                         
-                        <div id="architect-settings" class="flex gap-2 mb-4 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                            <label class="text-[8px] font-black uppercase text-slate-500 flex-1">Matin<br><input type="number" id="cfg-creneau-p1" onchange="updateCatSettings()" class="w-full bg-white border border-slate-200 rounded p-1 mt-1 font-black text-center text-xs" value="120"></label>
-                            <label class="text-[8px] font-black uppercase text-slate-500 flex-1">A-Midi<br><input type="number" id="cfg-creneau-p2" onchange="updateCatSettings()" class="w-full bg-white border border-slate-200 rounded p-1 mt-1 font-black text-center text-xs" value="120"></label>
-                            <label class="text-[8px] font-black uppercase text-slate-500 flex-1">Battement<br><input type="number" id="cfg-battement" onchange="updateCatSettings()" class="w-full bg-white border border-slate-200 rounded p-1 mt-1 font-black text-center text-xs" value="2"></label>
-                        </div>
-
-                        <div id="scenario-list" class="space-y-3 mb-4 max-h-[30vh] overflow-y-auto pr-2 pb-2"></div>
-                        
-                        <div id="manual-mode-panel" class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl mb-4">
-                            <h4 class="text-[10px] font-black uppercase text-indigo-800 mb-2 flex items-center gap-2">🛠️ Mode Manuel (Forcer)</h4>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <p class="text-[9px] uppercase font-bold text-slate-500 mb-1">Matin (P1)</p>
-                                    <div class="flex gap-1"><input type="number" id="m-p1-6" placeholder="x6" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"><input type="number" id="m-p1-5" placeholder="x5" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"><input type="number" id="m-p1-4" placeholder="x4" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"><input type="number" id="m-p1-3" placeholder="x3" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"></div>
-                                </div>
-                                <div>
-                                    <p class="text-[9px] uppercase font-bold text-slate-500 mb-1">A-Midi (P2)</p>
-                                    <div class="flex gap-1"><input type="number" id="m-p2-6" placeholder="x6" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"><input type="number" id="m-p2-5" placeholder="x5" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"><input type="number" id="m-p2-4" placeholder="x4" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"><input type="number" id="m-p2-3" placeholder="x3" class="w-full text-center text-xs font-bold p-1 rounded border outline-none"></div>
-                                </div>
+                        <div id="manual-mode-panel" class="bg-indigo-50 border border-indigo-100 p-3 rounded-xl mb-4">
+                            <h4 class="text-[9px] font-black uppercase text-indigo-800 mb-2">🛠️ Mode Manuel</h4>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div><p class="text-[8px] uppercase font-bold text-slate-500 mb-1">Matin (P1)</p><div class="flex gap-1"><input type="number" id="m-p1-6" placeholder="x6" class="w-full text-center text-[10px] p-1 border rounded"><input type="number" id="m-p1-5" placeholder="x5" class="w-full text-center text-[10px] p-1 border rounded"><input type="number" id="m-p1-4" placeholder="x4" class="w-full text-center text-[10px] p-1 border rounded"><input type="number" id="m-p1-3" placeholder="x3" class="w-full text-center text-[10px] p-1 border rounded"></div></div>
+                                <div><p class="text-[8px] uppercase font-bold text-slate-500 mb-1">A-Midi (P2)</p><div class="flex gap-1"><input type="number" id="m-p2-6" placeholder="x6" class="w-full text-center text-[10px] p-1 border rounded"><input type="number" id="m-p2-5" placeholder="x5" class="w-full text-center text-[10px] p-1 border rounded"><input type="number" id="m-p2-4" placeholder="x4" class="w-full text-center text-[10px] p-1 border rounded"><input type="number" id="m-p2-3" placeholder="x3" class="w-full text-center text-[10px] p-1 border rounded"></div></div>
                             </div>
-                            <button onclick="applyManualPlan()" class="mt-3 w-full bg-indigo-600 text-white text-[9px] font-black uppercase py-2 rounded-lg hover:bg-indigo-700 active:scale-95 transition-all">Forcer l'Ossature</button>
+                            <button onclick="applyManualPlan()" class="mt-2 w-full bg-indigo-600 text-white text-[9px] font-black uppercase py-1.5 rounded">Forcer</button>
                         </div>
 
-                        <div id="scenario-summary" class="hidden bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl shadow-sm">
+                        <div id="scenario-summary" class="hidden bg-amber-50 border-2 border-amber-400 p-3 rounded-xl">
                             <p class="text-[10px] font-black text-amber-800 uppercase mb-1">Plan Actif</p>
-                            <p class="text-xs font-bold text-slate-500 mt-2">Matin :</p><p id="summary-p1" class="text-lg font-black text-slate-800 leading-tight"></p>
-                            <p class="text-xs font-bold text-slate-500 mt-2">Après-Midi :</p><p id="summary-p2" class="text-lg font-black text-slate-800 leading-tight"></p>
-                            <div class="mt-3 pt-2 border-t border-amber-200" id="summary-time"></div>
+                            <p class="text-[10px] font-bold text-slate-500">Matin : <span id="summary-p1" class="text-sm font-black text-slate-800"></span></p>
+                            <p class="text-[10px] font-bold text-slate-500">A-Midi : <span id="summary-p2" class="text-sm font-black text-slate-800"></span></p>
+                            <div id="summary-time" class="mt-2 pt-2 border-t border-amber-200"></div>
                         </div>
                     </div>
                     
-                    <hr class="mb-4 border-slate-100">
-                    <h3 class="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest flex justify-between">📦 Réserve <span id="reserve-count" class="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full">0</span></h3>
-                    <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-4 min-h-[150px] flex flex-col gap-2"></div>
+                    <hr class="mb-4 mt-4 border-slate-100">
+                    <h3 class="text-[10px] font-black uppercase opacity-40 mb-2 flex justify-between">📦 Réserve <span id="reserve-count" class="bg-slate-200 text-slate-800 px-2 rounded-full">0</span></h3>
+                    <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-3 min-h-[100px] flex flex-col gap-1"></div>
                 </div>
             </div>
 
             <div class="xl:col-span-9 space-y-4">
-                <div class="flex justify-between items-center bg-white p-3 rounded-2xl shadow-sm border border-slate-200">
-                    <nav class="flex gap-2" id="main-sub-nav">
-                        <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg active-tab">Phase 1 (Brassage)</button>
-                        <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500">Phase 2 (Classement)</button>
-                    </nav>
-                    <div class="flex items-center gap-4">
-                        <button onclick="printCategoryResults()" class="hidden text-[10px] font-black uppercase bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-300 transition-colors" id="btn-print-cat">🖨️ Imprimer</button>
-                        <div class="text-right px-4 border-l">
-                            <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
-                            <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
-                        </div>
-                    </div>
+                <div id="phase2-generator" class="hidden no-print bg-indigo-50 border border-indigo-200 p-6 rounded-[2rem]">
+                    <h3 class="font-black text-indigo-800 uppercase mb-2">Génération Phase 2 : Péréquation</h3>
+                    <p class="text-xs text-indigo-600 mb-4">Classe les équipes selon le ratio du matin et remplace les fantômes.</p>
+                    <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-black uppercase">Calculer & Remplir</button>
                 </div>
 
-                <div id="phase2-generator" class="hidden bg-indigo-50 border border-indigo-200 p-8 rounded-[2rem] shadow-sm mb-4 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">⚖️</div>
-                    <div class="relative z-10">
-                        <h3 class="font-black text-indigo-800 uppercase mb-2 text-xl">Génération Phase 2 : Péréquation</h3>
-                        <p class="text-xs text-indigo-600/80 mb-6 max-w-2xl">Efface l'ossature fantôme et classe les vraies équipes selon leur Ratio du matin.</p>
-                        <button onclick="generatePhase2()" class="bg-indigo-600 text-white px-8 py-3 rounded-xl font-black uppercase hover:bg-indigo-700 shadow-lg active:scale-95 transition-all">Calculer Péréquation & Remplir</button>
-                    </div>
+                <div id="validation-zone" class="hidden no-print bg-amber-100 border border-amber-300 p-5 rounded-[2rem] flex justify-between items-center">
+                    <div><p class="font-black text-amber-800 uppercase text-sm">Ajustement Manuel</p><p class="text-[10px] text-amber-700">Déplacez les équipes puis validez.</p></div>
+                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-6 py-2 rounded-xl font-black uppercase shadow-md">Valider l'ossature</button>
                 </div>
 
-                <div id="validation-zone" class="hidden bg-amber-100 border border-amber-300 p-6 rounded-[2rem] flex justify-between items-center shadow-inner">
-                    <div>
-                        <p class="font-black text-amber-800 uppercase">Ajustement Manuel (Drag & Drop)</p>
-                        <p class="text-xs text-amber-700">Déplacez les équipes puis validez pour générer les matchs.</p>
-                    </div>
-                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase hover:bg-amber-600 shadow-md">Valider l'ossature</button>
-                </div>
-
-                <div id="poule-tabs" class="hidden flex gap-2 overflow-x-auto bg-slate-200 p-2 rounded-xl"></div>
+                <div id="poule-tabs" class="hidden no-print flex gap-1 overflow-x-auto bg-slate-200 p-1.5 rounded-xl"></div>
+                
+                <h2 class="text-2xl font-black uppercase mb-4 print-only hidden"><span id="print-cat-title"></span> - <span id="print-phase-title"></span></h2>
                 <div id="match-board" class="w-full"></div>
 
-                <div id="deploy-zone" class="hidden bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-xl flex justify-between items-center border-b-4 border-amber-500 mt-4">
-                    <div>
-                        <p class="text-amber-500 font-black uppercase italic text-sm">Déploiement Firebase</p>
-                        <p class="text-[10px] opacity-50">Transmet l'ordre des matchs aux téléphones des arbitres.</p>
-                    </div>
-                    <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-600 text-black px-8 py-3 rounded-xl font-black uppercase shadow-lg active:scale-95 transition-all">Envoyer aux Terrains</button>
+                <div id="deploy-zone" class="hidden no-print bg-slate-900 text-white p-5 rounded-[2rem] flex justify-between items-center mt-4">
+                    <p class="text-amber-500 font-black uppercase italic text-sm">Déploiement Firebase</p>
+                    <button onclick="deployCategory()" class="bg-amber-500 hover:bg-amber-400 text-black px-6 py-2 rounded-xl font-black uppercase shadow-lg">Envoyer au Live</button>
                 </div>
             </div>
         </div>
     </section>
 
     <section id="content-TROPHEE" class="tab-content hidden space-y-6">
-        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-amber-200 shadow-xl max-w-6xl mx-auto">
-            <div class="flex justify-between items-center mb-8 border-b pb-4">
-                <h2 class="text-3xl font-black uppercase text-slate-800">🏆 Bouclier</h2>
-                <button onclick="computeTrophy(true, true)" class="bg-green-500 text-white px-6 py-3 rounded-xl font-black uppercase shadow-lg hover:bg-green-600 active:scale-95 transition-all">✅ Valider le Classement Définitif</button>
+        <div class="bg-white p-8 rounded-[2rem] border-2 border-amber-200 shadow-xl max-w-6xl mx-auto">
+            <div class="flex justify-between items-center mb-8 border-b pb-4 no-print">
+                <h2 class="text-3xl font-black uppercase text-slate-800">🏆 Classement Général</h2>
+                <div class="flex gap-2">
+                    <button onclick="computeTrophy(true, true)" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md">✅ Valider Podium</button>
+                    <button onclick="exportTrophyCSV()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase">📥 Excel Final</button>
+                    <button onclick="window.print()" class="bg-slate-800 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase">🖨️ Imprimer Podium</button>
+                </div>
             </div>
-            
-            <div id="trophy-podium" class="flex justify-center items-end h-64 gap-4 mb-12 hidden"></div>
-            <div id="trophy-list" class="hidden">
-                <table class="w-full text-left text-sm border-collapse">
+            <h2 class="text-2xl font-black uppercase mb-6 print-only hidden text-center">CLASSEMENT GÉNÉRAL - BOUCLIER</h2>
+            <div id="trophy-podium" class="flex justify-center items-end h-64 gap-4 mb-12"></div>
+            <div id="trophy-list">
+                <table class="w-full text-left text-sm border-collapse excel-table">
                     <thead class="bg-slate-100 text-[10px] font-black uppercase text-slate-500">
-                        <tr><th class="p-4 border-b">Rang</th><th class="p-4 border-b">Club</th><th class="p-4 text-center border-b text-blue-600">U8</th><th class="p-4 text-center border-b text-slate-800">U10</th><th class="p-4 text-center border-b text-red-600">U12</th><th class="p-4 text-center border-b text-amber-600 text-lg">Total Points</th></tr>
+                        <tr><th class="p-3 border-b">Rang</th><th class="p-3 border-b">Club</th><th class="p-3 text-center border-b">U8</th><th class="p-3 text-center border-b">U10</th><th class="p-3 text-center border-b">U12</th><th class="p-3 text-center border-b text-amber-600">TOTAL PTS</th></tr>
                     </thead>
                     <tbody id="trophy-tbody" class="divide-y divide-slate-100"></tbody>
                 </table>
             </div>
-            <div id="trophy-empty" class="text-center py-20 text-slate-400 font-bold uppercase tracking-widest">Aucune donnée de Phase 2 validée.</div>
+            <div id="trophy-empty" class="text-center py-20 text-slate-400 font-bold uppercase hidden">Aucune donnée validée.</div>
         </div>
     </section>
 
-    <section id="content-MAINTENANCE" class="tab-content hidden space-y-6">
-        <div class="bg-white p-8 rounded-[2.5rem] border-2 border-slate-200 shadow-xl max-w-5xl mx-auto">
-            <h2 class="text-2xl font-black uppercase text-slate-800 mb-6 flex items-center gap-3">🛠️ Outils & Maintenance</h2>
+    <section id="content-MAINTENANCE" class="tab-content hidden space-y-6 no-print">
+        <div class="bg-white p-8 rounded-[2rem] border-2 border-slate-200 shadow-xl max-w-5xl mx-auto">
+            <h2 class="text-2xl font-black uppercase text-slate-800 mb-6">🛠️ Outils & Maintenance</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
                 <div class="space-y-4">
-                    <h3 class="font-black uppercase text-sm border-b pb-2">💾 Sauvegarde & Exports</h3>
-                    <button onclick="exportJSON()" class="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors shadow-md">Sauvegarder la session (Export JSON)</button>
-                    <button onclick="exportExcel()" class="w-full py-3 bg-green-600 text-white rounded-xl text-xs font-bold hover:bg-green-700 transition-colors shadow-md">Export du Planning (Excel CSV)</button>
-                    <p class="text-[10px] text-slate-400">Le JSON contient toute la mémoire du Master. L'Excel contient la liste des matchs.</p>
+                    <h3 class="font-black uppercase text-sm border-b pb-2">💾 Sauvegarde (JSON)</h3>
+                    <button onclick="exportJSON()" class="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 shadow-md">Sauvegarder la session</button>
+                    <label class="w-full py-3 bg-slate-600 text-white rounded-xl text-xs font-bold hover:bg-slate-700 shadow-md text-center block cursor-pointer">
+                        Restaurer une session <input type="file" class="hidden" accept=".json" onchange="importJSON(event)">
+                    </label>
                 </div>
-
                 <div class="space-y-4">
                     <h3 class="font-black uppercase text-sm border-b pb-2 text-red-600">⚠️ Purge de la base</h3>
-                    <select id="maint-cat" class="w-full p-3 rounded-xl bg-slate-100 font-bold border-none outline-none"><option value="U6">U6</option><option value="U8">U8</option><option value="U10">U10</option><option value="U12">U12</option></select>
+                    <select id="maint-cat" class="w-full p-3 rounded-xl bg-slate-100 font-bold outline-none"><option value="U6">U6</option><option value="U8">U8</option><option value="U10">U10</option><option value="U12">U12</option></select>
                     <div class="flex gap-2">
-                        <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50 transition-colors">Reset Scores de la Phase</button>
-                        <button onclick="purge('teams')" class="w-full py-3 bg-red-50 text-red-600 rounded-xl text-xs font-bold border border-red-100 hover:bg-red-100 transition-colors">Effacer Ossature (Local + Web)</button>
+                        <button onclick="purge('scores')" class="w-full py-3 bg-white border border-slate-300 rounded-xl text-xs font-bold hover:bg-slate-50">Reset Scores</button>
+                        <button onclick="purge('teams')" class="w-full py-3 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-bold hover:bg-red-100">Effacer Ossature</button>
                     </div>
                 </div>
-
             </div>
         </div>
     </section>
 </main>
 
 <script>
-    // --- VARIABLES GLOBALES & DATA ---
-    var STORAGE_KEY = 't3n_master_pro_v43';
+    // --- VARIABLES GLOBALES & MATRICES ---
+    var STORAGE_KEY = 't3n_master_pro_v44';
     var MAX_TERRAINS = { U6: 3, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
@@ -327,7 +288,7 @@
         { teams: 17, title: "Hybride", p1: {p6:0, p5:1, p4:3, p3:0, str:"1x5, 3x4"}, p2: {p6:1, p5:1, p4:0, p3:2, str:"1x6, 1x5, 2x3"}, icon: "⚡" },
         { teams: 18, title: "Densifié", p1: {p6:3, p5:0, p4:0, p3:0, str:"3x6"}, p2: {p6:3, p5:0, p4:0, p3:0, str:"3x6"}, icon: "🔥" },
         { teams: 20, title: "Le Croisé", p1: {p6:0, p5:0, p4:5, p3:0, str:"5x4"}, p2: {p6:0, p5:4, p4:0, p3:0, str:"4x5"}, icon: "⚔️" },
-        { teams: 22, title: "Expert Repêchage", p1: {p6:0, p5:0, p4:4, p3:2, str:"4x4, 2x3"}, p2: {p6:3, p5:0, p4:1, p3:0, str:"3x6, 1x4"}, icon: "🧠" },
+        { teams: 22, title: "Expert", p1: {p6:0, p5:0, p4:4, p3:2, str:"4x4, 2x3"}, p2: {p6:3, p5:0, p4:1, p3:0, str:"3x6, 1x4"}, icon: "🧠" },
         { teams: 24, title: "Symétrique", p1: {p6:0, p5:0, p4:6, p3:0, str:"6x4"}, p2: {p6:0, p5:0, p4:6, p3:0, str:"6x4"}, icon: "⚖️" }
     ];
 
@@ -342,9 +303,9 @@
     function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
     function getCatSettings() { return appState.cats[appState.activeCat].settings; }
 
-    // --- CONFIG FIREBASE ---
+    // --- FIREBASE INIT ---
     var firebaseConfig = {
-        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", // <-- CLÉ A VERIFIER
+        apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", // <-- VERIFIER LA CLÉ
         authDomain: "t3nations.firebaseapp.com",
         databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app",
         projectId: "t3nations"
@@ -355,21 +316,15 @@
     // --- INIT & SAS ---
     function initApp() {
         var saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) { 
-            try { appState = JSON.parse(saved); } catch(e) {}
-        }
-        if (appState.tournoiId) {
-            document.getElementById('sas-entree').classList.add('hidden');
-            setupTournament();
-        }
+        if (saved) { try { appState = JSON.parse(saved); } catch(e) {} }
+        if (appState.tournoiId) { document.getElementById('sas-entree').classList.add('hidden'); setupTournament(); }
     }
 
     function validerSas() {
         var id = document.getElementById('sas-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
         var pin = document.getElementById('sas-pin').value;
         if (id.length < 3 || pin.length < 4) return alert("ID (min 3 carac) et PIN (4 chiffres) requis !");
-        appState.tournoiId = id; appState.pinCode = pin;
-        appState.branding.name = id;
+        appState.tournoiId = id; appState.pinCode = pin; appState.branding.name = id;
         saveState(); location.reload();
     }
 
@@ -379,130 +334,135 @@
         document.getElementById('cfg-tournoi-name').value = appState.branding.name;
         document.getElementById('cfg-theme-color').value = appState.branding.color;
         if(appState.branding.baseUrl) document.getElementById('cfg-base-url').value = appState.branding.baseUrl;
-        
         updateBranding(true);
         if(appState.masterData && appState.masterData.length > 0) renderMasterTable();
         showTab('IMPORT');
-        
-        if(db && appState.tournoiId) {
-            db.ref(`t3n/${appState.tournoiId}/config`).update({ access_key: appState.pinCode });
-            db.ref(`t3n/${appState.tournoiId}/branding`).set(appState.branding);
-        }
+        if(db && appState.tournoiId) { db.ref(`t3n/${appState.tournoiId}/config`).update({ access_key: appState.pinCode }); db.ref(`t3n/${appState.tournoiId}/branding`).set(appState.branding); }
     }
 
     function saveState() { 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); 
         var ind = document.getElementById('save-indicator'); 
-        if(ind) { ind.classList.remove('opacity-0'); setTimeout(function(){ ind.classList.add('opacity-0'); }, 2000); }
+        if(ind) { ind.classList.remove('opacity-0'); setTimeout(function(){ ind.classList.add('opacity-0'); }, 1500); }
     }
 
-    // --- BRANDING & IMAGES (Base64) ---
+    // --- BRANDING ---
     function updateBranding(isInit) {
         appState.branding.name = document.getElementById('cfg-tournoi-name').value;
         appState.branding.color = document.getElementById('cfg-theme-color').value;
         document.documentElement.style.setProperty('--primary-color', appState.branding.color);
         document.getElementById('main-header').style.borderBottomColor = appState.branding.color;
         document.getElementById('header-title').innerText = appState.branding.name;
-        
-        if (appState.branding.logoClub) { 
-            document.getElementById('header-logo-club').src = appState.branding.logoClub;
-            document.getElementById('header-logo-club').classList.remove('hidden');
-        }
-        if (appState.branding.logoYear) {
-            document.getElementById('header-logo-year').src = appState.branding.logoYear;
-            document.getElementById('header-logo-year').classList.remove('hidden');
-        }
-        
-        if (!isInit && db && appState.tournoiId) {
-            saveState();
-            db.ref(`t3n/${appState.tournoiId}/branding`).set(appState.branding);
-        }
+        if (appState.branding.logoClub) { document.getElementById('header-logo-club').src = appState.branding.logoClub; document.getElementById('header-logo-club').classList.remove('hidden'); }
+        if (appState.branding.logoYear) { document.getElementById('header-logo-year').src = appState.branding.logoYear; document.getElementById('header-logo-year').classList.remove('hidden'); }
+        if (!isInit && db && appState.tournoiId) { saveState(); db.ref(`t3n/${appState.tournoiId}/branding`).set(appState.branding); }
     }
 
     function handleImage(input, key) {
-        var file = input.files[0]; if (!file) return;
-        var reader = new FileReader();
+        var file = input.files[0]; if (!file) return; var reader = new FileReader();
         reader.onload = function(e) {
-            var img = new Image();
-            img.onload = function() {
-                var canvas = document.createElement('canvas');
-                var max = 200; var w = img.width; var h = img.height;
+            var img = new Image(); img.onload = function() {
+                var canvas = document.createElement('canvas'); var max = 200; var w = img.width; var h = img.height;
                 if (w > h) { if (w > max) { h *= max / w; w = max; } } else { if (h > max) { w *= max / h; h = max; } }
-                canvas.width = w; canvas.height = h;
-                var ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
-                appState.branding[key] = canvas.toDataURL('image/png', 0.8);
-                updateBranding();
+                canvas.width = w; canvas.height = h; var ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, w, h);
+                appState.branding[key] = canvas.toDataURL('image/png', 0.8); updateBranding();
             };
             img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+        }; reader.readAsDataURL(file);
     }
 
     // --- QR CODES ---
-    function openQRModal() {
-        document.getElementById('qr-modal').classList.remove('hidden');
-        document.getElementById('qr-modal').classList.add('flex');
-        renderQRCodes();
-    }
-
+    function openQRModal() { document.getElementById('qr-modal').classList.remove('hidden'); document.getElementById('qr-modal').classList.add('flex'); renderQRCodes(); }
     function renderQRCodes() {
         var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
         var tId = appState.tournoiId; var pin = appState.pinCode;
-
         var urlPublic = baseUrl + "/public.html?id=" + tId;
-        document.getElementById('qr-public').innerHTML = "";
-        new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 100, height: 100, colorDark: "#000", colorLight: "#fff" });
+        document.getElementById('qr-public').innerHTML = ""; new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 100, height: 100, colorDark: "#000", colorLight: "#fff" });
         document.getElementById('link-public').innerText = urlPublic; document.getElementById('link-public').href = urlPublic;
 
         var qrContainer = document.getElementById('qr-terrains'); qrContainer.innerHTML = "";
         for (var i = 1; i <= 8; i++) {
             var urlTerrain = baseUrl + "/terrain.html?id=" + tId + "&t=" + i + "&key=" + pin;
-            var card = document.createElement('div'); card.className = "bg-white border border-slate-200 p-4 rounded-2xl flex flex-col items-center text-center shadow-sm";
-            var title = document.createElement('p'); title.className = "font-black text-indigo-600 uppercase mb-2"; title.innerText = "Terrain " + i;
-            var qrDiv = document.createElement('div'); qrDiv.className = "mb-2";
-            new QRCode(qrDiv, { text: urlTerrain, width: 100, height: 100, colorDark: "#4f46e5", colorLight: "#ffffff" });
-            var link = document.createElement('a'); link.className = "text-[8px] font-bold text-slate-400 underline break-all mt-2"; link.href = urlTerrain; link.target = "_blank"; link.innerText = "Lien direct";
+            var card = document.createElement('div'); card.className = "bg-white border border-slate-200 p-3 rounded-2xl flex flex-col items-center text-center shadow-sm";
+            var title = document.createElement('p'); title.className = "font-black text-indigo-600 uppercase mb-2 text-xs"; title.innerText = "T " + i;
+            var qrDiv = document.createElement('div'); qrDiv.className = "mb-2"; new QRCode(qrDiv, { text: urlTerrain, width: 90, height: 90, colorDark: "#4f46e5", colorLight: "#ffffff" });
+            var link = document.createElement('a'); link.className = "text-[7px] font-bold text-slate-400 underline break-all mt-1"; link.href = urlTerrain; link.target = "_blank"; link.innerText = "Lien";
             card.appendChild(title); card.appendChild(qrDiv); card.appendChild(link); qrContainer.appendChild(card);
         }
     }
 
-    // --- IMPORT & GESTION FORFAITS ---
+    // --- EXPORTS EXCEL ---
+    function downloadCSV(csv, filename) {
+        var csvFile = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+        var link = document.createElement("a"); link.download = filename; link.href = window.URL.createObjectURL(csvFile);
+        link.style.display = "none"; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function exportClubsCSV() {
+        var csv = "Club;Etranger;U6;U8;U10;U12\n";
+        appState.masterData.forEach(c => { csv += `${c.name};${c.foreign?'Oui':'Non'};${c.u6};${c.u8};${c.u10};${c.u12}\n`; });
+        downloadCSV(csv, `clubs_${appState.tournoiId}.csv`);
+    }
+
+    function exportCategoryExcel() {
+        var cat = appState.activeCat; var phase = appState.currentPhase;
+        var pData = appState.cats[cat][phase.toLowerCase()];
+        if(!pData.poules || pData.poules.length === 0) return alert("Rien à exporter.");
+        var csv = "Categorie;Phase;Poule;Terrain;Equipe 1;Score 1;Score 2;Equipe 2;Arbitre\n";
+        pData.poules.forEach(p => {
+            if(p.teams.length === p.target) {
+                MATRICES[p.target].forEach((m, idx) => {
+                    var tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                    var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:''};
+                    var t1 = p.teams[m.a-1] ? p.teams[m.a-1].name : '?'; var t2 = p.teams[m.b-1] ? p.teams[m.b-1].name : '?'; var arb = p.teams[m.arb-1] ? p.teams[m.arb-1].name : '?';
+                    csv += `${cat};${phase};${p.letter};T.${tStr};${t2};${sc.s2};${sc.s1};${t1};${arb}\n`;
+                });
+            }
+        });
+        downloadCSV(csv, `planning_${cat}_${phase}.csv`);
+    }
+
+    function exportTrophyCSV() {
+        var csv = "Rang;Club;U8;U10;U12;TOTAL\n";
+        document.querySelectorAll("#trophy-tbody tr").forEach(row => { var cols = row.querySelectorAll("td"); csv += `${cols[0].innerText};${cols[1].innerText};${cols[2].innerText};${cols[3].innerText};${cols[4].innerText};${cols[5].innerText}\n`; });
+        downloadCSV(csv, `classement_final_${appState.tournoiId}.csv`);
+    }
+
+    function exportJSON() {
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
+        var link = document.createElement('a'); link.setAttribute("href", dataStr); link.setAttribute("download", "t3n_backup_" + appState.tournoiId + ".json");
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function importJSON(event) {
+        var file = event.target.files[0]; if (!file) return; var reader = new FileReader();
+        reader.onload = function(e) { try { appState = JSON.parse(e.target.result); saveState(); alert("Sauvegarde restaurée avec succès."); location.reload(); } catch(err) { alert("Erreur de lecture du fichier."); } };
+        reader.readAsText(file);
+    }
+
+    // --- IMPORT CLUBS ---
     function processMasterImport() {
-        var raw = document.getElementById('csv-input').value; 
-        var lines = raw.split('\n'); appState.masterData = [];
+        var raw = document.getElementById('csv-input').value; var lines = raw.split('\n'); appState.masterData = [];
         for(var i=0; i<lines.length; i++) {
             var line = lines[i].trim(); if(!line || line.toLowerCase().indexOf('nom') === 0) continue;
             var parts = line.split(/\s+/);
             if(parts.length >= 5) { 
                 var u12 = parseInt(parts.pop())||0; var u10 = parseInt(parts.pop())||0; var u8 = parseInt(parts.pop())||0; var u6 = parseInt(parts.pop())||0;
-                var cName = parts.join(' ').trim();
-                var isForeign = /zug|frankfurt|riedberg|heidelberg|neuenheim|crig/i.test(cName);
+                var cName = parts.join(' ').trim(); var isForeign = /zug|frankfurt|riedberg|heidelberg|neuenheim|crig/i.test(cName);
                 if (cName) appState.masterData.push({ id:'club_'+i, name: cName, foreign: isForeign, u6: u6, u8: u8, u10: u10, u12: u12 }); 
             }
         }
-        if(appState.masterData.length > 0) { 
-            syncTeamsWithMaster(); saveState(); renderMasterTable(); 
-            alert("Liste importée ! Les équipes sont prêtes dans les réserves des catégories."); 
-        }
+        if(appState.masterData.length > 0) { syncTeamsWithMaster(); saveState(); renderMasterTable(); alert("Équipes générées dans les réserves."); }
     }
 
     function syncTeamsWithMaster() {
         ['U6', 'U8', 'U10', 'U12'].forEach(function(cat) {
-            var phase1 = appState.cats[cat].phase1;
-            var existingIds = [];
-            (phase1.teams || []).forEach(t => { if(t) existingIds.push(t.id); });
-            phase1.reserve.forEach(t => { if(t) existingIds.push(t.id); });
-            phase1.poules.forEach(p => p.teams.forEach(t => { if(t) existingIds.push(t.id); }));
-            
+            var phase1 = appState.cats[cat].phase1; var existingIds = [];
+            (phase1.teams || []).forEach(t => { if(t) existingIds.push(t.id); }); phase1.reserve.forEach(t => { if(t) existingIds.push(t.id); }); phase1.poules.forEach(p => p.teams.forEach(t => { if(t) existingIds.push(t.id); }));
             appState.masterData.forEach(c => {
                 for(var i=1; i<=c[cat.toLowerCase()]; i++) {
                     var tId = c.id+'_'+i;
-                    if(!existingIds.includes(tId)) {
-                        var newT = { id: tId, club: c.name, level: i, name: c.name + ' ' + i, foreign: c.foreign, isForfait: false, customNote: '' };
-                        phase1.reserve.push(newT);
-                        if(!phase1.teams) phase1.teams = [];
-                        phase1.teams.push(newT);
-                    }
+                    if(!existingIds.includes(tId)) { var newT = { id: tId, club: c.name, level: i, name: c.name + ' ' + i, foreign: c.foreign, isForfait: false }; phase1.reserve.push(newT); if(!phase1.teams) phase1.teams = []; phase1.teams.push(newT); }
                 }
             });
         });
@@ -511,168 +471,109 @@
     function renderMasterTable() { 
         var tC = appState.masterData.length, tF = 0, tU6 = 0, tU8 = 0, tU10 = 0, tU12 = 0;
         appState.masterData.forEach(c => { if(c.foreign) tF++; tU6 += c.u6; tU8 += c.u8; tU10 += c.u10; tU12 += c.u12; });
-        document.getElementById('master-thead').innerHTML = `<tr><th class="p-3">Club (${tC})</th><th class="p-3 text-center">Étranger (${tF})</th><th class="p-3 text-center">U6 (${tU6})</th><th class="p-3 text-center">U8 (${tU8})</th><th class="p-3 text-center">U10 (${tU10})</th><th class="p-3 text-center">U12 (${tU12})</th></tr>`;
-        document.getElementById('master-tbody').innerHTML = appState.masterData.map((c, i) => `<tr><td class="p-3 font-bold uppercase text-xs">${c.name}</td><td class="p-3 text-center"><input type="checkbox" ${c.foreign ? 'checked':''} onchange="appState.masterData[${i}].foreign=this.checked;saveState();renderMasterTable()" class="accent-amber-500"></td><td class="p-3 text-center font-bold text-amber-600">${c.u6}</td><td class="p-3 text-center font-bold text-amber-600">${c.u8}</td><td class="p-3 text-center font-bold text-amber-600">${c.u10}</td><td class="p-3 text-center font-bold text-amber-600">${c.u12}</td></tr>`).join(''); 
+        document.getElementById('master-thead').innerHTML = `<tr><th class="p-3">Club (${tC})</th><th class="p-3 text-center no-print">Etranger</th><th class="p-3 text-center">U6 (${tU6})</th><th class="p-3 text-center">U8 (${tU8})</th><th class="p-3 text-center">U10 (${tU10})</th><th class="p-3 text-center">U12 (${tU12})</th></tr>`;
+        document.getElementById('master-tbody').innerHTML = appState.masterData.map((c, i) => `<tr><td class="p-3 font-bold uppercase text-xs">${c.name}</td><td class="p-3 text-center no-print"><input type="checkbox" ${c.foreign ? 'checked':''} onchange="appState.masterData[${i}].foreign=this.checked;saveState();renderMasterTable()" class="accent-amber-500"></td><td class="p-3 text-center font-bold text-amber-600">${c.u6}</td><td class="p-3 text-center font-bold text-amber-600">${c.u8}</td><td class="p-3 text-center font-bold text-amber-600">${c.u10}</td><td class="p-3 text-center font-bold text-amber-600">${c.u12}</td></tr>`).join(''); 
         document.getElementById('master-table-container').classList.remove('hidden'); 
     }
 
     function getActiveTeams(phase) {
-        var teams = [];
-        phase.reserve.forEach(t => { if(t && !t.isForfait) teams.push(t); });
-        phase.poules.forEach(p => p.teams.forEach(t => { if(t && !t.isForfait) teams.push(t); }));
-        if(teams.length === 0 && phase.teams) phase.teams.forEach(t => { if(t && !t.isForfait) teams.push(t); });
-        return teams;
+        var teams = []; phase.reserve.forEach(t => { if(t && !t.isForfait) teams.push(t); }); phase.poules.forEach(p => p.teams.forEach(t => { if(t && !t.isForfait) teams.push(t); }));
+        if(teams.length === 0 && phase.teams) phase.teams.forEach(t => { if(t && !t.isForfait) teams.push(t); }); return teams;
     }
 
     function toggleForfait(tId) {
-        var phase1 = appState.cats[appState.activeCat].phase1;
-        var tFound = null;
-        phase1.reserve.forEach(t => { if(t.id === tId) tFound = t; });
-        phase1.poules.forEach(p => p.teams.forEach(t => { if(t && t.id === tId) tFound = t; }));
+        var phase1 = appState.cats[appState.activeCat].phase1; var tFound = null;
+        phase1.reserve.forEach(t => { if(t.id === tId) tFound = t; }); phase1.poules.forEach(p => p.teams.forEach(t => { if(t && t.id === tId) tFound = t; }));
         if (tFound) { tFound.isForfait = !tFound.isForfait; saveState(); initCategoryUI(); }
     }
 
-    // --- NAVIGATION & UI CATEGORIES ---
+    // --- UI NAVIGATION ---
     function showTab(id) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
-        var btn = document.getElementById('tab-' + id);
-        if(btn) btn.classList.add('active-tab');
-        
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab')); var btn = document.getElementById('tab-' + id); if(btn) btn.classList.add('active-tab');
         document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        
-        if (id === 'IMPORT' || id === 'MAINTENANCE' || id === 'TROPHEE') { 
-            document.getElementById('content-' + id).classList.remove('hidden'); 
-        } else { 
-            appState.activeCat = id; 
-            document.getElementById('content-CAT').classList.remove('hidden'); 
-            initCategoryUI(); attachFirebaseListener(); 
-        }
-        if(id === 'TROPHEE') computeTrophy(false, false);
-        saveState();
+        if (id === 'IMPORT' || id === 'MAINTENANCE' || id === 'TROPHEE') { document.getElementById('content-' + id).classList.remove('hidden'); } 
+        else { appState.activeCat = id; document.getElementById('content-CAT').classList.remove('hidden'); document.getElementById('print-cat-title').innerText = id; initCategoryUI(); attachFirebaseListener(); }
+        if(id === 'TROPHEE') computeTrophy(false, false); saveState();
     }
 
     function switchCatPhase(phase) {
-        appState.currentPhase = phase;
-        document.getElementById('tab-phase1').className = 'px-4 py-2 text-[10px] font-black uppercase rounded-lg ' + (phase==='PHASE1'?'active-tab shadow-sm':'bg-slate-100 text-slate-500');
-        document.getElementById('tab-phase2').className = 'px-4 py-2 text-[10px] font-black uppercase rounded-lg ' + (phase==='PHASE2'?'active-tab shadow-sm':'bg-slate-100 text-slate-500 hover:bg-slate-200');
-        if(phase === 'PHASE2') document.getElementById('btn-print-cat').classList.remove('hidden'); else document.getElementById('btn-print-cat').classList.add('hidden');
+        appState.currentPhase = phase; document.getElementById('print-phase-title').innerText = phase === 'PHASE1' ? 'BRASSAGE' : 'CLASSEMENT';
+        document.getElementById('tab-phase1').className = 'px-3 py-1.5 text-[10px] font-black uppercase rounded-lg ' + (phase==='PHASE1'?'active-tab shadow-sm':'bg-slate-100 text-slate-500');
+        document.getElementById('tab-phase2').className = 'px-3 py-1.5 text-[10px] font-black uppercase rounded-lg ' + (phase==='PHASE2'?'active-tab shadow-sm':'bg-slate-100 text-slate-500 hover:bg-slate-200');
         initCategoryUI(); attachFirebaseListener(); saveState();
     }
 
     function updateCatSettings() { 
-        var set = getCatSettings(); 
-        set.p1 = parseInt(document.getElementById('cfg-creneau-p1').value) || 120; 
-        set.p2 = parseInt(document.getElementById('cfg-creneau-p2').value) || 120; 
-        set.battement = parseInt(document.getElementById('cfg-battement').value) || 2; 
+        var set = getCatSettings(); set.p1 = parseInt(document.getElementById('cfg-creneau-p1').value) || 120; set.p2 = parseInt(document.getElementById('cfg-creneau-p2').value) || 120; set.battement = parseInt(document.getElementById('cfg-battement').value) || 2; 
         saveState(); initCategoryUI();
     }
 
     function initCategoryUI() {
-        var titleEl = document.getElementById('active-cat-title'); 
-        titleEl.innerText = appState.activeCat; 
+        var titleEl = document.getElementById('active-cat-title'); titleEl.innerText = appState.activeCat; 
         titleEl.style.color = appState.activeCat === 'U8' ? '#2563eb' : (appState.activeCat === 'U12' ? '#dc2626' : 'var(--primary-color)');
-        
-        var phase1 = appState.cats[appState.activeCat].phase1; var phase2 = appState.cats[appState.activeCat].phase2; 
-        var set = getCatSettings();
-        
+        var phase1 = appState.cats[appState.activeCat].phase1; var phase2 = appState.cats[appState.activeCat].phase2; var set = getCatSettings();
         document.getElementById('cfg-creneau-p1').value = set.p1; document.getElementById('cfg-creneau-p2').value = set.p2; document.getElementById('cfg-battement').value = set.battement;
         
         if(appState.currentPhase === 'PHASE1' && !phase1.formatStr && phase1.poules.length === 0 && phase1.reserve.length === 0) { 
-            phase1.teams = []; 
-            appState.masterData.forEach(c => { for(var i=1; i<=c[appState.activeCat.toLowerCase()]; i++) { phase1.teams.push({ id: c.id+'_'+i, club: c.name, level: i, name: c.name + ' ' + i, isForfait: false, foreign: c.foreign }); } }); 
+            phase1.teams = []; appState.masterData.forEach(c => { for(var i=1; i<=c[appState.activeCat.toLowerCase()]; i++) { phase1.teams.push({ id: c.id+'_'+i, club: c.name, level: i, name: c.name + ' ' + i, isForfait: false, foreign: c.foreign }); } }); 
         }
 
         if(appState.currentPhase === 'PHASE1') {
             document.getElementById('phase2-generator').classList.add('hidden'); document.getElementById('architect-container').classList.remove('hidden');
-            var cTeams = getActiveTeams(phase1);
-            document.getElementById('active-cat-count').innerText = cTeams.length; 
-            renderArchitectScenarios(cTeams.length, phase1, cTeams); 
-            toggleArchitect(!!phase1.formatStr);
+            var cTeams = getActiveTeams(phase1); document.getElementById('active-cat-count').innerText = cTeams.length; 
+            renderArchitectScenarios(cTeams.length, phase1, cTeams); toggleArchitect(!!phase1.formatStr);
         } else {
-            document.getElementById('architect-container').classList.add('hidden');
-            document.getElementById('phase2-generator').classList.remove('hidden');
-            
-            var isGhost = false;
-            for(var j=0; j<phase2.poules.length; j++) { for(var k=0; k<phase2.poules[j].teams.length; k++) { if(phase2.poules[j].teams[k] && phase2.poules[j].teams[k].isDummy) isGhost = true; } }
-            if(isGhost) { 
-                document.getElementById('phase2-generator').querySelector('h3').innerText = "⚠️ Phase 2 en mode Vue Fantôme"; 
-                document.getElementById('phase2-generator').querySelector('p').innerHTML = "L'ossature est virtuelle. Cliquez pour écraser ces fantômes avec les vraies équipes."; 
-            } else { 
-                document.getElementById('phase2-generator').querySelector('h3').innerText = "🔄 Actualiser la Péréquation"; 
-                document.getElementById('phase2-generator').querySelector('p').innerHTML = "Recalculer en fonction des derniers scores du matin.";
-            } 
+            document.getElementById('architect-container').classList.add('hidden'); document.getElementById('phase2-generator').classList.remove('hidden');
+            var isGhost = false; for(var j=0; j<phase2.poules.length; j++) { for(var k=0; k<phase2.poules[j].teams.length; k++) { if(phase2.poules[j].teams[k] && phase2.poules[j].teams[k].isDummy) isGhost = true; } }
+            if(isGhost) { document.getElementById('phase2-generator').querySelector('h3').innerText = "⚠️ Vue Fantôme"; document.getElementById('phase2-generator').querySelector('p').innerHTML = "Calculez la péréquation pour les écraser."; } 
+            else { document.getElementById('phase2-generator').querySelector('h3').innerText = "🔄 Actualiser la Péréquation"; document.getElementById('phase2-generator').querySelector('p').innerHTML = "Recalculer en fonction des derniers scores."; } 
         }
         renderBoard(); renderReserve();
     }
 
-    // --- ARCHITECTE HORAIRE ---
+    // --- ARCHITECTE ---
     function renderArchitectScenarios(total, phase, teamsArray) {
-        var list = document.getElementById('scenario-list'); list.innerHTML = ""; 
-        var maxT = MAX_TERRAINS[appState.activeCat]; var set = getCatSettings(); 
+        var list = document.getElementById('scenario-list'); list.innerHTML = ""; var maxT = MAX_TERRAINS[appState.activeCat]; var set = getCatSettings(); 
         var baseScenarios = RECIPES.filter(r => r.teams === total); var scenarios = [];
-        
-        baseScenarios.forEach(s => { scenarios.push(s); if(s.p1.str !== s.p2.str) scenarios.push({ title: s.title + " (Inversé)", p1: s.p2, p2: s.p1, icon: "🔄" }); });
+        baseScenarios.forEach(s => { scenarios.push(s); if(s.p1.str !== s.p2.str) scenarios.push({ title: s.title + " (Inv.)", p1: s.p2, p2: s.p1, icon: "🔄" }); });
         
         if(scenarios.length === 0) { 
             for(var p6=0; p6<=total/6; p6++) { for(var p5=0; p5<=total/5; p5++) { for(var p4=0; p4<=total/4; p4++) { for(var p3=0; p3<=total/3; p3++) { 
-                if(p6*6 + p5*5 + p4*4 + p3*3 === total) { 
-                    var terrainsReq = p6*2 + p5*2 + p4*1 + p3*1; 
-                    if(terrainsReq <= maxT) { 
-                        var str = ((p6?p6+'x6 ':'') + (p5?p5+'x5 ':'') + (p4?p4+'x4 ':'') + (p3?p3+'x3 ':'')).trim(); 
-                        scenarios.push({ title: "Calculé", p1: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, p2: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, icon: "⚙️" }); 
-                    } 
+                if(p6*6 + p5*5 + p4*4 + p3*3 === total && (p6*2 + p5*2 + p4*1 + p3*1) <= maxT) { 
+                    var str = ((p6?p6+'x6 ':'') + (p5?p5+'x5 ':'') + (p4?p4+'x4 ':'') + (p3?p3+'x3 ':'')).trim(); 
+                    scenarios.push({ title: "Calculé", p1: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, p2: {p6:p6, p5:p5, p4:p4, p3:p3, str:str}, icon: "⚙️" }); 
                 } 
             } } } } 
         }
         
-        if(scenarios.length === 0) { list.innerHTML = `<p class="text-xs text-red-500 font-bold">⚠️ Aucun plan auto pour ${total} équipes sur ${maxT} terrains. Utilisez le Mode Manuel.</p>`; return; }
+        if(scenarios.length === 0) { list.innerHTML = `<p class="text-[10px] text-red-500 font-bold">⚠️ Aucun plan auto sur ${maxT} terrains. Mode Manuel requis.</p>`; return; }
 
         scenarios.forEach(s => {
-            var rotP1 = Math.max(s.p1.p6?15:0, s.p1.p5?10:0, s.p1.p4?6:0, s.p1.p3?3:0); 
-            var rotP2 = Math.max(s.p2.p6?15:0, s.p2.p5?10:0, s.p2.p4?6:0, s.p2.p3?3:0);
-            var durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; 
-            var durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
-            var timeWarning = (durP1 < 5 || durP2 < 5) ? '<span class="text-red-500 bg-red-50 px-1 rounded ml-2">⚠️ Temps trop court</span>' : '';
-            var slotsP2 = s.p2.p6*6 + s.p2.p5*5 + s.p2.p4*4 + s.p2.p3*3; 
-            var repechage = slotsP2 > total ? slotsP2 - total : 0; 
+            var rotP1 = Math.max(s.p1.p6?15:0, s.p1.p5?10:0, s.p1.p4?6:0, s.p1.p3?3:0); var rotP2 = Math.max(s.p2.p6?15:0, s.p2.p5?10:0, s.p2.p4?6:0, s.p2.p3?3:0);
+            var durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; var durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
+            var timeWarning = (durP1 < 5 || durP2 < 5) ? '<span class="text-red-500">⚠️ Trop court</span>' : '';
+            var slotsP2 = s.p2.p6*6 + s.p2.p5*5 + s.p2.p4*4 + s.p2.p3*3; var repechage = slotsP2 > total ? slotsP2 - total : 0; 
             
-            var div = document.createElement('div'); 
-            div.className = 'scenario-card p-3 rounded-xl bg-white mb-2 ' + (phase.formatStr === s.title ? 'scenario-active' : '');
-            div.innerHTML = `<h4 class="font-black text-xs text-slate-800 mb-1">${s.icon} ${s.title}</h4>
-                             <div class="grid grid-cols-2 gap-1 mb-1">
-                               <div class="bg-slate-50 p-1 text-center rounded"><span class="text-[8px] text-slate-400 block uppercase">Matin</span><span class="font-black text-indigo-600 text-[10px]">${s.p1.str}</span></div>
-                               <div class="bg-slate-50 p-1 text-center rounded"><span class="text-[8px] text-slate-400 block uppercase">A-Midi</span><span class="font-black text-indigo-600 text-[10px]">${s.p2.str}</span></div>
-                             </div>
-                             <div class="text-[9px] text-slate-500">Matin: ${durP1} min | A-Midi: ${durP2} min ${timeWarning}</div>
-                             ${repechage > 0 ? `<div class="text-[8px] font-black text-red-500 mt-1">⚠️ Nécessite ${repechage} repêchage(s)</div>` : ''}`;
-            div.onclick = function() { applyDayPlan(s, teamsArray, durP1, durP2, repechage); }; 
-            list.appendChild(div);
+            var div = document.createElement('div'); div.className = 'scenario-card p-2 rounded-xl bg-white mb-1 ' + (phase.formatStr === s.title ? 'scenario-active' : '');
+            div.innerHTML = `<h4 class="font-black text-[10px]">${s.icon} ${s.title}</h4>
+                             <div class="grid grid-cols-2 gap-1 mb-1"><div class="bg-slate-50 p-1 text-center"><span class="text-[7px] text-slate-400 block uppercase">Matin</span><span class="font-black text-indigo-600 text-[9px]">${s.p1.str}</span></div><div class="bg-slate-50 p-1 text-center"><span class="text-[7px] text-slate-400 block uppercase">A-Midi</span><span class="font-black text-indigo-600 text-[9px]">${s.p2.str}</span></div></div>
+                             <div class="text-[8px] text-slate-500">M: ${durP1}m | AM: ${durP2}m ${timeWarning}</div>${repechage > 0 ? `<div class="text-[8px] font-black text-red-500 mt-1">⚠️ ${repechage} repêchage(s)</div>` : ''}`;
+            div.onclick = function() { applyDayPlan(s, teamsArray, durP1, durP2, repechage); }; list.appendChild(div);
         });
     }
 
     function applyManualPlan() {
-        var phase1 = appState.cats[appState.activeCat].phase1;
-        var cTeams = getActiveTeams(phase1); var total = cTeams.length; var maxT = MAX_TERRAINS[appState.activeCat];
-        
+        var phase1 = appState.cats[appState.activeCat].phase1; var cTeams = getActiveTeams(phase1); var total = cTeams.length;
         var p1 = { p6: parseInt(document.getElementById('m-p1-6').value)||0, p5: parseInt(document.getElementById('m-p1-5').value)||0, p4: parseInt(document.getElementById('m-p1-4').value)||0, p3: parseInt(document.getElementById('m-p1-3').value)||0 };
         var p2 = { p6: parseInt(document.getElementById('m-p2-6').value)||0, p5: parseInt(document.getElementById('m-p2-5').value)||0, p4: parseInt(document.getElementById('m-p2-4').value)||0, p3: parseInt(document.getElementById('m-p2-3').value)||0 };
         var t1 = p1.p6*6 + p1.p5*5 + p1.p4*4 + p1.p3*3; var t2 = p2.p6*6 + p2.p5*5 + p2.p4*4 + p2.p3*3;
-        
-        if(t1 === 0 && t2 === 0) return alert("Saisissez un nombre de poules."); 
-        if(t1 === 0 && t2 > 0) { p1 = Object.assign({}, p2); t1 = t2; } if(t2 === 0 && t1 > 0) { p2 = Object.assign({}, p1); t2 = t1; }
-        
+        if(t1 === 0 && t2 === 0) return alert("Saisissez des poules."); if(t1 === 0) { p1 = Object.assign({}, p2); t1 = t2; } if(t2 === 0) { p2 = Object.assign({}, p1); t2 = t1; }
         if(t1 !== total && !confirm("⚠️ Le format prévoit " + t1 + " places pour " + total + " équipes. Continuer ?")) return;
         
-        p1.str = ((p1.p6?p1.p6+'x6 ':'')+(p1.p5?p1.p5+'x5 ':'')+(p1.p4?p1.p4+'x4 ':'')+(p1.p3?p1.p3+'x3 ':'')).trim(); 
-        p2.str = ((p2.p6?p2.p6+'x6 ':'')+(p2.p5?p2.p5+'x5 ':'')+(p2.p4?p2.p4+'x4 ':'')+(p2.p3?p2.p3+'x3 ':'')).trim();
-        
-        var set = getCatSettings(); 
-        var rotP1 = Math.max(p1.p6?15:0, p1.p5?10:0, p1.p4?6:0, p1.p3?3:0); var rotP2 = Math.max(p2.p6?15:0, p2.p5?10:0, p2.p4?6:0, p2.p3?3:0);
+        p1.str = ((p1.p6?p1.p6+'x6 ':'')+(p1.p5?p1.p5+'x5 ':'')+(p1.p4?p1.p4+'x4 ':'')+(p1.p3?p1.p3+'x3 ':'')).trim(); p2.str = ((p2.p6?p2.p6+'x6 ':'')+(p2.p5?p2.p5+'x5 ':'')+(p2.p4?p2.p4+'x4 ':'')+(p2.p3?p2.p3+'x3 ':'')).trim();
+        var set = getCatSettings(); var rotP1 = Math.max(p1.p6?15:0, p1.p5?10:0, p1.p4?6:0, p1.p3?3:0); var rotP2 = Math.max(p2.p6?15:0, p2.p5?10:0, p2.p4?6:0, p2.p3?3:0);
         var durP1 = Math.floor((set.p1 - (rotP1 * set.battement)) / rotP1) || 0; var durP2 = Math.floor((set.p2 - (rotP2 * set.battement)) / rotP2) || 0;
-        var repechage = t2 > t1 ? t2 - t1 : 0; 
-        
-        var s = { title: "Mode Manuel", p1: p1, p2: p2 }; 
-        applyDayPlan(s, cTeams, durP1, durP2, repechage);
+        applyDayPlan({ title: "Manuel", p1: p1, p2: p2 }, cTeams, durP1, durP2, (t2 > t1 ? t2 - t1 : 0));
     }
 
     function applyDayPlan(s, teams, durP1, durP2, repechage) {
@@ -689,42 +590,28 @@
             if(best) best.teams.push(t); else p1.reserve.push(t); 
         });
         
-        p2.poules = []; p2.reserve = []; p2.validated = false;
-        var dummies = [];
-        var maxLevel = p1.poules.length > 0 ? Math.max.apply(null, p1.poules.map(p => p.target)) : 0;
-        for (var level=1; level<=maxLevel; level++) {
-            var countForLevel = p1.poules.filter(p => p.target >= level).length;
-            for (var i=1; i<=countForLevel; i++) {
-                var namePrefix = i === 1 ? "Meilleur " + level + (level===1?"er":"ème") : i + (i===1?"er":"ème") + " des " + level + (level===1?"ers":"èmes");
-                dummies.push({ id: "ghost_"+level+"_"+i, name: namePrefix, level: level, club: '', isDummy: true });
-            }
-        }
+        p2.poules = []; p2.reserve = []; p2.validated = false; var dummies = [];
+        var maxL = p1.poules.length > 0 ? Math.max.apply(null, p1.poules.map(p => p.target)) : 0;
+        for (var l=1; l<=maxL; l++) { var c = p1.poules.filter(p => p.target >= l).length; for (var i=1; i<=c; i++) { dummies.push({ id: "ghost_"+l+"_"+i, name: (i===1?"Meilleur "+l+(l===1?"er":"ème"):i+"e des "+l+"es"), level: l, club: '', isDummy: true }); } }
         for(var r=0; r<(repechage||0); r++) dummies.push({ id: "ghost_rep_"+r, name: "Repêché "+(r+1), level: 99, club: '', isDummy: true });
         
         var makeP2 = function(n, target) { for(var i=0; i<n; i++) p2.poules.push({ letter: String.fromCharCode(65+p2.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {}, adjustments: {} }); };
         makeP2(s.p2.p6, 6); makeP2(s.p2.p5, 5); makeP2(s.p2.p4, 4); makeP2(s.p2.p3, 3);
         
         var tIndex = 0; p2.poules.forEach(p => { p.placeRange = "Places " + (tIndex+1) + " à " + (tIndex+p.target); for(var i=0; i<p.target; i++) { if (tIndex < dummies.length) { p.teams.push(dummies[tIndex]); tIndex++; } } });
+        document.getElementById('summary-p1').innerText = s.p1.str; document.getElementById('summary-p2').innerText = s.p2.str; document.getElementById('summary-time').innerHTML = `<span class="text-[9px] font-black text-amber-600">☀️ ${durP1||0}m | 🌤️ ${durP2||0}m</span>` + (repechage>0?`<br><span class="text-[8px] font-black text-red-500">⚠️ ${repechage} repêchages</span>`:'');
         
-        document.getElementById('summary-p1').innerText = s.p1.str; document.getElementById('summary-p2').innerText = s.p2.str;
-        document.getElementById('summary-time').innerHTML = `<span class="text-xs font-black text-amber-600">☀️ Matin: ${durP1||0} min | 🌤️ A-Midi: ${durP2||0} min</span>` + (repechage>0?`<br><span class="text-[10px] font-black text-red-500">⚠️ Nécessitera ${repechage} repêchage(s)</span>`:'');
-        
-        appState.activePouleTab = p1.poules.length > 0 ? p1.poules[0].letter : 'A'; 
-        saveState(); toggleArchitect(true); renderBoard(); renderReserve();
+        appState.activePouleTab = p1.poules.length > 0 ? p1.poules[0].letter : 'A'; saveState(); toggleArchitect(true); renderBoard(); renderReserve();
     }
 
-    function toggleArchitect(forceHide) {
-        if(forceHide) { 
-            document.getElementById('scenario-list').classList.add('hidden'); document.getElementById('manual-mode-panel').classList.add('hidden'); document.getElementById('architect-settings').classList.add('hidden'); document.getElementById('scenario-summary').classList.remove('hidden'); document.getElementById('btn-edit-architect').classList.remove('hidden'); 
-        } else { 
-            document.getElementById('scenario-list').classList.remove('hidden'); document.getElementById('manual-mode-panel').classList.remove('hidden'); document.getElementById('architect-settings').classList.remove('hidden'); document.getElementById('scenario-summary').classList.add('hidden'); document.getElementById('btn-edit-architect').classList.add('hidden'); 
-            appState.cats[appState.activeCat].phase1.formatStr = null; 
-        }
+    function toggleArchitect(hide) {
+        if(hide) { document.getElementById('scenario-list').classList.add('hidden'); document.getElementById('manual-mode-panel').classList.add('hidden'); document.getElementById('architect-settings').classList.add('hidden'); document.getElementById('scenario-summary').classList.remove('hidden'); document.getElementById('btn-edit-architect').classList.remove('hidden'); } 
+        else { document.getElementById('scenario-list').classList.remove('hidden'); document.getElementById('manual-mode-panel').classList.remove('hidden'); document.getElementById('architect-settings').classList.remove('hidden'); document.getElementById('scenario-summary').classList.add('hidden'); document.getElementById('btn-edit-architect').classList.add('hidden'); appState.cats[appState.activeCat].phase1.formatStr = null; }
     }
 
     function validateFormat() { getActivePhase().validated = true; saveState(); renderBoard(); }
 
-    // --- PHASE 2 (PEREQUATION) ---
+    // --- PHASE 2 PÉRÉQUATION ---
     function generatePhase2() {
         var p1 = appState.cats[appState.activeCat].phase1; var p2 = appState.cats[appState.activeCat].phase2;
         if(!p1.validated) return alert("Validez d'abord la Phase 1.");
@@ -744,8 +631,7 @@
         var rankCounts = {};
         var p2Teams = allTeams.map((t, idx) => { 
             rankCounts[t.mRank] = (rankCounts[t.mRank] || 0) + 1; var relRank = rankCounts[t.mRank];
-            var namePrefix = relRank === 1 ? "Meilleur " + t.mRank + (t.mRank===1?"er":"ème") : relRank + (relRank===1?"er":"ème") + " des " + t.mRank + (t.mRank===1?"ers":"èmes");
-            return { id: t.id, club: t.club, name: t.name + " (" + namePrefix + ")", level: idx+1, foreign: t.foreign, customNote: t.adjNote + "Ratio: " + t.avgPts.toFixed(2) + " pts/m", isDummy: false }; 
+            return { id: t.id, club: t.club, name: t.name + " (" + (relRank===1?"Meilleur "+t.mRank+(t.mRank===1?"er":"ème"):relRank+"e des "+t.mRank+"es") + ")", level: idx+1, foreign: t.foreign, isDummy: false }; 
         });
         
         var cfg = p2.targetConfig || {p4: Math.floor(allTeams.length/4), p6:0, p5:0, p3:0, rep:0};
@@ -755,7 +641,7 @@
         
         var tIndex = 0; p2.poules.forEach(p => { p.placeRange = "Places " + (tIndex+1) + " à " + (tIndex+p.target); for(var i=0; i<p.target; i++) { if (tIndex < p2Teams.length) { p.teams.push(p2Teams[tIndex]); tIndex++; } } });
         for(var i=tIndex; i<p2Teams.length; i++) p2.reserve.push(p2Teams[i]);
-        if(cfg.rep > 0) alert("Format appliqué. ATTENTION : " + cfg.rep + " repêchages nécessaires.");
+        if(cfg.rep > 0) alert("⚠️ " + cfg.rep + " repêchages nécessaires.");
         appState.activePouleTab = 'A'; saveState(); initCategoryUI();
     }
 
@@ -764,8 +650,7 @@
         if(p.teams.length !== p.target) return stats;
         MATRICES[p.target].forEach((m, mIdx) => {
             if(p.scores && p.scores[mIdx] && p.scores[mIdx].s1 !== '' && p.scores[mIdx].s2 !== '') {
-                var sA = parseInt(p.scores[mIdx].s1), sB = parseInt(p.scores[mIdx].s2);
-                var tA = stats[m.a - 1], tB = stats[m.b - 1];
+                var sA = parseInt(p.scores[mIdx].s1), sB = parseInt(p.scores[mIdx].s2); var tA = stats[m.a - 1], tB = stats[m.b - 1];
                 if(tA && tB) { tA.diff += (sA - sB); tB.diff += (sB - sA); if(sA > sB) { tA.pts += 3; tB.pts += 1; } else if (sA < sB) { tA.pts += 1; tB.pts += 3; } else { tA.pts += 2; tB.pts += 2; } }
             }
         });
@@ -773,13 +658,13 @@
         return stats.sort((a,b) => b.pts - a.pts || b.diff - a.diff);
     }
 
-    // --- INTERFACE MATCH BOARD ---
+    // --- BOARD DES MATCHS ---
     function renderBoard() {
         var phase = getActivePhase();
         if(!phase.poules || phase.poules.length === 0) { document.getElementById('match-board').innerHTML = ''; document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('deploy-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden'); return; }
         
         var currentT = 1; phase.poules.forEach(p => { p.terrainStart = currentT; currentT += p.tUsed; });
-        document.getElementById('terrain-counter').innerText = (currentT - 1) + " / " + MAX_TERRAINS[appState.activeCat];
+        document.getElementById('terrain-counter').innerText = (currentT - 1);
 
         if(!phase.validated) {
             document.getElementById('validation-zone').classList.remove('hidden'); document.getElementById('deploy-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden');
@@ -794,94 +679,63 @@
             document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('deploy-zone').classList.remove('hidden'); document.getElementById('poule-tabs').classList.remove('hidden');
             document.getElementById('poule-tabs').innerHTML = phase.poules.map(p => `<button onclick="appState.activePouleTab='${p.letter}';saveState();renderBoard()" class="px-6 py-2 rounded-lg font-black text-xs transition-all ${appState.activePouleTab === p.letter ? 'active-poule-tab shadow-lg' : 'bg-white text-slate-500 hover:bg-slate-50'}">Poule ${p.letter}</button>`).join('');
             
-            var pIdx = phase.poules.findIndex(x => x.letter === appState.activePouleTab); if (pIdx === -1) pIdx = 0; 
-            var p = phase.poules[pIdx]; if (!p) return;
+            var pIdx = phase.poules.findIndex(x => x.letter === appState.activePouleTab); if (pIdx === -1) pIdx = 0; var p = phase.poules[pIdx]; if (!p) return;
             
             document.getElementById('match-board').className = 'mt-4';
-            if(p.teams.length !== p.target) { document.getElementById('match-board').innerHTML = `<div class="text-center py-10"><button onclick="getActivePhase().poules[${pIdx}].target=${p.teams.length};saveState();renderBoard()" class="bg-amber-500 text-black px-4 py-2 rounded-lg font-black uppercase text-[10px] shadow-md">Adapter la matrice pour ${p.teams.length} équipes</button></div>`; return; }
+            if(p.teams.length !== p.target) { document.getElementById('match-board').innerHTML = `<div class="text-center py-10"><button onclick="getActivePhase().poules[${pIdx}].target=${p.teams.length};saveState();renderBoard()" class="bg-amber-500 px-4 py-2 rounded-lg font-black uppercase text-[10px] shadow-md">Adapter pour ${p.teams.length} équipes</button></div>`; return; }
 
             var isGhostPhase = false; for(var g=0; g<p.teams.length; g++) { if(p.teams[g] && p.teams[g].isDummy) isGhostPhase = true; }
-            var terrainColors = ['bg-slate-50', 'bg-blue-100', 'bg-green-100', 'bg-pink-100', 'bg-purple-100'];
+            var tColors = ['bg-slate-50', 'bg-blue-100', 'bg-green-100', 'bg-pink-100', 'bg-purple-100'];
             
             var matchesRows = MATRICES[p.target].map((m, mIdx) => {
                 var tStr = p.tUsed === 2 ? ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
                 var sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
-                var lockedAttr = isGhostPhase ? 'disabled' : ''; var opClass = isGhostPhase ? 'opacity-50' : '';
-                return `<tr class="${opClass}"><td class="font-bold text-slate-700 ${terrainColors[tStr%5]}">T.${tStr}</td><td class="excel-yellow ${p.teams[m.b-1]&&p.teams[m.b-1].isDummy?'text-indigo-600':''}">${p.teams[m.b-1]?p.teams[m.b-1].name:'?'}</td><td class="bg-slate-50 p-0"><input type="number" ${lockedAttr} class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" ${lockedAttr} class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td><td class="${p.teams[m.a-1]&&p.teams[m.a-1].isDummy?'text-indigo-600':''}">${p.teams[m.a-1]?p.teams[m.a-1].name:'?'}</td><td class="text-orange-600">${p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'}</td><td><input type="checkbox" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer" ${lockedAttr}></td></tr>`;
+                var lk = isGhostPhase ? 'disabled' : ''; var op = isGhostPhase ? 'opacity-50' : '';
+                return `<tr class="${op}"><td class="font-bold ${tColors[tStr%5]}">T.${tStr}</td><td class="excel-yellow">${p.teams[m.b-1]?p.teams[m.b-1].name:'?'}</td><td class="bg-slate-50 p-0"><input type="number" ${lk} class="w-full text-center font-black h-full py-2 outline-none no-print" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"><span class="print-only hidden font-black">${sc.s2}</span></td><td class="bg-slate-50 p-0"><input type="number" ${lk} class="w-full text-center font-black h-full py-2 outline-none no-print" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"><span class="print-only hidden font-black">${sc.s1}</span></td><td>${p.teams[m.a-1]?p.teams[m.a-1].name:'?'}</td><td class="text-orange-600">${p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'}</td><td class="no-print"><input type="checkbox" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" ${lk}></td></tr>`;
             }).join('');
 
             var classRows = computeRanking(p).map((r, idx) => {
                 var adj = p.adjustments && p.adjustments[r.id] ? p.adjustments[r.id] : {val:'', note:''};
-                var lockedAttr = isGhostPhase ? 'disabled' : ''; var opClass = isGhostPhase ? 'opacity-50' : '';
-                return `<tr class="${opClass}"><td class="excel-yellow">${idx+1}</td><td class="font-bold text-left px-2 ${r.ogTeam&&r.ogTeam.isDummy?'text-indigo-600 italic':''}">${r.name}</td><td class="font-black text-amber-600">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-1"><input type="number" ${lockedAttr} value="${adj.val}" class="w-12 text-center border rounded text-xs py-1" onblur="updateAdjVal(${pIdx}, ${r.id}, this.value)"></td><td class="p-1"><input type="text" ${lockedAttr} value="${adj.note}" class="w-full text-left px-2 border rounded text-xs py-1" onblur="updateAdjNote(${pIdx}, ${r.id}, this.value)"></td></tr>`;
+                var lk = isGhostPhase ? 'disabled' : ''; var op = isGhostPhase ? 'opacity-50' : '';
+                return `<tr class="${op}"><td class="excel-yellow">${idx+1}</td><td class="font-bold text-left px-2">${r.name}</td><td class="font-black text-amber-600">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-1 no-print"><input type="number" ${lk} value="${adj.val}" class="w-10 text-center border rounded py-1" onblur="updateAdjVal(${pIdx}, ${r.id}, this.value)"></td></tr>`;
             }).join('');
 
-            document.getElementById('match-board').innerHTML = `<div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full"><div class="flex justify-between items-center mb-4 border-b pb-4"><h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[12px] text-indigo-500 ml-2">${p.placeRange||''}</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600">Détacher vue</button></h3><select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select></div>${isGhostPhase?'<div class="bg-indigo-100 text-indigo-800 text-center py-2 text-xs font-black uppercase tracking-widest rounded-xl mb-4">Vue Fantôme (Saisie bloquée)</div>':''}<div class="flex flex-col lg:flex-row gap-6 items-start"><table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table><div class="flex-1 w-full"><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajust.</th><th>Motif</th></tr></thead><tbody>${classRows}</tbody></table></div></div></div>`;
+            document.getElementById('match-board').innerHTML = `<div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full"><div class="flex justify-between items-center mb-4 border-b pb-4 no-print"><h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[12px] text-indigo-500 ml-2">${p.placeRange||''}</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded">Détacher vue</button></h3><select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select></div>${isGhostPhase?'<div class="bg-indigo-100 text-indigo-800 text-center py-2 text-xs font-black uppercase tracking-widest rounded-xl mb-4 no-print">Vue Fantôme (Saisie bloquée)</div>':''}<div class="flex flex-col lg:flex-row gap-6 items-start"><div class="w-full lg:w-1/2"><h4 class="print-only hidden font-black mb-2 uppercase">Matchs Poule ${p.letter}</h4><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th class="no-print">Lock</th></tr></thead><tbody>${matchesRows}</tbody></table></div><div class="w-full lg:w-1/2"><h4 class="print-only hidden font-black mb-2 uppercase">Classement Poule ${p.letter}</h4><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th class="no-print">Ajust.</th></tr></thead><tbody>${classRows}</tbody></table></div></div></div>`;
         }
     }
 
-    function renderReserve() {
-        var phase = appState.cats[appState.activeCat].phase1; document.getElementById('reserve-count').innerText = phase.reserve.length;
-        document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move relative ${t.isForfait?'forfait':''}">${t.name} <button onclick="toggleForfait('${t.id}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center">🚫</button></div>`).join('') || '<div class="opacity-20 text-[10px] text-center italic">Vide</div>';
-    }
-
+    // Drag & Drop
     function allowDrop(e) { e.preventDefault(); }
     function dragFromPoule(e, pIdx, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ src: 'poule', pIdx:pIdx, tIdx:tIdx })); }
     function dragFromReserve(e, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ src: 'reserve', tIdx:tIdx })); }
-    function dropToPoule(e, targetPIdx) { 
-        e.preventDefault(); var d = JSON.parse(e.dataTransfer.getData("application/json")); var phase = getActivePhase(); 
-        var team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : phase.reserve.splice(d.tIdx, 1)[0]; 
-        if (team) { phase.poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); } 
-    }
-    function dropToReserve(e) { 
-        e.preventDefault(); var d = JSON.parse(e.dataTransfer.getData("application/json")); var phase = getActivePhase(); 
-        if (d.src === 'poule') { phase.reserve.push(phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); } 
-    }
+    function dropToPoule(e, targetPIdx) { e.preventDefault(); var d = JSON.parse(e.dataTransfer.getData("application/json")); var phase = getActivePhase(); var team = d.src === 'poule' ? (d.pIdx !== targetPIdx ? phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : null) : phase.reserve.splice(d.tIdx, 1)[0]; if (team) { phase.poules[targetPIdx].teams.push(team); saveState(); renderBoard(); renderReserve(); } }
+    function dropToReserve(e) { e.preventDefault(); var d = JSON.parse(e.dataTransfer.getData("application/json")); var phase = getActivePhase(); if (d.src === 'poule') { phase.reserve.push(phase.poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(); renderReserve(); } }
 
-    // --- MISE A JOUR SCORES ET FIREBASE ---
+    // --- SCORES & FIREBASE ---
     function updateScore(pIdx, mIdx, field, val) { 
-        var p = getActivePhase().poules[pIdx]; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; 
-        p.scores[mIdx][field] = val; saveState(); renderBoard(); 
-        if (db && appState.tournoiId) { 
-            var updateObj = {}; updateObj[field] = val === '' ? '' : parseInt(val); updateObj['auth_token'] = appState.pinCode;
-            db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mIdx+1}`).update(updateObj); 
-        } 
+        var p = getActivePhase().poules[pIdx]; if(!p.scores[mIdx]) p.scores[mIdx] = {s1:'', s2:'', locked:false}; p.scores[mIdx][field] = val; saveState(); renderBoard(); 
+        if (db && appState.tournoiId) { var updateObj = {}; updateObj[field] = val === '' ? '' : parseInt(val); updateObj['auth_token'] = appState.pinCode; db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mIdx+1}`).update(updateObj); } 
         syncStandings(); if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
     }
-    function toggleLock(pIdx, mIdx, isLocked) { 
-        var p = getActivePhase().poules[pIdx]; p.scores[mIdx].locked = isLocked; saveState(); renderBoard(); 
-        if (db && appState.tournoiId) db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mIdx+1}`).update({ locked: isLocked, auth_token: appState.pinCode }); 
-        syncStandings(); if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
-    }
-    function updateAdjVal(pIdx, tId, val) { 
-        var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; 
-        p.adjustments[tId].val = val; saveState(); renderBoard(); syncStandings(); if (appState.currentPhase === 'PHASE2') computeTrophy(true, false); 
-    }
-    function updateAdjNote(pIdx, tId, note) { 
-        var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; 
-        p.adjustments[tId].note = note; saveState(); renderBoard(); 
-    }
+    function toggleLock(pIdx, mIdx, isLocked) { var p = getActivePhase().poules[pIdx]; p.scores[mIdx].locked = isLocked; saveState(); renderBoard(); if (db && appState.tournoiId) db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mIdx+1}`).update({ locked: isLocked, auth_token: appState.pinCode }); syncStandings(); }
+    function updateAdjVal(pIdx, tId, val) { var p = getActivePhase().poules[pIdx]; if(!p.adjustments) p.adjustments = {}; if(!p.adjustments[tId]) p.adjustments[tId] = {val:'', note:''}; p.adjustments[tId].val = val; saveState(); renderBoard(); syncStandings(); if (appState.currentPhase === 'PHASE2') computeTrophy(true, false); }
 
     function syncStandings() {
-        if (!db || !appState.tournoiId) return;
-        var phase = getActivePhase(); var standings = {};
+        if (!db || !appState.tournoiId) return; var phase = getActivePhase(); var standings = {};
         phase.poules.forEach(p => { if(p.teams.length === p.target) { standings[p.letter] = JSON.stringify(computeRanking(p).map(r => ({ name: r.name, pts: r.pts, diff: r.diff, isDummy: (r.ogTeam && r.ogTeam.isDummy) ? true : false }))); } });
         db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/standings`).update(standings);
     }
 
     var syncListener = null;
     function attachFirebaseListener() {
-        if (!db || !appState.tournoiId) return; 
-        if (syncListener) syncListener.ref.off('child_changed', syncListener.cb);
+        if (!db || !appState.tournoiId) return; if (syncListener) syncListener.ref.off('child_changed', syncListener.cb);
         var refStr = `t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches`;
         var cb = db.ref(refStr).on('child_changed', snap => {
             var data = snap.val(); var m = snap.key.match(/^P([A-Za-z]+)_M(\d+)$/); 
             if(m) { 
-                var pLetter = m[1]; var mIdx = parseInt(m[2]) - 1; var phaseData = getActivePhase(); 
-                var pIdx = phaseData.poules.findIndex(x => x.letter === pLetter);
+                var pLetter = m[1]; var mIdx = parseInt(m[2]) - 1; var phaseData = getActivePhase(); var pIdx = phaseData.poules.findIndex(x => x.letter === pLetter);
                 if(pIdx > -1) { 
-                    if(!phaseData.poules[pIdx].scores) phaseData.poules[pIdx].scores = {}; 
-                    if(!phaseData.poules[pIdx].scores[mIdx]) phaseData.poules[pIdx].scores[mIdx] = {s1:'', s2:'', locked:false}; 
+                    if(!phaseData.poules[pIdx].scores) phaseData.poules[pIdx].scores = {}; if(!phaseData.poules[pIdx].scores[mIdx]) phaseData.poules[pIdx].scores[mIdx] = {s1:'', s2:'', locked:false}; 
                     phaseData.poules[pIdx].scores[mIdx].s1 = data.s1; phaseData.poules[pIdx].scores[mIdx].s2 = data.s2; phaseData.poules[pIdx].scores[mIdx].locked = data.locked; 
                     saveState(); renderBoard(); syncStandings(); if (appState.currentPhase === 'PHASE2') computeTrophy(true, false);
                 } 
@@ -897,10 +751,10 @@
     }
 
     function deployCategory() {
-        if (!db || !appState.tournoiId) return alert("Tournoi non initialisé."); 
+        if (!db || !appState.tournoiId) return alert("Tournoi non connecté à Firebase."); 
         var updates = {}; var globalOrder = 1; var hasGhosts = false;
         getActivePhase().poules.forEach(p => { for(var i=0; i<p.teams.length; i++) { if(p.teams[i] && p.teams[i].isDummy) hasGhosts = true; } });
-        if(hasGhosts && !confirm("⚠️ Vous déployez l'ossature fantôme sur le public. Continuer ?")) return; 
+        if(hasGhosts && !confirm("⚠️ Vous déployez des équipes fantômes au public. Continuer ?")) return; 
         
         getActivePhase().poules.forEach(p => {
             if (p.teams.length === p.target) {
@@ -914,33 +768,15 @@
                 });
             }
         });
-        if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement réussi !"); }); }
-    }
-
-    function printCategoryResults() {
-        var phase = getActivePhase(); if(!phase.poules || phase.poules.length === 0 || (phase.poules[0].teams[0] && phase.poules[0].teams[0].isDummy)) return alert("Classement non disponible pour l'impression.");
-        var htmlContent = '<div style="font-family:sans-serif;"><h2>CLASSEMENT OFFICIEL - '+appState.activeCat+' - '+appState.currentPhase+'</h2>';
-        var currentAbsRank = 1;
-        phase.poules.forEach(p => {
-            if(p.teams.length !== p.target) return; var ranking = computeRanking(p);
-            htmlContent += '<h3 style="margin-top:20px; border-bottom:2px solid #000; padding-bottom:5px;">POULE '+p.letter+' <span style="font-size:12px; font-weight:normal;">('+(p.placeRange||'')+')</span></h3>';
-            htmlContent += '<table style="width:100%; border-collapse:collapse; text-align:left; font-size:14px;"><thead><tr style="background:#eee;"><th style="padding:5px; border:1px solid #ccc; text-align:center;">Rang Poule</th><th style="padding:5px; border:1px solid #ccc; text-align:center; color:#d97706;">Rang Général</th><th style="padding:5px; border:1px solid #ccc;">Équipe</th><th style="padding:5px; border:1px solid #ccc; text-align:center;">Pts</th><th style="padding:5px; border:1px solid #ccc; text-align:center;">Diff</th></tr></thead><tbody>';
-            ranking.forEach((r, idx) => { var absRank = currentAbsRank + idx; htmlContent += '<tr><td style="padding:5px; border:1px solid #ccc; font-weight:bold; text-align:center;">'+(idx+1)+'</td><td style="padding:5px; border:1px solid #ccc; font-weight:bold; color:#d97706; text-align:center;">'+absRank+'</td><td style="padding:5px; border:1px solid #ccc;">'+r.name+'</td><td style="padding:5px; border:1px solid #ccc; text-align:center;">'+r.pts+'</td><td style="padding:5px; border:1px solid #ccc; text-align:center;">'+(r.diff>0?'+'+r.diff:r.diff)+'</td></tr>'; });
-            htmlContent += '</tbody></table>'; currentAbsRank += p.target;
-        });
-        htmlContent += '</div>'; 
-        var printWindow = window.open('', '_blank', 'width=800,height=600'); printWindow.document.write('<html><head><title>Classement</title></head><body>' + htmlContent + '</body></html>'); printWindow.document.close(); printWindow.onload = function() { printWindow.print(); }
+        if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement Live réussi !"); }); }
     }
 
     // --- TROPHEE ---
     function computeTrophy(forceBroadcast, isDefinitive) {
-        document.getElementById('trophy-empty').classList.add('hidden'); document.getElementById('trophy-podium').classList.remove('hidden'); document.getElementById('trophy-list').classList.remove('hidden');
         var clubs = {}; appState.masterData.forEach(c => clubs[c.name] = { name: c.name, U8: 999, U10: 999, U12: 999, pts: 0 });
-
         ['U8', 'U10', 'U12'].forEach(cat => {
             var p2 = appState.cats[cat].phase2; if (!p2.poules || p2.poules.length === 0 || (p2.poules[0].teams[0] && p2.poules[0].teams[0].isDummy)) return;
-            var currentAbsRank = 1;
-            p2.poules.forEach(p => { 
+            var currentAbsRank = 1; p2.poules.forEach(p => { 
                 if(p.teams.length !== p.target) return; var ranking = computeRanking(p); 
                 ranking.forEach((r, idx) => { var absRank = currentAbsRank + idx; var clubName = r.ogTeam ? r.ogTeam.club : null; if (clubName && clubs[clubName] && absRank < clubs[clubName][cat]) clubs[clubName][cat] = absRank; }); 
                 currentAbsRank += p.target; 
@@ -951,82 +787,33 @@
         Object.keys(clubs).forEach(k => { var c = clubs[k]; ['U8', 'U10', 'U12'].forEach(cat => { if (c[cat] <= 10) c.pts += pointsMap[c[cat]]; }); });
         var sorted = Object.keys(clubs).map(k => clubs[k]).filter(c => c.pts > 0).sort((a, b) => b.pts - a.pts || a.U12 - b.U12 || a.U10 - b.U10 || a.U8 - b.U8);
 
-        renderTrophy(sorted);
+        if(sorted.length === 0) { document.getElementById('trophy-empty').classList.remove('hidden'); document.getElementById('trophy-podium').classList.add('hidden'); document.getElementById('trophy-list').classList.add('hidden'); }
+        else {
+            document.getElementById('trophy-empty').classList.add('hidden'); document.getElementById('trophy-podium').classList.remove('hidden'); document.getElementById('trophy-list').classList.remove('hidden');
+            var pHtml = '';
+            if(sorted[1]) pHtml += `<div class="flex flex-col items-center justify-end h-48"><div class="text-center font-bold text-sm mb-2 text-slate-600 truncate w-32">${sorted[1].name}</div><div class="bg-slate-300 w-32 h-3/4 rounded-t-xl flex flex-col items-center pt-4 shadow-inner"><span class="text-3xl">🥈</span><span class="font-black text-xl mt-2 text-slate-500">${sorted[1].pts} pts</span></div></div>`;
+            if(sorted[0]) pHtml += `<div class="flex flex-col items-center justify-end h-64"><div class="text-center font-black text-lg mb-2 text-amber-600 truncate w-40">${sorted[0].name}</div><div class="bg-amber-400 w-40 h-full rounded-t-xl flex flex-col items-center pt-4 shadow-inner"><span class="text-5xl drop-shadow-md">🏆</span><span class="font-black text-3xl mt-4 text-amber-900">${sorted[0].pts} pts</span></div></div>`;
+            if(sorted[2]) pHtml += `<div class="flex flex-col items-center justify-end h-40"><div class="text-center font-bold text-sm mb-2 text-slate-600 truncate w-32">${sorted[2].name}</div><div class="bg-orange-300 w-32 h-2/3 rounded-t-xl flex flex-col items-center pt-4 shadow-inner"><span class="text-3xl">🥉</span><span class="font-black text-xl mt-2 text-orange-800">${sorted[2].pts} pts</span></div></div>`;
+            document.getElementById('trophy-podium').innerHTML = pHtml;
+            document.getElementById('trophy-tbody').innerHTML = sorted.map((c, idx) => `<tr><td class="p-3 font-black ${idx<3?'text-amber-500':'text-slate-400'}">${idx+1}</td><td class="p-3 font-bold text-slate-800 uppercase">${c.name}</td><td class="p-3 text-center text-xs font-bold ${c.U8===999?'text-slate-300':'text-blue-500'}">${c.U8===999?'-':(c.U8<=10?c.U8+'e ('+pointsMap[c.U8]+'pt)':'11+')}</td><td class="p-3 text-center text-xs font-bold ${c.U10===999?'text-slate-300':'text-slate-600'}">${c.U10===999?'-':(c.U10<=10?c.U10+'e ('+pointsMap[c.U10]+'pt)':'11+')}</td><td class="p-3 text-center text-xs font-bold ${c.U12===999?'text-slate-300':'text-red-500'}">${c.U12===999?'-':(c.U12<=10?c.U12+'e ('+pointsMap[c.U12]+'pt)':'11+')}</td><td class="p-3 text-center font-black text-amber-600 text-lg">${c.pts}</td></tr>`).join('');
+        }
         if (forceBroadcast && db && appState.tournoiId) { db.ref(`t3n/${appState.tournoiId}/trophy_data`).set({ status: isDefinitive ? 'valide' : 'provisoire', payload: JSON.stringify(sorted) }); if(isDefinitive) alert("✅ Podium validé et diffusé !"); }
     }
 
-    function renderTrophy(sortedList) {
-        if(sortedList.length === 0) { document.getElementById('trophy-empty').classList.remove('hidden'); document.getElementById('trophy-podium').classList.add('hidden'); document.getElementById('trophy-list').classList.add('hidden'); return; }
-        var pHtml = '';
-        if(sortedList[1]) pHtml += `<div class="flex flex-col items-center justify-end h-48"><div class="text-center font-bold text-sm mb-2 text-slate-600 truncate w-32">${sortedList[1].name}</div><div class="bg-slate-300 w-32 h-3/4 rounded-t-xl flex flex-col items-center pt-4 shadow-inner"><span class="text-3xl">🥈</span><span class="font-black text-xl mt-2 text-slate-500">${sortedList[1].pts} pts</span></div></div>`;
-        if(sortedList[0]) pHtml += `<div class="flex flex-col items-center justify-end h-64"><div class="text-center font-black text-lg mb-2 text-amber-600 truncate w-40">${sortedList[0].name}</div><div class="bg-amber-400 w-40 h-full rounded-t-xl flex flex-col items-center pt-4 shadow-inner"><span class="text-5xl drop-shadow-md">🏆</span><span class="font-black text-3xl mt-4 text-amber-900">${sortedList[0].pts} pts</span></div></div>`;
-        if(sortedList[2]) pHtml += `<div class="flex flex-col items-center justify-end h-40"><div class="text-center font-bold text-sm mb-2 text-slate-600 truncate w-32">${sortedList[2].name}</div><div class="bg-orange-300 w-32 h-2/3 rounded-t-xl flex flex-col items-center pt-4 shadow-inner"><span class="text-3xl">🥉</span><span class="font-black text-xl mt-2 text-orange-800">${sortedList[2].pts} pts</span></div></div>`;
-        document.getElementById('trophy-podium').innerHTML = pHtml;
-        var pointsMap = {1:10, 2:9, 3:8, 4:7, 5:6, 6:5, 7:4, 8:3, 9:2, 10:1};
-        document.getElementById('trophy-tbody').innerHTML = sortedList.map((c, idx) => `<tr><td class="p-4 font-black ${idx<3?'text-amber-500':'text-slate-400'}">${idx+1}</td><td class="p-4 font-bold text-slate-800 uppercase">${c.name}</td><td class="p-4 text-center text-xs font-bold ${c.U8===999?'text-slate-300':'text-blue-500'}">${c.U8===999?'-':(c.U8<=10?c.U8+'e ('+pointsMap[c.U8]+'pt)':'11+')}</td><td class="p-4 text-center text-xs font-bold ${c.U10===999?'text-slate-300':'text-slate-600'}">${c.U10===999?'-':(c.U10<=10?c.U10+'e ('+pointsMap[c.U10]+'pt)':'11+')}</td><td class="p-4 text-center text-xs font-bold ${c.U12===999?'text-slate-300':'text-red-500'}">${c.U12===999?'-':(c.U12<=10?c.U12+'e ('+pointsMap[c.U12]+'pt)':'11+')}</td><td class="p-4 text-center font-black text-amber-600 text-lg">${c.pts}</td></tr>`).join('');
-    }
-
-    // --- EXPORTS & MAINTENANCE ---
-    function exportJSON() {
-        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
-        var dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", dataStr); dlAnchorElem.setAttribute("download", "t3n_backup_" + appState.tournoiId + "_" + new Date().getTime() + ".json");
-        document.body.appendChild(dlAnchorElem); dlAnchorElem.click(); document.body.removeChild(dlAnchorElem);
-    }
-
-    function importJSON(event) {
-        var file = event.target.files[0]; if (!file) return;
-        var reader = new FileReader();
-        reader.onload = function(e) { try { appState = JSON.parse(e.target.result); saveState(); alert("Sauvegarde restaurée avec succès."); location.reload(); } catch(err) { alert("Erreur de lecture du fichier JSON."); } };
-        reader.readAsText(file);
-    }
-
-    function exportExcel() {
-        var csv = "Categorie;Phase;Poule;Terrain;Ordre;Equipe 1;Score 1;Score 2;Equipe 2;Arbitre\n";
-        ['U6','U8','U10','U12'].forEach(cat => {
-            ['phase1','phase2'].forEach(ph => {
-                var phase = appState.cats[cat][ph];
-                if(phase && phase.poules) {
-                    phase.poules.forEach(p => {
-                        if(p.teams.length === p.target) {
-                            MATRICES[p.target].forEach((m, idx) => {
-                                var tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
-                                var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:''};
-                                var tA = p.teams[m.a-1] ? p.teams[m.a-1].name : '?'; var tB = p.teams[m.b-1] ? p.teams[m.b-1].name : '?'; var tArb = p.teams[m.arb-1] ? p.teams[m.arb-1].name : '?';
-                                csv += `${cat};${ph};${p.letter};T.${tStr};${idx+1};${tA};${sc.s1};${sc.s2};${tB};${tArb}\n`;
-                            });
-                        }
-                    });
-                }
-            });
-        });
-        var dlAnchorElem = document.createElement('a'); dlAnchorElem.setAttribute("href", "data:text/csv;charset=utf-8,%EF%BB%BF" + encodeURIComponent(csv)); dlAnchorElem.setAttribute("download", "t3n_export_planning_" + appState.tournoiId + ".csv");
-        document.body.appendChild(dlAnchorElem); dlAnchorElem.click(); document.body.removeChild(dlAnchorElem);
-    }
-
+    // --- PURGE ---
     function purge(type) {
-        if(!db || !appState.tournoiId) return alert("Tournoi non connecté."); 
-        var cat = document.getElementById('maint-cat').value;
-        
+        if(!db || !appState.tournoiId) return alert("Non connecté."); var cat = document.getElementById('maint-cat').value;
         if(type==='scores') { 
             if(confirm("Réinitialiser les scores pour " + cat + " " + appState.currentPhase + " ?")) { 
                 db.ref(`t3n/${appState.tournoiId}/${cat}_${appState.currentPhase}/matches`).once('value').then(snap => { 
                     if(snap.exists()) { 
                         var ups = {}; snap.forEach(c => { ups[c.key+'/s1']=''; ups[c.key+'/s2']=''; ups[c.key+'/locked']=false; }); 
-                        db.ref(`t3n/${appState.tournoiId}/${cat}_${appState.currentPhase}/matches`).update(ups).then(() => {
-                            appState.cats[cat][appState.currentPhase.toLowerCase()].poules.forEach(p => { if(p.scores) { Object.keys(p.scores).forEach(k => { p.scores[k]={s1:'',s2:'',locked:false}; }); }});
-                            saveState(); alert("Scores réinitialisés !"); renderBoard();
-                        }); 
+                        db.ref(`t3n/${appState.tournoiId}/${cat}_${appState.currentPhase}/matches`).update(ups).then(() => { appState.cats[cat][appState.currentPhase.toLowerCase()].poules.forEach(p => { if(p.scores) { Object.keys(p.scores).forEach(k => { p.scores[k]={s1:'',s2:'',locked:false}; }); }}); saveState(); alert("Scores réinitialisés !"); location.reload(); }); 
                     } 
                 }); 
             } 
         } 
-        else if (type==='teams') { 
-            if (confirm("Effacer l'ossature locale et cloud pour les "+cat+" ?")) { 
-                db.ref(`t3n/${appState.tournoiId}/${cat}_${appState.currentPhase}`).remove().then(() => { 
-                    appState.cats[cat] = initCatState(); saveState(); alert("Purge terminée."); location.reload(); 
-                }); 
-            } 
-        }
+        else if (type==='teams') { if (confirm("Effacer l'ossature pour les "+cat+" ?")) { db.ref(`t3n/${appState.tournoiId}/${cat}_${appState.currentPhase}`).remove().then(() => { appState.cats[cat] = initCatState(); saveState(); alert("Purge terminée."); location.reload(); }); } }
     }
 </script>
 </body>
