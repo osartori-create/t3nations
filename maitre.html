@@ -374,21 +374,50 @@
     // --- QR CODES ---
     function openQRModal() { document.getElementById('qr-modal').classList.remove('hidden'); document.getElementById('qr-modal').classList.add('flex'); renderQRCodes(); }
     function renderQRCodes() {
-        var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
-        var tId = appState.tournoiId; var pin = appState.pinCode;
-        var urlPublic = baseUrl + "/public.html?id=" + tId;
-        document.getElementById('qr-public').innerHTML = ""; new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 100, height: 100, colorDark: "#000", colorLight: "#fff" });
-        document.getElementById('link-public').innerText = urlPublic; document.getElementById('link-public').href = urlPublic;
+        var baseUrl = (appState.branding.baseUrl || "https://osartori-create.github.io/t3nations").replace(/\/$/, "");
+        var tId = appState.tournoiId;
+        var pin = appState.pinCode;
 
-        var qrContainer = document.getElementById('qr-terrains'); qrContainer.innerHTML = "";
-        for (var i = 1; i <= 8; i++) {
-            var urlTerrain = baseUrl + "/terrain.html?id=" + tId + "&t=" + i + "&key=" + pin;
-            var card = document.createElement('div'); card.className = "bg-white border border-slate-200 p-3 rounded-2xl flex flex-col items-center text-center shadow-sm";
-            var title = document.createElement('p'); title.className = "font-black text-indigo-600 uppercase mb-2 text-xs"; title.innerText = "T " + i;
-            var qrDiv = document.createElement('div'); qrDiv.className = "mb-2"; new QRCode(qrDiv, { text: urlTerrain, width: 90, height: 90, colorDark: "#4f46e5", colorLight: "#ffffff" });
-            var link = document.createElement('a'); link.className = "text-[7px] font-bold text-slate-400 underline break-all mt-1"; link.href = urlTerrain; link.target = "_blank"; link.innerText = "Lien";
-            card.appendChild(title); card.appendChild(qrDiv); card.appendChild(link); qrContainer.appendChild(card);
-        }
+        // 1. QR Code Public (inchangé)
+        var urlPublic = baseUrl + "/public.html?id=" + tId;
+        document.getElementById('qr-public').innerHTML = "";
+        new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 100, height: 100, colorDark: "#000", colorLight: "#fff" });
+        document.getElementById('link-public').innerText = urlPublic;
+        document.getElementById('link-public').href = urlPublic;
+
+        // 2. Génération des QR Codes par CATÉGORIE et par TERRAIN
+        var qrContainer = document.getElementById('qr-terrains');
+        qrContainer.innerHTML = ""; // On vide
+        
+        var cats = ['U8', 'U10', 'U12']; // On génère pour les catégories principales
+        
+        cats.forEach(cat => {
+            // Création d'un titre pour la catégorie
+            var catHeader = document.createElement('div');
+            catHeader.className = "col-span-full border-b-2 border-slate-200 pb-1 mt-4 mb-2";
+            catHeader.innerHTML = `<h4 class="font-black text-slate-800 uppercase text-sm">Catégorie ${cat}</h4>`;
+            qrContainer.appendChild(catHeader);
+
+            var maxT = MAX_TERRAINS[cat];
+            for (var i = 1; i <= maxT; i++) {
+                // L'URL contient maintenant &cat=U8 par exemple
+                var urlTerrain = `${baseUrl}/terrain.html?id=${tId}&cat=${cat}&t=${i}&key=${pin}`;
+                
+                var card = document.createElement('div');
+                card.className = "bg-white border border-slate-200 p-3 rounded-2xl flex flex-col items-center text-center shadow-sm";
+                
+                var title = document.createElement('p');
+                title.className = "font-black text-indigo-600 uppercase mb-2 text-[10px]";
+                title.innerText = `${cat} - T.${i}`;
+                
+                var qrDiv = document.createElement('div');
+                qrDiv.className = "mb-2";
+                new QRCode(qrDiv, { text: urlTerrain, width: 90, height: 90, colorDark: "#4f46e5", colorLight: "#ffffff" });
+                
+                card.appendChild(title);
+                card.appendChild(qrDiv);
+                qrContainer.appendChild(card);
+            }
     }
 
     // --- EXPORTS EXCEL ---
@@ -708,7 +737,7 @@ function renderReserve() {
         document.getElementById('reserve-count').innerText = phase.reserve.length;
         document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move relative ${t.isForfait?'forfait':''}">${t.name} <button onclick="toggleForfait('${t.id}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center no-print">🚫</button></div>`).join('') || '<div class="opacity-20 text-[10px] text-center italic">Vide</div>';
     }
-    
+
     // Drag & Drop
     function allowDrop(e) { e.preventDefault(); }
     function dragFromPoule(e, pIdx, tIdx) { e.dataTransfer.setData("application/json", JSON.stringify({ src: 'poule', pIdx:pIdx, tIdx:tIdx })); }
