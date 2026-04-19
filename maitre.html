@@ -1,228 +1,423 @@
 <!DOCTYPE html>
 <html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T3N Nations Master - V51 Pro</title>
+    
     <link rel="manifest" href="manifest.json">
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
       }
     </script>
-<head>
-    <meta charset="UTF-8"><title>T3N Master V50 - Full</title>
+
+    <script>
+        window.onerror = function(message, source, lineno) { 
+            alert("🛑 ERREUR SYSTEME\nLigne : " + lineno + "\nMessage : " + message); 
+            return false; 
+        };
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
     <style>
         :root { --primary-color: #f59e0b; }
-        .tab-btn { color: white; opacity: 0.6; cursor: pointer; padding: 8px 16px; font-weight: 900; text-transform: uppercase; font-size: 10px; }
-        .tab-btn.active-tab { opacity: 1; background: var(--primary-color); color: #000; border-radius: 8px; }
+        .tab-btn { color: white; opacity: 0.7; transition: all 0.2s; cursor: pointer; border-radius: 8px; font-weight: 900; text-transform: uppercase; font-size: 10px; padding: 8px 16px; }
+        .tab-btn.active-tab { opacity: 1; background-color: var(--primary-color); color: #000; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .active-poule-tab { background: #1e293b !important; color: #fff !important; }
-        .scenario-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 10px; cursor: pointer; background: white; margin-bottom: 8px; }
-        .scenario-active { border-color: var(--primary-color) !important; background: #fffbeb !important; }
+        .scenario-card { transition: all 0.2s; cursor: pointer; border: 2px solid #e2e8f0; border-radius: 15px; background: white; padding: 12px; }
+        .scenario-active { border-color: var(--primary-color) !important; background-color: #fffbeb !important; }
+        .forfait { opacity: 0.35; filter: grayscale(1); text-decoration: line-through; }
+        .sas-overlay { backdrop-filter: blur(10px); background: rgba(15, 23, 42, 0.9); }
         .excel-table { border-collapse: collapse; width: 100%; text-align: center; font-size: 11px; }
-        .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 6px; }
-        .excel-header { background: #f1f5f9; font-weight: 900; }
-        .excel-yellow { background: #fef08a; font-weight: 900; }
+        .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 6px 4px; }
+        .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
+        .excel-yellow { background-color: #fef08a; font-weight: 900; }
         @media print { .no-print { display: none !important; } .print-only { display: block !important; } }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans" onload="initApp()">
-<div id="sas-entree" class="fixed inset-0 z-[100] bg-slate-900/95 flex items-center justify-center p-4 no-print">
-    <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border-4 border-amber-500">
-        <h2 class="text-3xl font-black italic mb-6 text-center">T3N <span class="text-amber-500">MASTER</span></h2>
-        <input type="text" id="sas-id" class="w-full bg-slate-100 p-4 rounded-xl font-black uppercase mb-4 outline-none" placeholder="ID TOURNOI">
-        <input type="number" id="sas-pin" class="w-full bg-slate-100 p-4 rounded-xl font-black text-2xl tracking-widest text-center mb-4 outline-none" placeholder="0000">
-        <button onclick="validerSas()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black uppercase">Démarrer</button>
+<body class="bg-slate-100 font-sans text-slate-900 min-h-screen" onload="initApp()">
+
+<div id="sas-entree" class="fixed inset-0 z-[100] sas-overlay flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl border-4" style="border-color: var(--primary-color);">
+        <h2 class="text-3xl font-black uppercase italic mb-4 text-center text-slate-800">T3N <span style="color: var(--primary-color);">MASTER</span></h2>
+        <div class="space-y-4">
+            <input type="text" id="sas-id" class="w-full bg-slate-100 p-4 rounded-2xl font-black uppercase outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);" placeholder="ID DU TOURNOI">
+            <input type="number" id="sas-pin" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-2xl tracking-[1rem] text-center outline-none" placeholder="0000">
+            <button onclick="validerSas()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase hover:bg-slate-800 transition-all">Lancer l'application</button>
+        </div>
     </div>
 </div>
-<div id="qr-modal" class="fixed inset-0 z-[110] bg-slate-900/90 hidden items-center justify-center p-4 no-print">
-    <div class="bg-white rounded-[2rem] p-6 max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-        <div class="flex justify-between mb-4 border-b pb-2"><h2 class="font-black uppercase italic">📱 QR Codes Terrains</h2><button onclick="document.getElementById('qr-modal').classList.add('hidden');document.getElementById('qr-modal').classList.remove('flex')" class="text-xs font-black">FERMER</button></div>
-        <input type="text" id="cfg-base-url" onchange="appState.branding.baseUrl=this.value;saveState();renderQRCodes();" class="w-full p-2 border rounded mb-4 text-xs font-bold" placeholder="URL GitHub Pages">
-        <div id="qr-list" class="overflow-y-auto flex-1 space-y-4"></div>
+
+<div id="qr-modal" class="fixed inset-0 z-[110] sas-overlay hidden flex-col items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-[2rem] p-6 max-w-5xl w-full shadow-2xl flex flex-col max-h-[90vh]">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h2 class="text-2xl font-black uppercase italic">📱 Partage des Terrains</h2>
+            <button onclick="document.getElementById('qr-modal').classList.remove('flex'); document.getElementById('qr-modal').classList.add('hidden');" class="bg-slate-200 px-4 py-2 rounded-lg font-black uppercase text-xs">Fermer</button>
+        </div>
+        <input type="text" id="cfg-base-url" onchange="appState.branding.baseUrl = this.value; saveState(); renderQRCodes();" class="w-full bg-slate-100 p-3 rounded-xl mb-4 font-bold outline-none border" placeholder="URL GitHub Pages">
+        <div class="overflow-y-auto flex-1 space-y-6" id="qr-terrains-list"></div>
     </div>
 </div>
-<header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center sticky top-0 z-50 no-print border-b-4 border-amber-500">
-    <div class="flex items-center gap-4">
-        <h1 class="text-xl font-black italic uppercase" id="header-title">MASTER</h1>
-        <nav class="flex gap-1 bg-white/5 p-1 rounded-lg">
-            <button onclick="showTab('IMPORT')" id="tab-IMPORT" class="tab-btn active-tab">Import</button>
-            <button onclick="showTab('U8')" id="tab-U8" class="tab-btn">U8</button>
-            <button onclick="showTab('U10')" id="tab-U10" class="tab-btn">U10</button>
-            <button onclick="showTab('U12')" id="tab-U12" class="tab-btn">U12</button>
-            <button onclick="showTab('TROPHEE')" id="tab-TROPHEE" class="tab-btn text-amber-400">🏆</button>
-            <button onclick="showTab('MAINTENANCE')" id="tab-MAINTENANCE" class="tab-btn text-red-400">⚙️</button>
-            <button onclick="document.getElementById('qr-modal').classList.remove('hidden');document.getElementById('qr-modal').classList.add('flex');renderQRCodes();" class="tab-btn bg-indigo-600">QR</button>
+
+<header class="bg-slate-900 text-white p-4 shadow-xl flex justify-between items-center border-b-4 sticky top-0 z-50 no-print" id="main-header" style="border-bottom-color: var(--primary-color);">
+    <div class="flex items-center gap-6">
+        <h1 class="text-2xl font-black italic uppercase tracking-tighter" id="header-title">MASTER</h1>
+        <nav class="flex gap-1 bg-white/5 p-1 rounded-xl">
+            <button onclick="showTab('IMPORT')" class="tab-btn active-tab" id="tab-IMPORT">Import</button>
+            <button onclick="showTab('U6')" class="tab-btn" id="tab-U6">U6</button>
+            <button onclick="showTab('U8')" class="tab-btn" id="tab-U8">U8</button>
+            <button onclick="showTab('U10')" class="tab-btn" id="tab-U10">U10</button>
+            <button onclick="showTab('U12')" class="tab-btn" id="tab-U12">U12</button>
+            <button onclick="showTab('TROPHEE')" class="tab-btn text-amber-300 ml-4" id="tab-TROPHEE">🏆 Trophée</button>
+            <button onclick="showTab('MAINTENANCE')" class="tab-btn text-red-400" id="tab-MAINTENANCE">Outils</button>
+            <button onclick="openQRModal()" class="tab-btn bg-indigo-600 ml-2">📱 QR</button>
         </nav>
     </div>
-    <div id="save-indicator" class="text-[9px] font-bold opacity-0 transition-opacity">💾 OK</div>
+    <div id="save-indicator" class="text-[10px] text-green-400 font-bold italic opacity-0 transition-opacity">💾 SYNCHRONISÉ</div>
 </header>
-<main class="p-4 max-w-[1600px] mx-auto no-print">
-    <section id="content-IMPORT" class="tab-content space-y-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-white p-6 rounded-3xl border shadow-sm">
-                <label class="text-[10px] font-black uppercase opacity-40">Titre & Couleur</label>
-                <div class="flex gap-2 mt-1"><input type="text" id="cfg-name" onchange="updateBranding()" class="flex-1 p-2 bg-slate-50 border rounded-xl font-bold"><input type="color" id="cfg-color" onchange="updateBranding()" class="w-12 h-10"></div>
-                <div class="grid grid-cols-2 gap-2 mt-4"><button onclick="document.getElementById('logo1').click()" class="bg-slate-100 p-2 rounded text-[10px] font-bold">Logo Club</button><button onclick="document.getElementById('logo2').click()" class="bg-slate-100 p-2 rounded text-[10px] font-bold">Logo Année</button></div>
-                <input type="file" id="logo1" class="hidden" onchange="handleImg(this,'logoClub')"><input type="file" id="logo2" class="hidden" onchange="handleImg(this,'logoYear')">
+
+<main class="p-6 max-w-[1900px] mx-auto no-print">
+    <section id="content-IMPORT" class="tab-content space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm space-y-4">
+                <h3 class="font-black uppercase text-xs text-slate-400 italic">Identité du tournoi</h3>
+                <div class="flex gap-4">
+                    <div class="flex-1"><label class="text-[10px] font-black uppercase text-slate-500">Nom</label><input type="text" id="cfg-tournoi-name" onchange="updateBranding()" class="w-full bg-slate-50 p-2 rounded-xl font-bold mt-1 outline-none border"></div>
+                    <div class="w-1/4"><label class="text-[10px] font-black uppercase text-slate-500">Couleur</label><input type="color" id="cfg-theme-color" onchange="updateBranding()" class="w-full h-10 rounded-xl cursor-pointer mt-1"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="border-2 border-dashed p-2 rounded-xl text-center"><p class="text-[8px] font-black uppercase">Logo Club</p><input type="file" onchange="handleImage(this, 'logoClub')" class="hidden" id="logo1"><button onclick="document.getElementById('logo1').click()" class="text-[10px] bg-slate-100 px-2 py-1 rounded mt-1 font-bold">Choisir</button></div>
+                    <div class="border-2 border-dashed p-2 rounded-xl text-center"><p class="text-[8px] font-black uppercase">Logo Année</p><input type="file" onchange="handleImage(this, 'logoYear')" class="hidden" id="logo2"><button onclick="document.getElementById('logo2').click()" class="text-[10px] bg-slate-100 px-2 py-1 rounded mt-1 font-bold">Choisir</button></div>
+                </div>
             </div>
-            <div class="bg-white p-6 rounded-3xl border shadow-sm">
-                <textarea id="csv-input" class="w-full h-24 p-3 bg-slate-50 border rounded-xl text-xs font-mono outline-none" placeholder="Coller Excel ici..."></textarea>
-                <button onclick="processImport()" class="w-full mt-2 bg-slate-900 text-white py-3 rounded-xl font-black uppercase text-xs">Importer Clubs</button>
+            <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm">
+                <h3 class="font-black uppercase text-xs text-slate-400 italic mb-2">Importation Excel</h3>
+                <textarea id="csv-input" rows="4" class="w-full bg-slate-50 border-2 rounded-xl p-3 font-mono text-xs outline-none" placeholder="Copier/Coller ici..."></textarea>
+                <button onclick="processMasterImport()" class="w-full mt-2 bg-slate-900 text-white py-3 rounded-xl font-black uppercase tracking-widest">Générer les équipes</button>
             </div>
         </div>
-        <div id="master-table-container" class="bg-white p-4 rounded-3xl border hidden"><table class="w-full text-xs text-left"><thead id="master-thead" class="font-black uppercase border-b bg-slate-50"></thead><tbody id="master-tbody"></tbody></table></div>
+        <div id="master-table-container" class="bg-white p-6 rounded-[2.5rem] border hidden shadow-sm"><table class="w-full text-left text-sm"><thead id="master-thead" class="bg-slate-50 text-[10px] font-black uppercase border-b"></thead><tbody id="master-tbody" class="divide-y italic"></tbody></table></div>
     </section>
+
     <section id="content-CAT" class="tab-content hidden space-y-4">
-        <div class="bg-white p-4 rounded-2xl border flex justify-between items-center shadow-sm">
-            <div class="flex items-center gap-4"><h2 id="cat-title" class="text-2xl font-black">...</h2><nav class="flex gap-1 bg-slate-100 p-1 rounded-lg"><button id="btn-p1" onclick="switchPhase('PHASE1')" class="px-3 py-1 text-[10px] font-black rounded uppercase bg-white shadow-sm">Matin</button><button id="btn-p2" onclick="switchPhase('PHASE2')" class="px-3 py-1 text-[10px] font-black rounded uppercase">A-M</button></nav></div>
-            <div class="flex gap-2"><button onclick="exportCategoryExcel()" class="bg-green-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Excel</button><button onclick="imprimerPoule()" class="bg-slate-800 text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase">Imprimer</button></div>
+        <div class="flex justify-between items-center bg-white p-4 rounded-2xl border shadow-sm">
+            <div class="flex items-center gap-6">
+                <h2 class="text-3xl font-black uppercase" id="active-cat-title">...</h2>
+                <nav class="flex gap-1 bg-slate-100 p-1 rounded-xl font-black text-[10px]">
+                    <button onclick="switchCatPhase('PHASE1')" id="tab-phase1" class="px-4 py-2 uppercase rounded-lg active-tab shadow-sm">Matin (Brassage)</button>
+                    <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 uppercase rounded-lg bg-white text-slate-500">Après-Midi (Niveaux)</button>
+                </nav>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="exportCategoryExcel()" class="bg-green-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md">📥 Excel</button>
+                <button onclick="imprimerPouleActive()" class="bg-slate-800 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md">🖨️ Imprimer</button>
+            </div>
         </div>
-        <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-            <div class="xl:col-span-3 space-y-4"><div class="bg-white p-4 rounded-3xl border shadow-sm"><h3 class="text-[10px] font-black uppercase text-indigo-600 mb-3">📐 Architecte</h3><div id="scenarios" class="space-y-1"></div><hr class="my-4"><div class="flex justify-between items-center mb-2"><p class="text-[9px] font-black uppercase">Réserve</p><span id="reserve-count" class="bg-slate-100 px-2 rounded-full text-[10px] font-black">0</span></div><div id="reserve-zone" ondragover="e.preventDefault()" ondrop="dropToRes(event)" class="bg-slate-50 border-2 border-dashed rounded-xl p-3 min-h-[100px] flex flex-wrap gap-1"></div></div></div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
+            <div class="xl:col-span-3 space-y-4">
+                <div class="bg-white p-5 rounded-[2rem] border shadow-sm">
+                    <div id="architect-panel">
+                        <h3 class="text-xs font-black uppercase text-indigo-600 mb-4">📐 Architecte</h3>
+                        <div id="scenario-list" class="space-y-1 max-h-[40vh] overflow-y-auto pr-1"></div>
+                    </div>
+                    <div id="phase2-panel" class="hidden">
+                        <button onclick="generatePhase2()" class="w-full bg-indigo-600 text-white py-4 rounded-xl font-black uppercase shadow-lg">Calculer Péréquation</button>
+                    </div>
+                    <hr class="my-4 border-slate-100">
+                    <div class="flex justify-between items-center mb-2"><p class="text-[10px] font-black uppercase opacity-40">Réserve</p><span id="reserve-count" class="bg-slate-200 px-2 rounded-full text-[10px] font-bold">0</span></div>
+                    <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" class="bg-slate-50 border-2 border-dashed rounded-xl p-3 min-h-[100px] flex flex-wrap gap-1 shadow-inner"></div>
+                </div>
+            </div>
             <div class="xl:col-span-9 space-y-4">
-                <div id="v-zone" class="hidden bg-amber-50 p-4 rounded-3xl border-2 border-amber-300 flex justify-between items-center"><p class="text-[10px] font-black uppercase">Organisez les poules puis validez.</p><button onclick="validate()" class="bg-amber-500 px-6 py-2 rounded-xl font-black uppercase text-xs">Valider</button></div>
-                <div id="phase2-btn" class="hidden"><button onclick="calcPhase2()" class="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">Calculer Péréquation</button></div>
-                <div id="poule-tabs" class="flex gap-1 overflow-x-auto bg-slate-200 p-1 rounded-xl"></div>
-                <div id="board"></div>
-                <div id="deploy-zone" class="hidden bg-slate-900 text-white p-4 rounded-3xl flex justify-between items-center"><p class="text-amber-500 text-[10px] font-black uppercase italic">Direct live</p><button onclick="deploy()" class="bg-amber-500 text-black px-6 py-2 rounded-xl font-black uppercase text-xs">Sync Terrains</button></div>
+                <div id="validation-zone" class="hidden bg-amber-100 p-4 rounded-[2rem] flex justify-between items-center border border-amber-300">
+                    <p class="font-black text-amber-800 uppercase text-[10px]">Ajustez les équipes, puis validez pour ouvrir la saisie.</p>
+                    <button onclick="validateFormat()" class="bg-amber-500 text-black px-6 py-2 rounded-xl font-black uppercase text-xs shadow-md">Valider</button>
+                </div>
+                <div id="poule-tabs" class="flex gap-1.5 overflow-x-auto bg-slate-200 p-1 rounded-xl"></div>
+                <div id="match-board"></div>
+                <div id="deploy-zone" class="hidden bg-slate-900 text-white p-5 rounded-[2rem] flex justify-between items-center mt-4 shadow-xl">
+                    <p class="text-amber-500 font-black uppercase text-sm italic tracking-widest">Diffusion Live</p>
+                    <button onclick="deployCategory()" class="bg-amber-500 text-black px-8 py-3 rounded-xl font-black uppercase shadow-xl hover:bg-amber-400 transition-all">Sync Terrains</button>
+                </div>
             </div>
         </div>
     </section>
-    <section id="content-TROPHEE" class="tab-content hidden"><div class="bg-white p-8 rounded-[2rem] border-2 border-amber-200 shadow-xl max-w-4xl mx-auto"><h2 class="text-2xl font-black uppercase mb-6 italic">🏆 Bouclier</h2><div id="podium" class="flex justify-center items-end h-48 gap-4 mb-8"></div><table class="excel-table w-full"><thead class="bg-slate-50 text-[10px] font-black uppercase"><tr><th>Rang</th><th>Club</th><th>U8</th><th>U10</th><th>U12</th><th>Pts</th></tr></thead><tbody id="trophy-tbody"></tbody></table></div></section>
-    <section id="content-MAINTENANCE" class="tab-content hidden"><div class="bg-white p-8 rounded-[2rem] border shadow-xl max-w-2xl mx-auto space-y-4"><h2 class="font-black uppercase text-red-600 italic">Maintenance</h2><select id="m-cat" class="w-full p-3 border rounded-xl font-bold"><option value="U8">U8</option><option value="U10">U10</option><option value="U12">U12</option></select><div class="grid grid-cols-2 gap-2"><button onclick="purge('scores')" class="bg-slate-100 p-3 rounded-xl font-bold text-xs">Reset Scores</button><button onclick="purge('teams')" class="bg-red-50 text-red-600 p-3 rounded-xl font-bold text-xs">Purger Ossature</button></div></div></section>
+
+    <section id="content-TROPHEE" class="tab-content hidden space-y-6">
+        <div class="bg-white p-10 rounded-[3rem] border-2 border-amber-200 shadow-xl max-w-5xl mx-auto">
+            <h2 class="text-3xl font-black uppercase italic mb-8 border-b pb-4">🏆 Le Bouclier T3N</h2>
+            <div id="trophy-podium" class="flex justify-center items-end h-64 gap-6 mb-12"></div>
+            <table class="excel-table w-full"><thead class="bg-slate-100 text-[10px] font-black uppercase"><tr><th>Rang</th><th>Club</th><th>U8</th><th>U10</th><th>U12</th><th>Pts Total</th></tr></thead><tbody id="trophy-tbody"></tbody></table>
+        </div>
+    </section>
+
+    <section id="content-MAINTENANCE" class="tab-content hidden">
+        <div class="bg-white p-10 rounded-[3rem] border shadow-2xl max-w-4xl mx-auto space-y-8">
+            <h2 class="text-2xl font-black uppercase text-red-600 italic">Maintenance & Purge</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="bg-slate-50 p-6 rounded-3xl border space-y-4">
+                    <select id="maint-cat" class="w-full p-3 rounded-xl font-bold border outline-none"><option value="U8">U8</option><option value="U10">U10</option><option value="U12">U12</option></select>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="purge('scores')" class="bg-white border p-3 rounded-xl text-[10px] font-black uppercase">Reset Scores</button>
+                        <button onclick="purge('teams')" class="bg-red-100 text-red-600 p-3 rounded-xl text-[10px] font-black uppercase">Effacer Tout</button>
+                    </div>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-3xl border flex flex-col gap-4">
+                    <button onclick="exportJSON()" class="bg-indigo-600 text-white p-4 rounded-xl font-black uppercase text-xs">Exporter JSON</button>
+                    <label class="bg-slate-800 text-white p-4 rounded-xl font-black uppercase text-xs text-center cursor-pointer">Importer JSON<input type="file" class="hidden" accept=".json" onchange="importJSON(event)"></label>
+                </div>
+            </div>
+        </div>
+    </section>
 </main>
 <script>
-    var STORAGE_KEY = 't3n_final_v50';
+    // --- VARIABLES GLOBALES ET MATRICES ---
+    var STORAGE_KEY = 't3n_master_v51_final';
     var MATRICES = {
-        3:[{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
-        4:[{a:1,b:3,arb:4},{a:2,b:4,arb:1},{a:3,b:4,arb:2},{a:1,b:2,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
-        5:[{a:1,b:3,arb:5},{a:2,b:4,arb:3},{a:1,b:5,arb:2},{a:3,b:4,arb:1},{a:2,b:5,arb:4},{a:1,b:2,arb:4},{a:3,b:5,arb:2},{a:1,b:4,arb:5},{a:2,b:3,arb:1},{a:4,b:5,arb:3}],
-        6:[{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
+        3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
+        4: [{a:1,b:3,arb:4},{a:2,b:4,arb:1},{a:3,b:4,arb:2},{a:1,b:2,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
+        5: [{a:1,b:3,arb:5},{a:2,b:4,arb:3},{a:1,b:5,arb:2},{a:3,b:4,arb:1},{a:2,b:5,arb:4},{a:1,b:2,arb:4},{a:3,b:5,arb:2},{a:1,b:4,arb:5},{a:2,b:3,arb:1},{a:4,b:5,arb:3}],
+        6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
     };
     var RECIPES = [
-        {teams:14,p1:{p4:2,p3:2,str:"2x4, 2x3"},p2:{p6:1,p4:2,str:"1x6, 2x4"}},
-        {teams:16,p1:{p4:4,str:"4x4"},p2:{p4:4,str:"4x4"}},
-        {teams:18,p1:{p6:3,str:"3x6"},p2:{p6:3,str:"3x6"}},
-        {teams:20,p1:{p4:5,str:"5x4"},p2:{p5:4,str:"4x5"}},
-        {teams:24,p1:{p4:6,str:"6x4"},p2:{p4:6,str:"6x4"}}
+        { teams: 14, p1: {p4:2, p3:2, str:"2x4, 2x3"}, p2: {p6:1, p4:2, str:"1x6, 2x4"} },
+        { teams: 16, p1: {p4:4, str:"4x4"}, p2: {p4:4, str:"4x4"} },
+        { teams: 18, p1: {p6:3, str:"3x6"}, p2: {p6:3, str:"3x6"} },
+        { teams: 20, p1: {p4:5, str:"5x4"}, p2: {p5:4, str:"4x5"} },
+        { teams: 24, p1: {p4:6, str:"6x4"}, p2: {p4:6, str:"6x4"} }
     ];
-    var appState = { tournoiId:'', pinCode:'', branding:{name:'MASTER',color:'#f59e0b',baseUrl:'',logoClub:'',logoYear:''}, masterData:[], activeCat:'U10', currentPhase:'PHASE1', activePouleTab:'A', cats:{'U8':initC(),'U10':initC(),'U12':initC()} };
-    function initC() { return { phase1:{poules:[],reserve:[],validated:false}, phase2:{poules:[],reserve:[],validated:false} }; }
-    function getPh() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
+
+    var appState = { 
+        tournoiId: '', pinCode: '', 
+        branding: { name: 'TOURNOI', color: '#f59e0b', baseUrl: '', logoClub: '', logoYear: '' },
+        masterData: [], activeCat: 'U10', currentPhase: 'PHASE1', activePouleTab: 'A',
+        cats: { 'U8': initCat(), 'U10': initCat(), 'U12': initCat(), 'U6': initCat() }
+    };
+
+    function initCat() { return { settings: { p1: 120, p2: 120, bt: 2 }, phase1: { poules: [], reserve: [], validated: false, formatStr: null }, phase2: { poules: [], reserve: [], validated: false, formatStr: null } }; }
+
     var firebaseConfig = { apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
 
-    function initApp() { var s = localStorage.getItem(STORAGE_KEY); if(s){appState=JSON.parse(s);} if(appState.tournoiId){document.getElementById('sas-entree').classList.add('hidden');setupT();} }
-    function validerSas() { var id=document.getElementById('sas-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'_'); var pin=document.getElementById('sas-pin').value; if(id.length<3||pin.length<4)return alert("ID/PIN requis"); appState.tournoiId=id;appState.pinCode=pin;saveState();location.reload(); }
-    function setupT() { document.getElementById('header-title').innerText=appState.branding.name;document.getElementById('cfg-name').value=appState.branding.name;document.getElementById('cfg-color').value=appState.branding.color;document.documentElement.style.setProperty('--primary-color',appState.branding.color);showTab('IMPORT'); }
-    function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); var i=document.getElementById('save-indicator');i.classList.remove('opacity-0');setTimeout(()=>i.classList.add('opacity-0'),1000); }
-    function updateBranding() { appState.branding.name=document.getElementById('cfg-name').value;appState.branding.color=document.getElementById('cfg-color').value;saveState();setupT(); }
-    function handleImg(input,key) { var f=input.files[0]; var r=new FileReader(); r.onload=(e)=>{ var i=new Image(); i.onload=()=>{ var c=document.createElement('canvas'); var ctx=c.getContext('2d'); var m=150; var w=i.width,h=i.height; if(w>h){if(w>m){h*=m/w;w=m;}}else{if(h>m){w*=m/h;h=m;}} c.width=w;c.height=h;ctx.drawImage(i,0,0,w,h);appState.branding[key]=c.toDataURL('image/png',0.7);updateBranding(); }; i.src=e.target.result; }; r.readAsDataURL(f); }
+    // --- INITIALISATION ---
+    function initApp() {
+        var saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) { try { appState = JSON.parse(saved); } catch(e) { console.error("Erreur storage"); } }
+        if (appState.tournoiId) { document.getElementById('sas-entree').classList.add('hidden'); setupTournament(); }
+    }
 
+    function validerSas() {
+        var id = document.getElementById('sas-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
+        var pin = document.getElementById('sas-pin').value;
+        if (id.length < 3 || pin.length < 4) return alert("ID (min 3) et PIN (4 chiffres) requis.");
+        appState.tournoiId = id; appState.pinCode = pin; appState.branding.name = id;
+        saveState(); location.reload();
+    }
+
+    function setupTournament() {
+        document.getElementById('header-title').innerText = appState.branding.name;
+        document.getElementById('display-id').innerText = "ID: " + appState.tournoiId;
+        document.getElementById('cfg-tournoi-name').value = appState.branding.name;
+        document.getElementById('cfg-theme-color').value = appState.branding.color;
+        document.documentElement.style.setProperty('--primary-color', appState.branding.color);
+        if(appState.branding.baseUrl) document.getElementById('cfg-base-url').value = appState.branding.baseUrl;
+        if(appState.masterData.length) renderMasterTable();
+        showTab('IMPORT');
+    }
+
+    function saveState() { 
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); 
+        var ind = document.getElementById('save-indicator'); if(ind) { ind.classList.remove('opacity-0'); setTimeout(()=>ind.classList.add('opacity-0'), 1500); }
+    }
+
+    // --- IMPORT ET CLUBS ---
+    function processMasterImport() {
+        var raw = document.getElementById('csv-input').value; var lines = raw.split('\n'); appState.masterData = [];
+        lines.forEach((l, i) => {
+            var line = l.trim(); 
+            if(!line || line.toLowerCase().match(/nom|club|u6/)) return; 
+            var p = line.split(/\s+/);
+            if(p.length >= 5) {
+                var u12 = parseInt(p.pop())||0, u10 = parseInt(p.pop())||0, u8 = parseInt(p.pop())||0, u6 = parseInt(p.pop())||0;
+                var name = p.join(' ');
+                var isForeign = /zug|frankfurt|riedberg|heidelberg|neuenheim|crig|berlin/i.test(name);
+                appState.masterData.push({ id:'club_'+i, name: name, foreign: isForeign, u6:u6, u8:u8, u10:u10, u12:u12 });
+            }
+        });
+        syncTeamsWithMaster(); saveState(); renderMasterTable();
+    }
+
+    function syncTeamsWithMaster() {
+        ['U6', 'U8', 'U10', 'U12'].forEach(cat => {
+            var ph = appState.cats[cat].phase1; ph.reserve = [];
+            appState.masterData.forEach(c => { for(var i=1; i<=c[cat.toLowerCase()]; i++) ph.reserve.push({ id: c.id+'_'+i, club: c.name, level: i, name: c.name+' '+i, isForfait: false, foreign: c.foreign }); });
+        });
+    }
+
+    function renderMasterTable() {
+        document.getElementById('master-thead').innerHTML = `<tr><th class="p-3">Club</th><th class="text-center">Étranger</th><th class="text-center">U6</th><th class="text-center">U8</th><th class="text-center">U10</th><th class="text-center">U12</th></tr>`;
+        document.getElementById('master-tbody').innerHTML = appState.masterData.map((c, i) => `<tr><td class="p-3 font-bold uppercase text-xs">${c.name}</td><td class="text-center"><input type="checkbox" ${c.foreign?'checked':''} onchange="appState.masterData[${i}].foreign=this.checked;saveState();syncTeamsWithMaster();"></td><td class="text-center">${c.u6}</td><td class="text-center">${c.u8}</td><td class="text-center">${c.u10}</td><td class="text-center">${c.u12}</td></tr>`).join('');
+        document.getElementById('master-table-container').classList.remove('hidden');
+    }
+
+    // --- NAVIGATION ---
     function showTab(id) {
-        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active-tab')); var b=document.getElementById('tab-'+id); if(b)b.classList.add('active-tab');
-        document.querySelectorAll('.tab-content').forEach(c=>c.classList.add('hidden'));
-        if(['IMPORT','TROPHEE','MAINTENANCE'].includes(id)){document.getElementById('content-'+id).classList.remove('hidden');}
-        else{appState.activeCat=id;document.getElementById('content-CAT').classList.remove('hidden');document.getElementById('cat-title').innerText=id;initCatUI();}
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active-tab'));
+        var b = document.getElementById('tab-'+id); if(b) b.classList.add('active-tab');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+        if (['IMPORT','TROPHEE','MAINTENANCE'].includes(id)) { document.getElementById('content-'+id).classList.remove('hidden'); }
+        else { appState.activeCat = id; document.getElementById('content-CAT').classList.remove('hidden'); document.getElementById('active-cat-title').innerText = id; initCategoryUI(); }
     }
-    function switchPhase(ph) { appState.currentPhase=ph; document.getElementById('btn-p1').classList.toggle('bg-white',ph==='PHASE1');document.getElementById('btn-p1').classList.toggle('shadow-sm',ph==='PHASE1');document.getElementById('btn-p2').classList.toggle('bg-white',ph==='PHASE2');document.getElementById('btn-p2').classList.toggle('shadow-sm',ph==='PHASE2');initCatUI(); }
-    function initCatUI() {
-        var ph = getPh(); renderArch(ph); renderBoard(ph); renderRes();
-        document.getElementById('phase2-btn').classList.toggle('hidden',appState.currentPhase==='PHASE1');
+
+    function switchCatPhase(ph) { appState.currentPhase = ph; initCategoryUI(); }
+
+    function initCategoryUI() {
+        var catData = appState.cats[appState.activeCat];
+        var phData = catData[appState.currentPhase.toLowerCase()];
+        if(appState.currentPhase === 'PHASE1') {
+            document.getElementById('architect-panel').classList.remove('hidden');
+            document.getElementById('phase2-panel').classList.add('hidden');
+            renderArchitect(phData);
+        } else {
+            document.getElementById('architect-panel').classList.add('hidden');
+            document.getElementById('phase2-panel').classList.remove('hidden');
+        }
+        renderBoard(phData); renderReserve();
     }
-    function renderArch(ph) {
-        var t=getActiveT(ph); var l=document.getElementById('scenarios'); l.innerHTML="";
-        RECIPES.filter(r=>r.teams===t.length).forEach(r=>{
-            var d=document.createElement('div'); d.className="scenario-card "+(ph.formatStr===r.p1.str?'scenario-active':'');
-            d.innerHTML=`<p class="font-black text-[10px] uppercase">${r.p1.str}</p><p class="text-[8px] opacity-40">AM : ${r.p2.str}</p>`;
-            d.onclick=()=>{applyRec(r,t);}; l.appendChild(d);
+
+    // --- ARCHITECTE ---
+    function renderArchitect(phase) {
+        var teams = getActiveTeams(phase);
+        var list = document.getElementById('scenario-list'); list.innerHTML = "";
+        RECIPES.filter(r => r.teams === teams.length).forEach(r => {
+            var div = document.createElement('div');
+            div.className = "scenario-card " + (phase.formatStr === r.p1.str ? 'scenario-active shadow-sm':'');
+            div.innerHTML = `<p class="font-black text-[10px] uppercase">${r.p1.str}</p><p class="opacity-40 text-[8px] italic">Finales : ${r.p2.str}</p>`;
+            div.onclick = () => { applyRecipe(r, teams); };
+            list.appendChild(div);
         });
     }
-    function applyRec(r,t) {
-        var ph=getPh(); var p2=appState.cats[appState.activeCat].phase2; ph.formatStr=r.p1.str; ph.poules=[]; ph.reserve=[];
-        var add=(n,tar,dest)=>{for(var i=0;i<n;i++)dest.poules.push({letter:String.fromCharCode(65+dest.poules.length),target:tar,tUsed:tar>=5?2:1,teams:[],scores:{},adj:{}});};
-        if(r.p1.p6)add(r.p1.p6,6,ph);if(r.p1.p4)add(r.p1.p4,4,ph);if(r.p1.p3)add(r.p1.p3,3,ph);
-        t.sort((a,b)=>a.level-b.level).forEach(team=>{
-            var best=ph.poules.filter(p=>p.teams.length<p.target).sort((a,b)=>(a.teams.filter(x=>x.club===team.club).length-b.teams.filter(x=>x.club===team.club).length)||(a.teams.length-b.teams.length))[0];
-            if(best)best.teams.push(team);else ph.reserve.push(team);
+
+    function applyRecipe(r, teams) {
+        var ph = getActivePhase(); var p2 = appState.cats[appState.activeCat].phase2;
+        ph.formatStr = r.p1.str; ph.poules = []; ph.reserve = []; ph.validated = false;
+        var addP = (n, target, dest) => { for(var i=0; i<n; i++) dest.poules.push({ letter: String.fromCharCode(65+dest.poules.length), target: target, tUsed: target>=5?2:1, teams: [], scores: {}, adjustments: {} }); };
+        if(r.p1.p6) addP(r.p1.p6, 6, ph); if(r.p1.p4) addP(r.p1.p4, 4, ph); if(r.p1.p3) addP(r.p1.p3, 3, ph);
+        
+        var sorted = teams.sort((a,b) => a.level - b.level);
+        sorted.forEach(t => {
+            var bestP = ph.poules.filter(p => p.teams.length < p.target).sort((a,b) => (a.teams.filter(x=>x.club===t.club).length - b.teams.filter(x=>x.club===t.club).length) || (a.teams.length - b.teams.length))[0];
+            if(bestP) bestP.teams.push(t); else ph.reserve.push(t);
         });
-        p2.poules=[];if(r.p2.p6)add(r.p2.p6,6,p2);if(r.p2.p5)add(r.p2.p5,5,p2);if(r.p2.p4)add(r.p2.p4,4,p2);
-        var idx=0;p2.poules.forEach(p=>{for(var i=0;i<p.target;i++)p.teams.push({id:'g_'+(++idx),name:'Place '+idx,isDummy:true});});
-        saveState();initCatUI();
+
+        p2.poules = []; p2.validated = false;
+        if(r.p2.p6) addP(r.p2.p6, 6, p2); if(r.p2.p5) addP(r.p2.p5, 5, p2); if(r.p2.p4) addP(r.p2.p4, 4, p2);
+        var tIdx = 0; p2.poules.forEach(p => { for(var i=0; i<p.target; i++) { p.teams.push({ id:'ghost_'+(++tIdx), name: 'Place '+tIdx, isDummy: true }); } });
+        saveState(); initCategoryUI();
     }
-    function renderBoard(ph) {
-        var b=document.getElementById('board'); var ts=document.getElementById('poule-tabs'); b.innerHTML=""; ts.innerHTML="";
-        if(!ph.poules.length)return; document.getElementById('v-zone').classList.toggle('hidden',ph.validated); document.getElementById('deploy-zone').classList.toggle('hidden',!ph.validated);
-        if(!ph.validated){
-            b.className="grid grid-cols-2 gap-2";
-            b.innerHTML=ph.poules.map((p,i)=>`<div class="bg-white p-3 rounded-2xl border-2 ${p.teams.length!==p.target?'border-red-200':''}" ondragover="e.preventDefault()" ondrop="dropToPoule(event,${i})"><p class="text-[9px] font-black uppercase mb-2">Poule ${p.letter}</p><div class="space-y-1">${p.teams.map((t,ti)=>`<div draggable="true" ondragstart="dragFromPoule(event,${i},${ti})" class="p-2 bg-slate-50 border rounded-lg text-[10px] font-bold">${t.name}</div>`).join('')}</div></div>`).join('');
-        }else{
-            b.className=""; ts.innerHTML=ph.poules.map(p=>`<button onclick="appState.activePouleTab='${p.letter}';renderBoard(getPh())" class="px-4 py-2 rounded-xl font-black text-[10px] ${appState.activePouleTab===p.letter?'active-poule-tab shadow-md':'bg-white text-slate-500'}">Poule ${p.letter}</button>`).join('');
-            var pIdx=ph.poules.findIndex(x=>x.letter===appState.activePouleTab); if(pIdx===-1)pIdx=0; var p=ph.poules[pIdx];
-            var startT=1; ph.poules.slice(0,pIdx).forEach(prev=>startT+=prev.tUsed);
-            var rs=MATRICES[p.target].map((m,mi)=>{
-                var ter=p.tUsed===2?(mi%2===0?startT:startT+1):startT; var sc=p.scores[mi]||{s1:'',s2:''};
-                return `<tr><td class="bg-slate-50">T.${ter}</td><td class="excel-yellow">${p.teams[m.b-1]?.name||'?'}</td><td><input type="number" value="${sc.s1}" onchange="upScore(${pIdx},${mi},'s1',this.value)" class="w-full text-center font-black h-8 outline-none"></td><td><input type="number" value="${sc.s2}" onchange="upScore(${pIdx},${mi},'s2',this.value)" class="w-full text-center font-black h-8 outline-none"></td><td>${p.teams[m.a-1]?.name||'?'}</td><td class="text-[8px] opacity-30">${p.teams[m.arb-1]?.name||'ARBITRE'}</td></tr>`;
+
+    // --- GESTION DES MATCHS ---
+    function renderBoard(phase) {
+        var container = document.getElementById('match-board');
+        var tabs = document.getElementById('poule-tabs');
+        if(!phase.poules.length) { container.innerHTML = ""; tabs.innerHTML = ""; document.getElementById('deploy-zone').classList.add('hidden'); return; }
+        document.getElementById('deploy-zone').classList.toggle('hidden', !phase.validated);
+        
+        if(!phase.validated) {
+            tabs.innerHTML = ""; container.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+            container.innerHTML = phase.poules.map((p, pIdx) => `<div class="bg-white p-4 rounded-3xl border-2 ${p.teams.length !== p.target ? 'border-red-200 bg-red-50/20':'border-slate-100'}" ondragover="allowDrop(event)" ondrop="dropToPoule(event, ${pIdx})"><h3 class="font-black text-[10px] mb-3 uppercase text-slate-400 tracking-widest">Poule ${p.letter} (${p.teams.length}/${p.target})</h3><div class="space-y-1 min-h-[50px]">${p.teams.map((t, tIdx) => `<div draggable="true" ondragstart="dragFromPoule(event, ${pIdx}, ${tIdx})" class="p-2 bg-white border rounded-xl text-[10px] font-bold cursor-move shadow-sm">${t.name}</div>`).join('')}</div></div>`).join('');
+            document.getElementById('validation-zone').classList.remove('hidden');
+        } else {
+            container.className = ""; document.getElementById('validation-zone').classList.add('hidden');
+            tabs.innerHTML = phase.poules.map(p => `<button onclick="appState.activePouleTab='${p.letter}';renderBoard(getActivePhase())" class="px-5 py-2 rounded-xl font-black text-[10px] uppercase ${appState.activePouleTab===p.letter?'active-poule-tab shadow-md':'bg-white text-slate-500'}">Poule ${p.letter}</button>`).join('');
+            var pIdx = phase.poules.findIndex(x => x.letter === appState.activePouleTab); if(pIdx===-1) pIdx=0; var p = phase.poules[pIdx];
+            var currentT = 1; phase.poules.slice(0, pIdx).forEach(prev => currentT += prev.tUsed);
+            var rows = MATRICES[p.target].map((m, mIdx) => {
+                var ter = p.tUsed === 2 ? (mIdx % 2 === 0 ? currentT : currentT+1) : currentT;
+                var sc = p.scores[mIdx] || {s1:'', s2:''};
+                return `<tr><td class="font-black bg-slate-50">T.${ter}</td><td class="excel-yellow font-bold text-xs uppercase">${p.teams[m.b-1]?.name||'?'}</td><td><input type="number" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)" class="w-full text-center font-black h-8 outline-none bg-transparent"></td><td><input type="number" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)" class="w-full text-center font-black h-8 outline-none bg-transparent"></td><td class="font-bold text-xs uppercase">${p.teams[m.a-1]?.name||'?'}</td><td class="text-[8px] font-bold text-slate-300 uppercase">${p.teams[m.arb-1]?.name||'ARBITRE'}</td></tr>`;
             }).join('');
-            var rk=computeRk(p).map((r,idx)=>`<tr><td class="excel-header">${idx+1}</td><td class="text-left font-bold px-2 uppercase">${r.name}</td><td class="font-black text-amber-600">${r.pts}</td><td>${r.diff}</td></tr>`).join('');
-            b.innerHTML=`<div class="bg-white p-6 rounded-[2rem] border shadow-sm flex flex-col lg:flex-row gap-6">
-                <div class="flex-1"><h4 class="font-black uppercase mb-3 text-xs italic">Matchs</h4><table class="excel-table w-full"><thead><tr class="excel-header"><th>Ter</th><th>Eq 1</th><th>S1</th><th>S2</th><th>Eq 2</th><th>Arb</th></tr></thead><tbody>${rs}</tbody></table><button onclick="getPh().validated=false;renderBoard(getPh())" class="mt-4 text-[8px] font-black uppercase text-slate-300">Modifier</button></div>
-                <div class="w-full lg:w-1/3"><h4 class="font-black uppercase mb-3 text-xs italic">Classement</h4><table class="excel-table w-full"><thead><tr class="excel-header"><th>R</th><th>Club</th><th>Pts</th><th>Dif</th></tr></thead><tbody>${rk}</tbody></table></div></div>`;
+            var ranking = computeRanking(p).map((r, idx) => `<tr><td class="excel-header font-black">${idx+1}</td><td class="text-left font-bold px-4 uppercase text-xs">${r.name}</td><td class="font-black text-amber-600">${r.pts}</td><td class="font-bold text-slate-400">${r.diff}</td></tr>`).join('');
+            container.innerHTML = `<div class="bg-white p-6 rounded-[2.5rem] border shadow-sm flex flex-col lg:flex-row gap-8"><div class="flex-1"><h3 class="font-black uppercase mb-4 italic text-xs text-indigo-600">Poule ${p.letter} - Matchs</h3><table class="excel-table w-full"><thead><tr class="excel-header"><th>Ter.</th><th>Eq. 1</th><th>S1</th><th>S2</th><th>Eq. 2</th><th>Arb.</th></tr></thead><tbody>${rows}</tbody></table><button onclick="getActivePhase().validated=false;renderBoard(getActivePhase())" class="mt-4 text-[9px] font-black uppercase text-slate-300 hover:text-red-500 transition-colors">⚙️ Modifier</button></div><div class="w-full lg:w-1/3"><h3 class="font-black uppercase mb-4 italic text-xs text-amber-600">Classement</h3><table class="excel-table w-full"><thead><tr class="excel-header"><th>R</th><th>Club</th><th>Pts</th><th>Dif</th></tr></thead><tbody>${ranking}</tbody></table></div></div>`;
         }
     }
-    function upScore(pI,mI,f,v){ var p=getPh().poules[pI];if(!p.scores[mI])p.scores[mI]={s1:'',s2:'',locked:false};p.scores[mI][f]=v;saveState();renderBoard(getPh());if(db&&appState.tournoiId)db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mI+1}`).update({[f]:v===''?'':parseInt(v),auth_token:appState.pinCode}); }
-    function validate(){getPh().validated=true;saveState();renderBoard(getPh());}
-    function getActiveT(ph){ var t=[]; ph.reserve.forEach(x=>{if(!x.isForfait)t.push(x);}); ph.poules.forEach(p=>p.teams.forEach(x=>{if(!x.isForfait)t.push(x);})); if(!t.length&&ph.teams)ph.teams.forEach(x=>{if(!x.isForfait)t.push(x);}); return t; }
-    function computeRk(p){
-        var s=p.teams.map((t,idx)=>({id:idx,og:t,name:t?.name||'?',pts:0,diff:0}));
-        Object.keys(p.scores).forEach(mi=>{var sc=p.scores[mi];if(sc.s1===''||sc.s2==='')return; var m=MATRICES[p.target][mi]; if(!m)return; var s1=parseInt(sc.s1),s2=parseInt(sc.s2); var tA=s[m.a-1],tB=s[m.b-1]; if(tA&&tB){tA.diff+=(s1-s2);tB.diff+=(s2-s1);if(s1>s2){tA.pts+=3;tB.pts+=1;}else if(s2>s1){tA.pts+=1;tB.pts+=3;}else{tA.pts+=2;tB.pts+=2;}}});
-        return s.sort((a,b)=>b.pts-a.pts||b.diff-a.diff);
+
+    // --- IMPRESSION POULE (PHOTO STYLE) ---
+    function imprimerPouleActive() {
+        var cat = appState.activeCat; var ph = getActivePhase(); var pIdx = ph.poules.findIndex(x => x.letter === appState.activePouleTab); var p = ph.poules[pIdx]; if(!p) return;
+        var currentT = 1; ph.poules.slice(0, pIdx).forEach(prev => currentT += prev.tUsed);
+        var html = `<div style="font-family:sans-serif; text-align:center; padding:30px;"><div style="display:flex; justify-content:space-between; align-items:center; border-bottom:5px solid black; padding-bottom:15px; margin-bottom:20px;">${appState.branding.logoClub?`<img src="${appState.branding.logoClub}" style="height:70px;">`:'<div></div>'}<div><h1 style="margin:0; text-transform:uppercase; font-size:32px;">${appState.branding.name}</h1><h2 style="margin:0; color:#f59e0b; font-size:20px;">${cat} - ${appState.currentPhase==='PHASE1'?'MATIN':'APRES-MIDI'}</h2></div>${appState.branding.logoYear?`<img src="${appState.branding.logoYear}" style="height:70px;">`:'<div></div>'}</div><h2 style="background:black; color:white; display:inline-block; padding:10px 50px; text-transform:uppercase; margin-bottom:30px; font-size:24px;">POULE ${p.letter}</h2><table style="width:100%; border-collapse:collapse; border:3px solid black;"><thead><tr style="background:#eee; font-size:14px;"><th style="border:1px solid black; padding:12px;">TERRAIN</th><th style="border:1px solid black; padding:12px;">EQUIPE 1</th><th style="border:1px solid black; padding:12px;" colspan="2">SCORES</th><th style="border:1px solid black; padding:12px;">EQUIPE 2</th><th style="border:1px solid black; padding:12px;">ARBITRE</th></tr></thead><tbody>${MATRICES[p.target].map((m, idx) => { var ter = p.tUsed === 2 ? (idx % 2 === 0 ? currentT : currentT+1) : currentT; var sc = p.scores[idx] || {s1:'', s2:''}; return `<tr><td style="border:1px solid black; padding:12px; font-weight:bold; font-size:18px;">T.${ter}</td><td style="border:1px solid black; padding:12px; font-weight:bold; text-transform:uppercase; font-size:14px;">${p.teams[m.b-1]?.name||'?'}</td><td style="border:1px solid black; padding:12px; width:50px; font-weight:900; font-size:24px;">${sc.s1}</td><td style="border:1px solid black; padding:12px; width:50px; font-weight:900; font-size:24px;">${sc.s2}</td><td style="border:1px solid black; padding:12px; font-weight:bold; text-transform:uppercase; font-size:14px;">${p.teams[m.a-1]?.name||'?'}</td><td style="border:1px solid black; padding:12px; font-size:10px; color:#666;">${p.teams[m.arb-1]?.name||'---'}</td></tr>`; }).join('')}</tbody></table><div style="margin-top:60px; width:80%; margin-left:auto; margin-right:auto;"><h3 style="border-bottom:3px solid black; text-align:left; padding-bottom:10px; text-transform:uppercase; font-size:18px;">Classement Provisoire - Poule ${p.letter}</h3><table style="width:100%; border-collapse:collapse; border:2px solid black; margin-top:15px;"><thead><tr style="background:#f0f0f0;"><th>RANG</th><th style="text-align:left; padding-left:20px;">CLUB</th><th>PTS</th><th>DIFF</th></tr></thead><tbody>${computeRanking(p).map((r, i) => `<tr><td style="border:1px solid black; padding:12px; font-weight:bold; font-size:16px;">${i+1}</td><td style="border:1px solid black; padding:12px; text-align:left; text-transform:uppercase; font-weight:bold;">${r.name}</td><td style="border:1px solid black; padding:12px; font-weight:900;">${r.pts}</td><td style="border:1px solid black; padding:12px; font-weight:bold;">${r.diff}</td></tr>`).join('')}</tbody></table></div></div>`;
+        var win = window.open('', '_blank'); win.document.write(`<html><body>${html}</body></html>`); win.document.close(); setTimeout(()=>win.print(), 500);
     }
-    function renderRes(){ var r=getPh().reserve; var e=document.getElementById('reserve-count'); if(e)e.innerText=r.length; document.getElementById('reserve-zone').innerHTML=r.map((t,i)=>`<div draggable="true" ondragstart="dragFromRes(event,${i})" class="p-1 bg-white border rounded text-[9px] font-bold shadow-sm">${t.name}</div>`).join(''); }
-    function dragFromPoule(e,pI,tI){e.dataTransfer.setData("j",JSON.stringify({s:'p',pI,tI}));}
-    function dragFromRes(e,tI){e.dataTransfer.setData("j",JSON.stringify({s:'r',tI}));}
-    function dropToPoule(e,dest){e.preventDefault(); var d=JSON.parse(e.dataTransfer.getData("j")); var ph=getPh(); var t=d.s==='p'?ph.poules[d.pI].teams.splice(d.tI,1)[0]:ph.reserve.splice(d.tI,1)[0]; if(t){ph.poules[dest].teams.push(t);saveState();renderBoard(ph);renderRes();} }
-    function dropToRes(e){e.preventDefault(); var d=JSON.parse(e.dataTransfer.getData("j")); var ph=getPh(); if(d.s==='p'){ph.reserve.push(ph.poules[d.pI].teams.splice(d.tI,1)[0]);saveState();renderBoard(ph);renderRes();} }
-    function processImport() {
-        var r=document.getElementById('csv-input').value; var ls=r.split('\n'); appState.masterData=[];
-        ls.forEach((l,i)=>{ var line=l.trim(); if(!line||line.toLowerCase().match(/nom|club/))return; var p=line.split(/\s+/); if(p.length>=5){ var u12=parseInt(p.pop()),u10=parseInt(p.pop()),u8=parseInt(p.pop()),u6=parseInt(p.pop()),name=p.join(' '); appState.masterData.push({id:'c_'+i,name,foreign:/zug|frankfurt|riedberg|heidelberg/i.test(name),u6,u8,u10,u12}); }});
-        ['U8','U10','U12'].forEach(cat=>{ var ph=appState.cats[cat].phase1; ph.reserve=[]; appState.masterData.forEach(c=>{for(var i=1;i<=c[cat.toLowerCase()];i++)ph.reserve.push({id:c.id+'_'+i,club:c.name,level:i,name:c.name+' '+i,isForfait:false,foreign:c.foreign});});});
-        saveState();renderMasterT();
+
+    // --- LOGIQUE PÉRÉQUATION PHASE 2 ---
+    function generatePhase2() {
+        var cat = appState.cats[appState.activeCat]; var p1 = cat.phase1; var p2 = cat.phase2; if(!p1.validated) return alert("Validez le matin d'abord.");
+        var all = []; p1.poules.forEach(p => { var ranks = computeRanking(p); ranks.forEach((r, idx) => { if(r.ogTeam && !r.ogTeam.isDummy) all.push({ ...r.ogTeam, rank: idx+1, pts: r.pts, diff: r.diff }); }); });
+        all.sort((a,b) => a.rank - b.rank || b.pts - a.pts || b.diff - a.diff || (b.foreign?1:0)-(a.foreign?1:0));
+        var tIdx = 0; p2.poules.forEach(p => { p.teams = []; for(var i=0; i<p.target; i++) { if(all[tIdx]) p.teams.push(all[tIdx++]); } });
+        appState.currentPhase = 'PHASE2'; saveState(); initCategoryUI();
     }
-    function renderMasterT(){ document.getElementById('master-thead').innerHTML=`<tr><th class="p-2">Club</th><th class="text-center">Étr</th><th>U8</th><th>U10</th><th>U12</th></tr>`;document.getElementById('master-tbody').innerHTML=appState.masterData.map(c=>`<tr><td class="p-2 font-bold uppercase text-xs">${c.name}</td><td class="text-center"><input type="checkbox" ${c.foreign?'checked':''}></td><td class="text-center">${c.u8}</td><td class="text-center">${c.u10}</td><td class="text-center">${c.u12}</td></tr>`).join('');document.getElementById('master-table-container').classList.remove('hidden'); }
-    function renderQRCodes() {
-        var b=appState.branding.baseUrl||"https://osartori-create.github.io/t3nations"; var c=document.getElementById('qr-list'); c.innerHTML="";
-        ['U8','U10','U12'].forEach(cat=>{
-            var h=document.createElement('div'); h.className="col-span-full border-b font-black text-[10px] uppercase mt-4 mb-2 opacity-30"; h.innerText=cat; c.appendChild(h);
-            var g=document.createElement('div'); g.className="grid grid-cols-4 md:grid-cols-8 gap-2";
-            for(var i=1;i<=8;i++){
-                var u=`${b}/terrain.html?id=${appState.tournoiId}&cat=${cat}&t=${i}&key=${appState.pinCode}`;
-                var d=document.createElement('div'); d.className="bg-slate-50 p-2 border rounded-xl flex flex-col items-center";
-                var l=document.createElement('p'); l.className="text-[7px] font-black mb-1"; l.innerText="T."+i;
-                var q=document.createElement('div'); new QRCode(q,{text:u,width:60,height:60}); d.appendChild(l);d.appendChild(q);g.appendChild(d);
-            }
-            c.appendChild(g);
+
+    // --- FIREBASE ET SYNC ---
+    function updateScore(pIdx, mIdx, f, v) { 
+        var ph = getActivePhase(); var p = ph.poules[pIdx]; if(!p.scores[mIdx]) p.scores[mIdx]={s1:'', s2:'', locked:false}; p.scores[mIdx][f] = v; saveState(); renderBoard(ph);
+        if(db && appState.tournoiId) db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mIdx+1}`).update({ [f]: v===''?'':parseInt(v), auth_token: appState.pinCode });
+    }
+
+    function deployCategory() {
+        if(!db || !appState.tournoiId) return; var ph = getActivePhase(); var ups = {};
+        ph.poules.forEach((p, pIdx) => {
+            var startT = 1; ph.poules.slice(0, pIdx).forEach(prev => startT += prev.tUsed);
+            MATRICES[p.target].forEach((m, mIdx) => {
+                var terNum = p.tUsed === 2 ? (mIdx % 2 === 0 ? startT : startT+1) : startT;
+                var sc = p.scores[mIdx] || {s1:'', s2:''};
+                ups[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mIdx+1}`] = { t1: p.teams[m.a-1]?.name, t2: p.teams[m.b-1]?.name, arb: p.teams[m.arb-1]?.name, s1: sc.s1, s2: sc.s2, terrain: `Terrain ${terNum}`, poule: p.letter, ordre: mIdx+1, auth_token: appState.pinCode };
+            });
         });
+        db.ref().update(ups).then(() => alert("Synchronisé !"));
     }
-    function calcPhase2(){
-        var cat=appState.cats[appState.activeCat]; var p1=cat.phase1; var p2=cat.phase2; if(!p1.validated)return;
-        var all=[]; p1.poules.forEach(p=>{ var rks=computeRk(p); rks.forEach((r,idx)=>{if(r.og&&!r.og.isDummy)all.push({...r.og,rank:idx+1,pts:r.pts,diff:r.diff});});});
-        all.sort((a,b)=>a.rank-b.rank||b.pts-a.pts||b.diff-a.diff||(b.foreign?1:0)-(a.foreign?1:0));
-        var idx=0; p2.poules.forEach(p=>{p.teams=[];for(var i=0;i<p.target;i++){if(all[idx])p.teams.push(all[idx++]);}});
-        appState.currentPhase='PHASE2';saveState();initCatUI();
+
+    // --- MAINTENANCE ET UTILS ---
+    function purge(type) {
+        var cat = document.getElementById('maint-cat').value; if(!confirm("Purge " + type + " pour " + cat + " ?")) return;
+        if(type === 'scores') { appState.cats[cat].phase1.poules.forEach(p => p.scores = {}); appState.cats[cat].phase2.poules.forEach(p => p.scores = {}); }
+        else { appState.cats[cat] = initCat(); }
+        saveState(); location.reload();
     }
-    function computeTrophy(b,d){
-        var cs={}; appState.masterData.forEach(c=>cs[c.name]={name:c.name,U8:99,U10:99,U12:99,pts:0});
-        ['U8','U10','U12'].forEach(cat=>{ var p2=appState.cats[cat].phase2; if(!p2.poules.length)return; var abs=1; p2.poules.forEach(p=>{ var r=computeRk(p); r.forEach((t,i)=>{var c=t.og?.club;if(c&&cs[c])if(abs+i<cs[c][cat])cs[c][cat]=abs+i;}); abs+=p.target;});});
-        var pts={1:10,2:9,3:8,4:7,5:6,6:5,7:4,8:3,9:2,10:1};
-        Object.values(cs).forEach(c=>{['U8','U10','U12'].forEach(cat=>{if(c[cat]<=10)c.pts+=pts[c[cat]];});});
-        var sorted=Object.values(cs).filter(c=>c.pts>0).sort((a,b)=>b.pts-a.pts||a.U12-b.U12);
-        document.getElementById('trophy-tbody').innerHTML=sorted.map((c,i)=>`<tr><td>${i+1}</td><td class="text-left font-bold px-2">${c.name}</td><td>${c.U8===99?'-':c.U8}</td><td>${c.U10===99?'-':c.U10}</td><td>${c.U12===99?'-':c.U12}</td><td class="font-black text-amber-600">${c.pts}</td></tr>`).join('');
+
+    function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
+    function getActiveTeams(ph) { var t = []; ph.reserve.forEach(x => { if(!x.isForfait) t.push(x); }); ph.poules.forEach(p => p.teams.forEach(x => { if(!x.isForfait) t.push(x); })); if(!t.length && ph.teams) ph.teams.forEach(x => { if(!x.isForfait) t.push(x); }); return t; }
+    
+    function computeRanking(p) {
+        var s = p.teams.map((t, idx) => ({ id: idx, ogTeam: t, name: t?.name||'?', pts: 0, diff: 0 }));
+        Object.keys(p.scores).forEach(mi => {
+            var sc = p.scores[mi]; if(sc.s1==='' || sc.s2==='') return; var m = MATRICES[p.target][mi]; if(!m) return;
+            var s1 = parseInt(sc.s1), s2 = parseInt(sc.s2); var tA = s[m.a-1], tB = s[m.b-1];
+            if(tA && tB) { tA.diff += (s1-s2); tB.diff += (s2-s1); if(s1 > s2) { tA.pts += 3; tB.pts += 1; } else if(s2 > s1) { tA.pts += 1; tB.pts += 3; } else { tA.pts += 2; tB.pts += 2; } }
+        });
+        return s.sort((a,b) => b.pts - a.pts || b.diff - a.diff);
     }
-    function deploy(){ var ph=getPh(); var ups={}; ph.poules.forEach((p,pi)=>{ var st=1; ph.poules.slice(0,pi).forEach(prev=>st+=prev.tUsed); MATRICES[p.target].forEach((m,mi)=>{ var ter=p.tUsed===2?(mi%2===0?st:st+1):st; var sc=p.scores[mi]||{s1:'',s2:''}; ups[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${mi+1}`]={t1:p.teams[m.a-1]?.name,t2:p.teams[m.b-1]?.name,arb:p.teams[m.arb-1]?.name,s1:sc.s1===''?'':parseInt(sc.s1),s2:sc.s2===''?'':parseInt(sc.s2),terrain:`Terrain ${ter}`,poule:p.letter,ordre:mi+1,auth_token:appState.pinCode};});}); db.ref().update(ups).then(()=>alert("Sync OK")); }
-    function purge(type){ var c=document.getElementById('m-cat').value; if(type==='scores'){appState.cats[c].phase1.poules.forEach(p=>p.scores={});appState.cats[c].phase2.poules.forEach(p=>p.scores={});}else{appState.cats[c]=initC();} saveState();location.reload(); }
+
+    function renderReserve() { var r = getActivePhase().reserve; var el = document.getElementById('reserve-count'); if(el) el.innerText = r.length; document.getElementById('reserve-zone').innerHTML = r.map((t, i) => `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-1 bg-white border rounded-xl text-[10px] font-bold cursor-move shadow-sm">${t.name}</div>`).join('')||'<p class="text-center opacity-20 text-[9px] py-2 w-full">Vide</p>'; }
+    function validate() { getActivePhase().validated = true; saveState(); renderBoard(getActivePhase()); }
+    function updateBranding() { appState.branding.name = document.getElementById('cfg-tournoi-name').value; appState.branding.color = document.getElementById('cfg-theme-color').value; saveState(); setupTournament(); }
+    function handleImage(input, key) { var f = input.files[0]; var r = new FileReader(); r.onload = (e) => { var img = new Image(); img.onload = () => { var c = document.createElement('canvas'); var ctx = c.getContext('2d'); var m = 150; var w = img.width, h = img.height; if(w > h) { if(w > m) { h *= m/w; w = m; } } else { if(h > m) { w *= m/h; h = m; } } c.width = w; c.height = h; ctx.drawImage(img, 0, 0, w, h); appState.branding[key] = c.toDataURL('image/png', 0.7); updateBranding(); }; img.src = e.target.result; }; r.readAsDataURL(f); }
+    function renderQRCodes() { var b = (appState.branding.baseUrl || "https://osartori-create.github.io/t3nations").replace(/\/$/, ""); var c = document.getElementById('qr-list'); c.innerHTML = ""; ['U8', 'U10', 'U12'].forEach(cat => { var h = document.createElement('div'); h.className = "col-span-full border-b font-black text-xs mt-4 mb-2 opacity-50"; h.innerText = "Catégorie " + cat; c.appendChild(h); var g = document.createElement('div'); g.className = "grid grid-cols-4 md:grid-cols-8 gap-3"; for(var i=1; i<=8; i++) { var url = `${b}/terrain.html?id=${appState.tournoiId}&cat=${cat}&t=${i}&key=${appState.pinCode}`; var d = document.createElement('div'); d.className = "bg-slate-50 p-2 border rounded-xl flex flex-col items-center shadow-sm"; var l = document.createElement('p'); l.className = "text-[8px] font-black mb-1"; l.innerText = cat+"-T."+i; var q = document.createElement('div'); new QRCode(q, { text: url, width: 65, height: 65 }); d.appendChild(l); d.appendChild(q); g.appendChild(d); } c.appendChild(g); }); }
+    function allowDrop(e) { e.preventDefault(); }
+    function dragFromPoule(e, pIdx, tIdx) { e.dataTransfer.setData("json", JSON.stringify({ src: 'poule', pIdx, tIdx })); }
+    function dragFromReserve(e, tIdx) { e.dataTransfer.setData("json", JSON.stringify({ src: 'reserve', tIdx })); }
+    function dropToPoule(e, targetPIdx) { e.preventDefault(); var d = JSON.parse(e.dataTransfer.getData("json")); var ph = getActivePhase(); var t = d.src === 'poule' ? ph.poules[d.pIdx].teams.splice(d.tIdx, 1)[0] : ph.reserve.splice(d.tIdx, 1)[0]; if(t) { ph.poules[targetPIdx].teams.push(t); saveState(); renderBoard(ph); renderReserve(); } }
+    function dropToReserve(e) { e.preventDefault(); var d = JSON.parse(e.dataTransfer.getData("json")); var ph = getActivePhase(); if(d.src === 'poule') { ph.reserve.push(ph.poules[d.pIdx].teams.splice(d.tIdx, 1)[0]); saveState(); renderBoard(ph); renderReserve(); } }
+    function exportJSON() { var blob = new Blob([JSON.stringify(appState)], {type: 'application/json'}); var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `t3n_backup_${appState.tournoiId}.json`; a.click(); }
+    function importJSON(e) { var f = e.target.files[0]; if(!f) return; var r = new FileReader(); r.onload = (ex) => { appState = JSON.parse(ex.target.result); saveState(); location.reload(); }; r.readAsText(f); }
 </script>
 </body>
 </html>
