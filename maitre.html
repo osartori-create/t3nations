@@ -428,24 +428,37 @@
     // --- QR CODES ---
     function openQRModal() { document.getElementById('qr-modal').classList.remove('hidden'); document.getElementById('qr-modal').classList.add('flex'); renderQRCodes(); }
     function renderQRCodes() {
-        var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
-        var tId = appState.tournoiId; var pin = appState.pinCode;
-        var urlPublic = baseUrl + "/public.html?id=" + tId;
-        document.getElementById('qr-public').innerHTML = "";
-        new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 100, height: 100 });
-        document.getElementById('link-public').innerText = urlPublic; document.getElementById('link-public').href = urlPublic;
+    var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
+    var tId = appState.tournoiId; 
+    var pin = appState.pinCode;
+    var currentCat = appState.activeCat; // On récupère la catégorie active
 
-        var qrContainer = document.getElementById('qr-terrains'); qrContainer.innerHTML = "";
-        for (var i = 1; i <= 8; i++) {
-            var urlTerrain = baseUrl + "/terrain.html?id=" + tId + "&t=" + i + "&key=" + pin;
-            var card = document.createElement('div'); card.className = "bg-white border p-4 rounded-2xl flex flex-col items-center text-center";
-            var title = document.createElement('p'); title.className = "font-black text-indigo-600 uppercase mb-2"; title.innerText = "Terrain " + i;
-            var qrDiv = document.createElement('div'); qrDiv.className = "mb-2";
-            new QRCode(qrDiv, { text: urlTerrain, width: 100, height: 100 });
-            var link = document.createElement('a'); link.className = "text-[8px] font-bold text-slate-400 underline mt-2"; link.href = urlTerrain; link.target = "_blank"; link.innerText = "Lien";
-            card.appendChild(title); card.appendChild(qrDiv); card.appendChild(link); qrContainer.appendChild(card);
-        }
+    // LIEN PUBLIC
+    var urlPublic = baseUrl + "/public.html?id=" + tId;
+    document.getElementById('qr-public').innerHTML = "";
+    new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 120, height: 120 });
+    document.getElementById('link-public').innerText = urlPublic;
+
+    // LIENS TERRAINS (Spécifiques à la catégorie affichée)
+    var qrContainer = document.getElementById('qr-terrains');
+    qrContainer.innerHTML = "";
+    
+    // On génère autant de QR codes que de terrains max pour cette catégorie
+    var nbTerrains = MAX_TERRAINS[currentCat] || 8;
+
+    for (var i = 1; i <= nbTerrains; i++) {
+        // AJOUT DU PARAMETRE &cat= POUR EVITER L'ERREUR "LIEN INCOMPLET"
+        var urlTerrain = baseUrl + "/terrain.html?id=" + tId + "&cat=" + currentCat + "&t=" + i + "&key=" + pin;
+        
+        var card = document.createElement('div');
+        card.className = "bg-white border-2 border-slate-100 p-4 rounded-2xl flex flex-col items-center text-center shadow-sm";
+        card.innerHTML = `<p class="font-black text-indigo-600 uppercase text-[10px] mb-2">${currentCat} - Ter. ${i}</p>
+                          <div id="qr-t-${i}" class="mb-2"></div>
+                          <a href="${urlTerrain}" target="_blank" class="text-[8px] font-bold text-slate-400 underline uppercase">Ouvrir</a>`;
+        qrContainer.appendChild(card);
+        new QRCode(document.getElementById(`qr-t-${i}`), { text: urlTerrain, width: 90, height: 90 });
     }
+}
 
     // --- IMPORTATION ---
     function processMasterImport() {
@@ -851,26 +864,40 @@
         saveState(); renderBoard(); deployCategory(); 
     }
 
-    function deployCategory() {
-        if (!db || !appState.tournoiId) return alert("Tournoi non initialisé."); 
-        var updates = {}; var globalOrder = 1; var hasGhosts = false;
-        getActivePhase().poules.forEach(p => { for(var i=0; i<p.teams.length; i++) { if(p.teams[i] && p.teams[i].isDummy) hasGhosts = true; } });
-        if(hasGhosts && !confirm("⚠️ Vous déployez l'ossature fantôme sur le public. Continuer ?")) return; 
-        
-        getActivePhase().poules.forEach(p => {
-            if (p.teams.length === p.target) {
-                MATRICES[p.target].forEach((m, idx) => {
-                    var tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
-                    var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
-                    updates[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
-                        t1: (p.teams[m.a-1]?p.teams[m.a-1].name:'?'), t2: (p.teams[m.b-1]?p.teams[m.b-1].name:'?'), arb: (p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'), 
-                        s1: sc.s1 === '' ? '' : parseInt(sc.s1), s2: sc.s2 === '' ? '' : parseInt(sc.s2), locked: sc.locked||false, terrain: 'Terrain '+tStr, status:'en_attente', poule: p.letter, ordre: globalOrder++, auth_token: appState.pinCode 
-                    };
-                });
-            }
-        });
-        if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement réussi !"); }); }
-    }
+    // Harmonisation du déploiement pour le Public
+function deployCategory() {
+    if (!db || !appState.tournoiId) return alert("Tournoi non initialisé."); 
+    var phase = getActivePhase();
+    var updates = {};
+    var globalOrder = 1;
+
+    phase.poules.forEach(p => {
+        if (p.teams.length === p.target) {
+            MATRICES[p.target].forEach((m, idx) => {
+                var terNum = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
+                
+                // Chemin unique et clair pour le Public et les Arbitres
+                updates[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
+                    t1: (p.teams[m.a-1] ? p.teams[m.a-1].name : '?'), 
+                    t2: (p.teams[m.b-1] ? p.teams[m.b-1].name : '?'), 
+                    arb: (p.teams[m.arb-1] ? p.teams[m.arb-1].name : '?'), 
+                    s1: sc.s1 === '' ? '' : parseInt(sc.s1), 
+                    s2: sc.s2 === '' ? '' : parseInt(sc.s2), 
+                    locked: sc.locked || false, 
+                    terrain: 'Terrain ' + terNum, 
+                    poule: p.letter, 
+                    ordre: globalOrder++
+                };
+            });
+        }
+    });
+
+    db.ref().update(updates).then(() => {
+        syncStandings(); // Envoie les classements calculés pour la page Public
+        alert("✅ Données synchronisées (Public + Arbitres)");
+    });
+}
 
     // --- IMPRESSION EXCEL ---
     function printPouleExcel() {
