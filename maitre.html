@@ -936,3 +936,69 @@
         ['U6', 'U8', 'U10', 'U12'].forEach(cat => {
             var p2 = appState.cats[cat].phase2; if (!p2.poules || p2.poules.length === 0 || (p2.poules[0].teams[0] && p2.poules[0].teams[0].isDummy)) return;
             var currentAbsRank = 1;
+            p2.poules.forEach(p => { 
+                if(p.teams.length !== p.target) return; var ranking = computeRanking(p); 
+                ranking.forEach((r, idx) => { var absRank = currentAbsRank + idx; var clubName = r.ogTeam ? r.ogTeam.club : null; if (clubName && clubs[clubName] && absRank < clubs[clubName][cat]) clubs[clubName][cat] = absRank; }); 
+                currentAbsRank += p.target; 
+            });
+        });
+
+        var ptsDist = {1:10, 2:9, 3:8, 4:7, 5:6, 6:5, 7:4, 8:3, 9:2, 10:1};
+        Object.values(clubs).forEach(c => { ['U6', 'U8', 'U10', 'U12'].forEach(cat => { if (c[cat] <= 10) c.pts += ptsDist[c[cat]]; }); });
+        
+        var sortedClubs = Object.values(clubs).filter(c => c.pts > 0).sort((a, b) => b.pts - a.pts || a.U12 - b.U12);
+        
+        document.getElementById('trophy-tbody').innerHTML = sortedClubs.map((c, i) => `<tr><td class="p-4 font-black">${i+1}</td><td class="p-4 font-bold uppercase">${c.name}</td><td class="p-4 text-center font-bold text-indigo-600">${c.U6===999?'-':c.U6}</td><td class="p-4 text-center font-bold text-blue-600">${c.U8===999?'-':c.U8}</td><td class="p-4 text-center font-bold text-slate-800">${c.U10===999?'-':c.U10}</td><td class="p-4 text-center font-bold text-red-600">${c.U12===999?'-':c.U12}</td><td class="p-4 text-center font-black text-amber-600 text-lg">${c.pts}</td></tr>`).join('');
+        if(sortedClubs.length === 0) document.getElementById('trophy-empty').classList.remove('hidden');
+    }
+
+    // --- MAINTENANCE ---
+    function purge(type) {
+        var cat = document.getElementById('maint-cat').value;
+        if(!confirm("⚠️ Êtes-vous sûr de vouloir purger " + type + " pour " + cat + " ?")) return;
+        if(type === 'scores') {
+            appState.cats[cat].phase1.poules.forEach(p => p.scores = {});
+            appState.cats[cat].phase2.poules.forEach(p => p.scores = {});
+        } else if (type === 'teams') {
+            appState.cats[cat] = initCatState();
+            syncTeamsWithMaster();
+        }
+        saveState(); location.reload();
+    }
+
+    function resetGeneral() {
+        if(!confirm("⚠️ DANGER : Vous allez effacer l'intégralité de ce tournoi en local. Continuer ?")) return;
+        if(!confirm("Êtes-vous ABSOLUMENT certain ?")) return;
+        appState.masterData = [];
+        appState.cats = { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() };
+        saveState(); location.reload();
+    }
+
+    function exportJSON() {
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
+        var downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "t3n_master_backup_" + appState.tournoiId + ".json");
+        document.body.appendChild(downloadAnchorNode); // requis pour Firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importJSON(event) {
+        var file = event.target.files[0];
+        if (!file) return;
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                var importedState = JSON.parse(e.target.result);
+                if (importedState && importedState.cats) {
+                    appState = importedState;
+                    saveState(); alert("✅ Tournoi restauré avec succès !"); location.reload();
+                } else { alert("❌ Fichier invalide."); }
+            } catch (err) { alert("❌ Erreur de lecture du JSON."); }
+        };
+        reader.readAsText(file);
+    }
+</script>
+</body>
+</html>
