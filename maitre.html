@@ -3,23 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T3N Master v44 - Pro & Multi-Tournois</title>
+    <title>T3N Master v45 - Pro & Multi-Tournois</title>
     
     <link rel="manifest" href="manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW refoulé:', err));
-            });
-        }
-    </script>
+    <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }</script>
 
-    <script>
-        window.onerror = function(message, source, lineno, colno, error) {
-            alert("🛑 CRASH DÉTECTÉ !\n\nErreur : " + message + "\nLigne : " + lineno + "\n\nPrenez une photo.");
-            return false;
-        };
-    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
@@ -41,12 +29,7 @@
         .excel-table th, .excel-table td { border: 1px solid #cbd5e1; padding: 6px 4px; }
         .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
         .excel-yellow { background-color: #fef08a; font-weight: 900; }
-        .excel-blue { background-color: #e0f2fe; }
-        @media print {
-            .no-print { display: none !important; }
-            body { background: white !important; }
-            .print-container { width: 100%; padding: 0; margin: 0; }
-        }
+        @media print { .no-print { display: none !important; } body { background: white !important; } }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen" onload="initApp()">
@@ -57,12 +40,12 @@
         <p class="text-xs text-slate-400 font-bold uppercase mb-6 tracking-widest">Initialisation du tournoi</p>
         <div class="space-y-4">
             <div>
-                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">ID Unique du Tournoi (ex: IDOR2026)</label>
-                <input type="text" id="sas-id" class="w-full bg-slate-100 p-4 rounded-2xl font-black uppercase outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);" placeholder="NOM_DU_TOURNOI">
+                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">ID Unique du Tournoi</label>
+                <input type="text" id="sas-id" class="w-full bg-slate-100 p-4 rounded-2xl font-black uppercase outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);" placeholder="EX: T3N2026">
             </div>
             <div>
-                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Code PIN Arbitres (4 chiffres)</label>
-                <input type="number" id="sas-pin" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-2xl tracking-[1rem] text-center outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);" placeholder="0000">
+                <label class="text-[10px] font-black uppercase text-slate-500 ml-2">Code PIN Arbitres</label>
+                <input type="number" id="sas-pin" class="w-full bg-slate-100 p-4 rounded-2xl font-black text-2xl tracking-widest text-center outline-none focus:ring-2" style="--tw-ring-color: var(--primary-color);" placeholder="Optionnel">
             </div>
             <button onclick="validerSas()" class="w-full bg-slate-900 text-white p-5 rounded-3xl font-black uppercase hover:bg-slate-800 shadow-xl transition-transform active:scale-95">Démarrer</button>
         </div>
@@ -73,7 +56,10 @@
     <div class="bg-white rounded-[2rem] p-6 max-w-5xl w-full shadow-2xl flex flex-col max-h-[95vh]">
         <div class="flex justify-between items-center mb-4 border-b pb-2">
             <h2 class="text-2xl font-black uppercase italic">📱 Centre de Partage</h2>
-            <button onclick="document.getElementById('qr-modal').classList.add('hidden')" class="bg-slate-200 text-slate-800 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg font-black transition-colors">X FERMER</button>
+            <div class="flex gap-2">
+                <button onclick="printQRCodes()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-black hover:bg-slate-700 shadow-md">🖨️ Imprimer (A4)</button>
+                <button onclick="document.getElementById('qr-modal').classList.add('hidden')" class="bg-slate-200 text-slate-800 hover:bg-red-500 hover:text-white px-4 py-2 rounded-lg font-black transition-colors">X FERMER</button>
+            </div>
         </div>
         <div class="mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <label class="text-[10px] font-black uppercase text-slate-500 flex items-center gap-2">URL de votre site public (Firebase Hosting)</label>
@@ -92,8 +78,8 @@
             </div>
             <div>
                 <h3 class="font-black text-slate-800 uppercase mb-3 flex items-center gap-2">🏉 Liens Arbitres / Terrains</h3>
-                <p class="text-[10px] font-bold text-slate-400 uppercase mb-4">Ces liens contiennent la clé de sécurité. À flasher avec les téléphones des chefs de plateau.</p>
-                <div id="qr-terrains" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4"></div>
+                <p class="text-[10px] font-bold text-slate-400 uppercase mb-4">À flasher avec les téléphones des chefs de plateau de la catégorie en cours.</p>
+                <div id="qr-terrains" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"></div>
             </div>
         </div>
     </div>
@@ -325,9 +311,8 @@
 </main>
 
 <script>
-    // --- VARIABLES & DATA ---
     var STORAGE_KEY = 't3n_master_pro_v54';
-    var MAX_TERRAINS = { U6: 4, U8: 8, U10: 6, U12: 5 }; // Ajout du U6
+    var MAX_TERRAINS = { U6: 4, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
         4: [{a:1,b:3,arb:4},{a:2,b:4,arb:1},{a:3,b:4,arb:2},{a:1,b:2,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
@@ -366,7 +351,6 @@
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
 
-    // --- INITIALISATION ---
     function initApp() {
         var saved = localStorage.getItem(STORAGE_KEY);
         if (saved) { try { appState = JSON.parse(saved); } catch(e) {} }
@@ -376,7 +360,7 @@
     function validerSas() {
         var id = document.getElementById('sas-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
         var pin = document.getElementById('sas-pin').value;
-        if (id.length < 3 || pin.length < 4) return alert("ID (min 3) et PIN (4 chiffres) requis !");
+        if (id.length < 3) return alert("ID du tournoi (min 3 caractères) requis !"); // PIN check removed
         appState.tournoiId = id; appState.pinCode = pin; appState.branding.name = id;
         saveState(); location.reload();
     }
@@ -398,7 +382,6 @@
         if(ind) { ind.classList.remove('opacity-0'); setTimeout(function(){ ind.classList.add('opacity-0'); }, 2000); }
     }
 
-    // --- BRANDING ---
     function updateBranding(isInit) {
         appState.branding.name = document.getElementById('cfg-tournoi-name').value;
         appState.branding.color = document.getElementById('cfg-theme-color').value;
@@ -427,38 +410,60 @@
 
     // --- QR CODES ---
     function openQRModal() { document.getElementById('qr-modal').classList.remove('hidden'); document.getElementById('qr-modal').classList.add('flex'); renderQRCodes(); }
-    function renderQRCodes() {
-    var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
-    var tId = appState.tournoiId; 
-    var pin = appState.pinCode;
-    var currentCat = appState.activeCat; // On récupère la catégorie active
-
-    // LIEN PUBLIC
-    var urlPublic = baseUrl + "/public.html?id=" + tId;
-    document.getElementById('qr-public').innerHTML = "";
-    new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 120, height: 120 });
-    document.getElementById('link-public').innerText = urlPublic;
-
-    // LIENS TERRAINS (Spécifiques à la catégorie affichée)
-    var qrContainer = document.getElementById('qr-terrains');
-    qrContainer.innerHTML = "";
     
-    // On génère autant de QR codes que de terrains max pour cette catégorie
-    var nbTerrains = MAX_TERRAINS[currentCat] || 8;
+    function renderQRCodes() {
+        var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
+        var tId = appState.tournoiId; var pin = appState.pinCode;
+        var currentCat = appState.activeCat; 
 
-    for (var i = 1; i <= nbTerrains; i++) {
-        // AJOUT DU PARAMETRE &cat= POUR EVITER L'ERREUR "LIEN INCOMPLET"
-        var urlTerrain = baseUrl + "/terrain.html?id=" + tId + "&cat=" + currentCat + "&t=" + i + "&key=" + pin;
-        
-        var card = document.createElement('div');
-        card.className = "bg-white border-2 border-slate-100 p-4 rounded-2xl flex flex-col items-center text-center shadow-sm";
-        card.innerHTML = `<p class="font-black text-indigo-600 uppercase text-[10px] mb-2">${currentCat} - Ter. ${i}</p>
-                          <div id="qr-t-${i}" class="mb-2"></div>
-                          <a href="${urlTerrain}" target="_blank" class="text-[8px] font-bold text-slate-400 underline uppercase">Ouvrir</a>`;
-        qrContainer.appendChild(card);
-        new QRCode(document.getElementById(`qr-t-${i}`), { text: urlTerrain, width: 90, height: 90 });
+        var urlPublic = baseUrl + "/public.html?id=" + tId;
+        document.getElementById('qr-public').innerHTML = "";
+        new QRCode(document.getElementById('qr-public'), { text: urlPublic, width: 100, height: 100 });
+        document.getElementById('link-public').innerText = urlPublic; document.getElementById('link-public').href = urlPublic;
+
+        var qrContainer = document.getElementById('qr-terrains'); qrContainer.innerHTML = "";
+        var nbTerrains = MAX_TERRAINS[currentCat] || 8;
+
+        for (var i = 1; i <= nbTerrains; i++) {
+            var urlTerrain = baseUrl + "/terrain.html?id=" + tId + "&cat=" + currentCat + "&t=" + i + (pin ? "&key=" + pin : "");
+            var card = document.createElement('div'); card.className = "bg-white border p-4 rounded-2xl flex flex-col items-center text-center";
+            var title = document.createElement('p'); title.className = "font-black text-indigo-600 uppercase mb-2 text-[10px]"; title.innerText = currentCat + " - Ter. " + i;
+            var qrDiv = document.createElement('div'); qrDiv.className = "mb-2"; qrDiv.id = "qr-t-" + i;
+            new QRCode(qrDiv, { text: urlTerrain, width: 90, height: 90 });
+            var link = document.createElement('a'); link.className = "text-[8px] font-bold text-slate-400 underline mt-2"; link.href = urlTerrain; link.target = "_blank"; link.innerText = "Ouvrir";
+            card.appendChild(title); card.appendChild(qrDiv); card.appendChild(link); qrContainer.appendChild(card);
+        }
     }
-}
+
+    // Module d'impression des QR Codes
+    function printQRCodes() {
+        var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
+        var tId = appState.tournoiId; var pin = appState.pinCode;
+        var cat = appState.activeCat;
+        var nbTerrains = MAX_TERRAINS[cat] || 8;
+        
+        var html = `<div style="font-family:sans-serif; text-align:center;">
+            <h1 style="text-transform:uppercase; margin-bottom:5px;">${appState.branding.name}</h1>
+            <h2 style="color:#f59e0b; margin-top:0;">QR CODES ARBITRES - ${cat}</h2>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; margin-top:30px;">`;
+        
+        for(var i=1; i<=nbTerrains; i++) {
+            var url = baseUrl + "/terrain.html?id=" + tId + "&cat=" + cat + "&t=" + i + (pin ? "&key=" + pin : "");
+            var qrCanvas = document.querySelector(`#qr-t-${i} canvas`);
+            var imgData = qrCanvas ? qrCanvas.toDataURL("image/png") : "";
+            
+            html += `
+            <div style="border:4px solid #000; padding:20px; border-radius:15px; page-break-inside:avoid; display:flex; flex-direction:column; align-items:center;">
+                <h3 style="font-size:28px; margin:0 0 20px 0;">${cat} - TERRAIN ${i}</h3>
+                ${imgData ? `<img src="${imgData}" style="width:250px; height:250px;">` : `<p>Générez d'abord les QR dans l'interface</p>`}
+                <p style="font-size:11px; color:#555; word-break:break-all; margin-top:20px;">${url}</p>
+            </div>`;
+        }
+        html += `</div></div>`;
+        var win = window.open('','_blank');
+        win.document.write(`<html><head><title>Impression QR</title></head><body onload="setTimeout(function(){window.print();window.close();}, 800);">${html}</body></html>`);
+        win.document.close();
+    }
 
     // --- IMPORTATION ---
     function processMasterImport() {
@@ -469,7 +474,6 @@
             var parts = line.split(/\s+/);
             if(parts.length >= 2) {
                 var nums = [];
-                // Récupération souple des nombres depuis la droite (U12, U10, U8, U6)
                 while(parts.length > 0 && !isNaN(parts[parts.length-1])) { nums.unshift(parseInt(parts.pop())); }
                 var name = parts.join(' ').trim();
                 var isForeign = /zug|frankfurt|riedberg|heidelberg|neuenheim|crig/i.test(name);
@@ -864,40 +868,31 @@
         saveState(); renderBoard(); deployCategory(); 
     }
 
-    // Harmonisation du déploiement pour le Public
-function deployCategory() {
-    if (!db || !appState.tournoiId) return alert("Tournoi non initialisé."); 
-    var phase = getActivePhase();
-    var updates = {};
-    var globalOrder = 1;
-
-    phase.poules.forEach(p => {
-        if (p.teams.length === p.target) {
-            MATRICES[p.target].forEach((m, idx) => {
-                var terNum = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
-                var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
-                
-                // Chemin unique et clair pour le Public et les Arbitres
-                updates[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
-                    t1: (p.teams[m.a-1] ? p.teams[m.a-1].name : '?'), 
-                    t2: (p.teams[m.b-1] ? p.teams[m.b-1].name : '?'), 
-                    arb: (p.teams[m.arb-1] ? p.teams[m.arb-1].name : '?'), 
-                    s1: sc.s1 === '' ? '' : parseInt(sc.s1), 
-                    s2: sc.s2 === '' ? '' : parseInt(sc.s2), 
-                    locked: sc.locked || false, 
-                    terrain: 'Terrain ' + terNum, 
-                    poule: p.letter, 
-                    ordre: globalOrder++
-                };
-            });
-        }
-    });
-
-    db.ref().update(updates).then(() => {
-        syncStandings(); // Envoie les classements calculés pour la page Public
-        alert("✅ Données synchronisées (Public + Arbitres)");
-    });
-}
+    function deployCategory() {
+        if (!db || !appState.tournoiId) return alert("Tournoi non initialisé."); 
+        var updates = {}; var hasGhosts = false;
+        getActivePhase().poules.forEach(p => { for(var i=0; i<p.teams.length; i++) { if(p.teams[i] && p.teams[i].isDummy) hasGhosts = true; } });
+        if(hasGhosts && !confirm("⚠️ Vous déployez l'ossature fantôme sur le public. Continuer ?")) return; 
+        
+        getActivePhase().poules.forEach(p => {
+            if (p.teams.length === p.target) {
+                MATRICES[p.target].forEach((m, idx) => {
+                    var tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                    var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
+                    updates[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
+                        t1: (p.teams[m.a-1]?p.teams[m.a-1].name:'?'), t2: (p.teams[m.b-1]?p.teams[m.b-1].name:'?'), arb: (p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'), 
+                        // Initialisation automatique à 0
+                        s1: sc.s1 === '' ? 0 : parseInt(sc.s1), 
+                        s2: sc.s2 === '' ? 0 : parseInt(sc.s2), 
+                        locked: sc.locked||false, terrain: 'Terrain '+tStr, status:'en_attente', poule: p.letter, 
+                        ordre: idx + 1, // Ordre relatif à la poule
+                        auth_token: appState.pinCode || ''
+                    };
+                });
+            }
+        });
+        if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement réussi avec les scores à 0-0 !"); }); }
+    }
 
     // --- IMPRESSION EXCEL ---
     function printPouleExcel() {
@@ -1006,7 +1001,7 @@ function deployCategory() {
         var downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", "t3n_master_backup_" + appState.tournoiId + ".json");
-        document.body.appendChild(downloadAnchorNode); // requis pour Firefox
+        document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
     }

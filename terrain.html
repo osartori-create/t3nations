@@ -29,8 +29,8 @@
                 <p id="terrain-label" class="text-[11px] font-black uppercase tracking-widest mt-1" style="color: var(--accent);">Terrain ?</p>
             </div>
         </div>
-        <div id="auth-status" class="px-3 py-2 rounded-lg bg-red-900 border border-red-500 text-white text-[9px] font-black uppercase text-center leading-tight">
-            NON<br>SÉCURISÉ
+        <div id="auth-status" class="px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 text-[9px] font-black uppercase text-center leading-tight">
+            ACCÈS<br>LIBRE
         </div>
     </header>
 
@@ -47,7 +47,6 @@
     </div>
 
 <script>
-    // --- Configuration Firebase ---
     const firebaseConfig = {
         apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI",
         authDomain: "t3nations.firebaseapp.com",
@@ -57,7 +56,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Variables Globales ---
     const urlParams = new URLSearchParams(window.location.search);
     const tournoiId = urlParams.get('id');
     const activeCat = urlParams.get('cat'); 
@@ -65,9 +63,8 @@
     const accessKey = urlParams.get('key');
     
     let currentPhase = 'PHASE1';
-    let tournoiData = null; // Stocke toutes les données reçues en direct
+    let tournoiData = null;
 
-    // --- Initialisation ---
     if(!tournoiId || !terrainNum || !activeCat) {
         document.getElementById('matches-list').innerHTML = `
             <div class='text-center border-2 border-red-600 font-bold p-6 bg-red-900 rounded-3xl mt-10'>
@@ -84,7 +81,6 @@
             status.className = "px-3 py-2 rounded-lg bg-green-800 border border-green-400 text-white text-[9px] font-black uppercase text-center leading-tight";
         }
 
-        // Branding
         db.ref(`t3n/${tournoiId}/branding`).on('value', snap => {
             if(snap.exists()) {
                 let b = snap.val();
@@ -97,11 +93,9 @@
             }
         });
 
-        // Lancer l'écoute de la base de données
         loadMatches();
     }
 
-    // --- Changement d'onglet ---
     function setPhase(phase) {
         currentPhase = phase;
         document.getElementById('btn-phase1').className = `tab-btn flex-1 py-4 rounded-xl font-black text-sm uppercase shadow-lg ${phase === 'PHASE1' ? 'tab-active' : 'tab-inactive'}`;
@@ -109,7 +103,6 @@
         renderMatches();
     }
 
-    // --- Récupération des données ---
     function loadMatches() {
         db.ref(`t3n/${tournoiId}`).on('value', snap => {
             if(!snap.exists()) return;
@@ -118,7 +111,6 @@
         });
     }
 
-    // --- Affichage ---
     function renderMatches() {
         if(!tournoiData) return;
         const container = document.getElementById('matches-list');
@@ -127,7 +119,6 @@
         const phaseKey = `${activeCat}_${currentPhase}`;
         let matchesFound = [];
 
-        // Si la branche de la phase existe, on filtre les matchs du terrain
         if(tournoiData[phaseKey] && tournoiData[phaseKey].matches) {
             Object.keys(tournoiData[phaseKey].matches).forEach(mId => {
                 let m = tournoiData[phaseKey].matches[mId];
@@ -146,27 +137,23 @@
             return;
         }
 
-        // Tri par ordre chronologique
         matchesFound.sort((a,b) => a.ordre - b.ordre).forEach(m => {
             container.appendChild(createMatchCard(m));
         });
     }
 
-    // --- Création de la carte HTML du match ---
     function createMatchCard(m) {
         const card = document.createElement('div');
-        // Opacité réduite si verrouillé par le maitre
         card.className = `match-card rounded-3xl p-5 shadow-xl ${m.locked ? 'opacity-40 grayscale pointer-events-none' : ''}`;
         
-        let s1 = m.s1 !== '' && m.s1 !== undefined ? m.s1 : '-';
-        let s2 = m.s2 !== '' && m.s2 !== undefined ? m.s2 : '-';
+        let s1 = m.s1 !== '' && m.s1 !== undefined ? m.s1 : 0;
+        let s2 = m.s2 !== '' && m.s2 !== undefined ? m.s2 : 0;
 
         card.innerHTML = `
             <div class="flex justify-between items-center mb-5 border-b border-[#333] pb-3">
-                <span class="text-sm font-black uppercase tracking-widest" style="color: var(--accent);">Poule ${m.poule} - Match ${m.ordre}</span>
+                <span class="text-xl font-black uppercase tracking-widest" style="color: var(--accent);">Poule ${m.poule} - Match ${m.ordre}</span>
                 ${m.locked ? '<span class="text-[9px] font-black text-white bg-red-600 px-2 py-1 rounded">VERROUILLÉ</span>' : ''}
             </div>
-
             <div class="flex justify-between items-center mb-6">
                 <div class="w-[45%]">
                     <p class="text-xl font-black text-white uppercase leading-tight break-words">${m.t2}</p>
@@ -177,11 +164,9 @@
                     <button onclick="changeScore('${m.path}', 's2', 1)" class="btn-action w-12 h-14 bg-green-900/50 text-green-400 rounded-xl font-black text-3xl flex items-center justify-center border border-green-900">+</button>
                 </div>
             </div>
-
             <div class="w-full h-px bg-[#333] mb-6 relative">
                 <span class="absolute left-1/2 -top-3 -translate-x-1/2 bg-[#111] px-3 text-xs font-black text-gray-600">VS</span>
             </div>
-
             <div class="flex justify-between items-center mb-4">
                 <div class="w-[45%]">
                     <p class="text-xl font-black text-white uppercase leading-tight break-words">${m.t1}</p>
@@ -192,7 +177,6 @@
                     <button onclick="changeScore('${m.path}', 's1', 1)" class="btn-action w-12 h-14 bg-green-900/50 text-green-400 rounded-xl font-black text-3xl flex items-center justify-center border border-green-900">+</button>
                 </div>
             </div>
-
             <div class="mt-5 pt-3 border-t border-[#222] flex justify-between items-center">
                 <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                     <span class="text-xl">哨</span> Arbitre : <span class="text-gray-300 font-black">${m.arb || 'Non assigné'}</span>
@@ -202,25 +186,18 @@
         return card;
     }
 
-    // --- Modification des scores ---
     function changeScore(path, field, delta) {
-        if(!accessKey) return alert("Interdit : Il vous manque la clé de sécurité pour modifier le score.");
-        
         db.ref(path).once('value', snap => {
             let data = snap.val();
-            if(data.locked) return; // Sécurité supplémentaire si verrouillé
+            if(data.locked) return;
             
-            // Si le champ est vide, on part de 0
             let current = (data[field] === '' || data[field] === undefined || data[field] === '-') ? 0 : parseInt(data[field]);
-            
-            // On empêche les scores négatifs
             let newVal = Math.max(0, current + delta);
             
-            // On pousse sur Firebase
-            db.ref(path).update({ 
-                [field]: newVal,
-                auth_token: accessKey 
-            }).catch(err => alert("Erreur réseau : Le score n'a pas pu être mis à jour."));
+            let payload = { [field]: newVal };
+            if (accessKey) payload.auth_token = accessKey; // Si un PIN a été défini, on l'envoie
+
+            db.ref(path).update(payload).catch(err => alert("Erreur réseau : Le score n'a pas pu être mis à jour."));
         });
     }
 </script>
