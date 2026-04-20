@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>T3N Master v45 - Pro & Multi-Tournois</title>
+    <title>T3N Master v46 - Pro & Multi-Tournois</title>
     
     <link rel="manifest" href="manifest.json">
     <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }</script>
@@ -133,6 +133,17 @@
                             </select>
                         </div>
                     </div>
+                    <div class="bg-slate-800 text-white p-4 rounded-2xl flex items-center justify-between border-l-4 border-amber-500">
+                        <div>
+                            <p class="text-[9px] font-black uppercase text-slate-400 mb-1">Connexion Firebase</p>
+                            <p class="text-sm font-bold">ID Base de données : <span id="info-db-id" class="text-amber-400 font-black"></span></p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[9px] font-black uppercase text-slate-400 mb-1">Sécurité</p>
+                            <p class="text-sm font-bold">Code PIN : <span id="info-db-pin" class="text-amber-400 font-black"></span></p>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
                         <div class="border-2 border-dashed border-slate-200 p-4 rounded-2xl text-center bg-slate-50 hover:border-slate-400 transition-colors">
                             <p class="text-[9px] font-black uppercase text-slate-500 mb-2">Logo 1 (Club/Comité)</p>
@@ -170,28 +181,23 @@
 
     <section id="content-CAT" class="tab-content hidden">
         <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
-            
             <div class="xl:col-span-3 space-y-6">
                 <div class="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm sticky top-24">
                     <h2 class="text-4xl font-black uppercase" id="active-cat-title">...</h2>
                     <p class="text-[10px] font-black opacity-40 uppercase mb-4"><span id="active-cat-count">0</span> équipes actives détectées</p>
-                    
                     <div id="architect-container">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="text-xs font-black uppercase tracking-widest text-indigo-600 flex items-center gap-2">📐 Architecte</h3>
                             <button onclick="toggleArchitect(false)" id="btn-edit-architect" class="text-[9px] text-slate-400 font-bold hidden bg-slate-100 px-2 py-1 rounded">Modifier</button>
                         </div>
-                        
                         <div id="architect-settings" class="flex gap-2 mb-4 bg-slate-50 p-2 rounded-xl border border-slate-200">
                             <label class="text-[8px] font-black uppercase text-slate-500 flex-1">Matin<br><input type="number" id="cfg-creneau-p1" onchange="updateCatSettings()" class="w-full bg-white border border-slate-200 rounded p-1 mt-1 font-black text-center text-xs" value="120"></label>
                             <label class="text-[8px] font-black uppercase text-slate-500 flex-1">A-Midi<br><input type="number" id="cfg-creneau-p2" onchange="updateCatSettings()" class="w-full bg-white border border-slate-200 rounded p-1 mt-1 font-black text-center text-xs" value="120"></label>
                             <label class="text-[8px] font-black uppercase text-slate-500 flex-1">Battement<br><input type="number" id="cfg-battement" onchange="updateCatSettings()" class="w-full bg-white border border-slate-200 rounded p-1 mt-1 font-black text-center text-xs" value="2"></label>
                         </div>
-
                         <div id="scenario-list" class="space-y-3 mb-4 max-h-[30vh] overflow-y-auto pr-2 pb-2"></div>
-                        
                         <div id="manual-mode-panel" class="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl mb-4">
-                            <h4 class="text-[10px] font-black uppercase text-indigo-800 mb-2 flex items-center gap-2">🛠️ Mode Manuel (Forcer)</h4>
+                            <h4 class="text-[10px] font-black uppercase text-indigo-800 mb-2 flex items-center gap-2">🛠️ Mode Manuel</h4>
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <p class="text-[9px] uppercase font-bold text-slate-500 mb-1">Matin (P1)</p>
@@ -204,7 +210,6 @@
                             </div>
                             <button onclick="applyManualPlan()" class="mt-3 w-full bg-indigo-600 text-white text-[9px] font-black uppercase py-2 rounded-lg hover:bg-indigo-700 active:scale-95 transition-all">Forcer l'Ossature</button>
                         </div>
-
                         <div id="scenario-summary" class="hidden bg-amber-50 border-2 border-amber-400 p-4 rounded-2xl shadow-sm">
                             <p class="text-[10px] font-black text-amber-800 uppercase mb-1">Plan Actif</p>
                             <p class="text-xs font-bold text-slate-500 mt-2">Matin :</p><p id="summary-p1" class="text-lg font-black text-slate-800 leading-tight"></p>
@@ -212,7 +217,6 @@
                             <div class="mt-3 pt-2 border-t border-amber-200" id="summary-time"></div>
                         </div>
                     </div>
-                    
                     <hr class="mb-4 border-slate-100">
                     <h3 class="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest flex justify-between">📦 Réserve <span id="reserve-count" class="bg-slate-200 text-slate-800 px-2 py-0.5 rounded-full">0</span></h3>
                     <div id="reserve-zone" ondragover="allowDrop(event)" ondrop="dropToReserve(event)" class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl p-4 min-h-[150px] flex flex-col gap-2"></div>
@@ -226,7 +230,15 @@
                         <button onclick="switchCatPhase('PHASE2')" id="tab-phase2" class="px-4 py-2 text-[10px] font-black uppercase rounded-lg bg-slate-100 text-slate-500">Phase 2 (Classement)</button>
                     </nav>
                     <div class="flex items-center gap-4">
-                        <button onclick="printPouleExcel()" class="text-[10px] font-black uppercase bg-slate-800 text-white px-4 py-2 rounded-lg hover:bg-slate-700 shadow-sm" id="btn-print-cat">🖨️ Imprimer la Poule (A4)</button>
+                        <div id="print-controls" class="flex gap-2 items-center bg-slate-100 p-1 rounded-xl">
+                            <button onclick="printPouleExcel()" class="text-[9px] font-black uppercase bg-slate-800 text-white px-3 py-2 rounded-lg hover:bg-slate-700 shadow-sm flex items-center gap-1">🖨️ Poule</button>
+                            <button onclick="exportPouleCSV()" class="text-[9px] font-black uppercase bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 shadow-sm flex items-center gap-1">📊 Excel</button>
+                            <div id="phase2-print-controls" class="hidden flex gap-2 border-l border-slate-300 pl-2 ml-1">
+                                <button onclick="printCatRanking()" class="text-[9px] font-black uppercase bg-indigo-600 text-white px-3 py-2 rounded-lg hover:bg-indigo-700 shadow-sm flex items-center gap-1">🖨️ Classement</button>
+                                <button onclick="exportCatRankingCSV()" class="text-[9px] font-black uppercase bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 shadow-sm flex items-center gap-1">📊 Excel</button>
+                            </div>
+                        </div>
+
                         <div class="text-right px-4 border-l">
                             <span class="text-[10px] font-bold opacity-40 uppercase">Terrains Utilisés</span><br>
                             <span id="terrain-counter" class="text-xl font-black text-green-600">0 / 0</span>
@@ -360,13 +372,16 @@
     function validerSas() {
         var id = document.getElementById('sas-id').value.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_');
         var pin = document.getElementById('sas-pin').value;
-        if (id.length < 3) return alert("ID du tournoi (min 3 caractères) requis !"); // PIN check removed
+        if (id.length < 3) return alert("ID du tournoi (min 3 caractères) requis !");
         appState.tournoiId = id; appState.pinCode = pin; appState.branding.name = id;
         saveState(); location.reload();
     }
 
     function setupTournament() {
         document.getElementById('display-id').innerText = appState.tournoiId;
+        document.getElementById('info-db-id').innerText = appState.tournoiId;
+        document.getElementById('info-db-pin').innerText = appState.pinCode || 'Aucun';
+        
         if(db) document.getElementById('sync-status').classList.remove('hidden');
         document.getElementById('cfg-tournoi-name').value = appState.branding.name;
         document.getElementById('cfg-theme-color').value = appState.branding.color;
@@ -435,7 +450,6 @@
         }
     }
 
-    // Module d'impression des QR Codes
     function printQRCodes() {
         var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
         var tId = appState.tournoiId; var pin = appState.pinCode;
@@ -455,7 +469,7 @@
             html += `
             <div style="border:4px solid #000; padding:20px; border-radius:15px; page-break-inside:avoid; display:flex; flex-direction:column; align-items:center;">
                 <h3 style="font-size:28px; margin:0 0 20px 0;">${cat} - TERRAIN ${i}</h3>
-                ${imgData ? `<img src="${imgData}" style="width:250px; height:250px;">` : `<p>Générez d'abord les QR dans l'interface</p>`}
+                ${imgData ? `<img src="${imgData}" style="width:250px; height:250px;">` : `<p>Erreur Génération</p>`}
                 <p style="font-size:11px; color:#555; word-break:break-all; margin-top:20px;">${url}</p>
             </div>`;
         }
@@ -573,11 +587,13 @@
         
         if(appState.currentPhase === 'PHASE1') {
             document.getElementById('phase2-generator').classList.add('hidden'); document.getElementById('architect-container').classList.remove('hidden');
+            document.getElementById('phase2-print-controls').classList.add('hidden');
             var cTeams = getActiveTeams(phase1); document.getElementById('active-cat-count').innerText = cTeams.length; 
             renderArchitectScenarios(cTeams.length, phase1, cTeams); 
             toggleArchitect(!!phase1.formatStr);
         } else {
             document.getElementById('architect-container').classList.add('hidden'); document.getElementById('phase2-generator').classList.remove('hidden');
+            document.getElementById('phase2-print-controls').classList.remove('hidden'); document.getElementById('phase2-print-controls').classList.add('flex');
         }
         renderBoard(); renderReserve();
     }
@@ -837,7 +853,7 @@
     function syncStandings() {
         if (!db || !appState.tournoiId) return;
         var phase = getActivePhase(); var standings = {};
-        phase.poules.forEach(p => { if(p.teams.length === p.target) { standings[p.letter] = JSON.stringify(computeRanking(p).map(r => ({ name: r.name, pts: r.pts, diff: r.diff, isDummy: (r.ogTeam && r.ogTeam.isDummy) ? true : false }))); } });
+        phase.poules.forEach(p => { if(p.teams.length === p.target) { standings[p.letter] = JSON.stringify(computeRanking(p).map(r => ({ name: r.name, pts: r.pts, diff: r.diff, isDummy: (r.ogTeam && r.ogTeam.isDummy) ? true : false, placeRange: p.placeRange || '' }))); } });
         db.ref(`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/standings`).update(standings);
     }
 
@@ -881,12 +897,8 @@
                     var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
                     updates[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
                         t1: (p.teams[m.a-1]?p.teams[m.a-1].name:'?'), t2: (p.teams[m.b-1]?p.teams[m.b-1].name:'?'), arb: (p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'), 
-                        // Initialisation automatique à 0
-                        s1: sc.s1 === '' ? 0 : parseInt(sc.s1), 
-                        s2: sc.s2 === '' ? 0 : parseInt(sc.s2), 
-                        locked: sc.locked||false, terrain: 'Terrain '+tStr, status:'en_attente', poule: p.letter, 
-                        ordre: idx + 1, // Ordre relatif à la poule
-                        auth_token: appState.pinCode || ''
+                        s1: sc.s1 === '' ? 0 : parseInt(sc.s1), s2: sc.s2 === '' ? 0 : parseInt(sc.s2), 
+                        locked: sc.locked||false, terrain: 'Terrain '+tStr, status:'en_attente', poule: p.letter, ordre: idx + 1, auth_token: appState.pinCode || ''
                     };
                 });
             }
@@ -894,60 +906,64 @@
         if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement réussi avec les scores à 0-0 !"); }); }
     }
 
-    // --- IMPRESSION EXCEL ---
+    // --- EXPORTS & IMPRESSIONS ---
     function printPouleExcel() {
         var cat = appState.activeCat; var ph = getActivePhase(); var pIdx = ph.poules.findIndex(x => x.letter === appState.activePouleTab); var p = ph.poules[pIdx]; if(!p) return;
         var currentT = 1; ph.poules.slice(0, pIdx).forEach(prev => currentT += prev.tUsed);
         
-        var html = `
-        <div style="font-family:sans-serif; text-align:center; padding:20px; max-width: 1100px; margin: auto;">
+        var html = `<div style="font-family:sans-serif; text-align:center; padding:20px; max-width: 1100px; margin: auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:4px solid black; padding-bottom:10px; margin-bottom:15px;">
                 ${appState.branding.logoClub ? `<img src="${appState.branding.logoClub}" style="height:60px; object-fit:contain;">` : '<div></div>'}
-                <div>
-                    <h1 style="margin:0; text-transform:uppercase; font-size:28px; letter-spacing:-1px; color:#1e293b;">${appState.branding.name}</h1>
-                    <h2 style="margin:0; color:#f59e0b; font-size:18px;">${cat} - ${appState.currentPhase==='PHASE1'?'BRASSAGE':'CLASSEMENT'}</h2>
-                </div>
+                <div><h1 style="margin:0; text-transform:uppercase; font-size:28px; letter-spacing:-1px; color:#1e293b;">${appState.branding.name}</h1>
+                <h2 style="margin:0; color:#f59e0b; font-size:18px;">${cat} - ${appState.currentPhase==='PHASE1'?'BRASSAGE':'CLASSEMENT'}</h2></div>
                 ${appState.branding.logoYear ? `<img src="${appState.branding.logoYear}" style="height:60px; object-fit:contain;">` : '<div></div>'}
             </div>
-            <h2 style="background:#1e293b; color:white; display:inline-block; padding:8px 40px; text-transform:uppercase; margin-bottom:20px; font-size:22px; border-radius: 8px;">POULE ${p.letter}</h2>
+            <h2 style="background:#1e293b; color:white; display:inline-block; padding:8px 40px; text-transform:uppercase; margin-bottom:20px; font-size:22px; border-radius: 8px;">POULE ${p.letter} ${p.placeRange ? `<span style="font-size:14px; opacity:0.8;">(${p.placeRange})</span>` : ''}</h2>
             <table style="width:100%; border-collapse:collapse; border:3px solid black; margin-bottom: 30px;">
-                <thead>
-                    <tr style="background:#e2e8f0; font-size:13px;">
-                        <th style="border:1px solid black; padding:10px;">TERRAIN</th>
-                        <th style="border:1px solid black; padding:10px;">EQUIPE 2</th>
-                        <th style="border:1px solid black; padding:10px;" colspan="2">SCORES</th>
-                        <th style="border:1px solid black; padding:10px;">EQUIPE 1</th>
-                        <th style="border:1px solid black; padding:10px;">ARBITRE</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${MATRICES[p.target].map((m, idx) => { 
-                        var ter = p.tUsed === 2 ? (idx % 2 === 0 ? currentT : currentT+1) : currentT; 
-                        var sc = p.scores[idx] || {s1:'', s2:''}; 
-                        return `<tr>
-                            <td style="border:1px solid black; padding:10px; font-weight:900; font-size:16px; background:#f8fafc;">T.${ter}</td>
-                            <td style="border:1px solid black; padding:10px; font-weight:bold; text-transform:uppercase; font-size:14px;">${p.teams[m.b-1]?.name||'?'}</td>
-                            <td style="border:1px solid black; padding:10px; width:60px; font-weight:900; font-size:20px;">${sc.s2}</td>
-                            <td style="border:1px solid black; padding:10px; width:60px; font-weight:900; font-size:20px;">${sc.s1}</td>
-                            <td style="border:1px solid black; padding:10px; font-weight:bold; text-transform:uppercase; font-size:14px;">${p.teams[m.a-1]?.name||'?'}</td>
-                            <td style="border:1px solid black; padding:10px; font-size:11px; color:#64748b;">${p.teams[m.arb-1]?.name||'---'}</td>
-                        </tr>`; 
-                    }).join('')}
-                </tbody>
+                <thead><tr style="background:#e2e8f0; font-size:13px;"><th style="border:1px solid black; padding:10px;">TERRAIN</th><th style="border:1px solid black; padding:10px;">EQUIPE 2</th><th style="border:1px solid black; padding:10px;" colspan="2">SCORES</th><th style="border:1px solid black; padding:10px;">EQUIPE 1</th><th style="border:1px solid black; padding:10px;">ARBITRE</th></tr></thead>
+                <tbody>${MATRICES[p.target].map((m, idx) => { var ter = p.tUsed === 2 ? (idx % 2 === 0 ? currentT : currentT+1) : currentT; var sc = p.scores[idx] || {s1:'', s2:''}; return `<tr><td style="border:1px solid black; padding:10px; font-weight:900; font-size:16px; background:#f8fafc;">T.${ter}</td><td style="border:1px solid black; padding:10px; font-weight:bold; text-transform:uppercase; font-size:14px;">${p.teams[m.b-1]?.name||'?'}</td><td style="border:1px solid black; padding:10px; width:60px; font-weight:900; font-size:20px;">${sc.s2}</td><td style="border:1px solid black; padding:10px; width:60px; font-weight:900; font-size:20px;">${sc.s1}</td><td style="border:1px solid black; padding:10px; font-weight:bold; text-transform:uppercase; font-size:14px;">${p.teams[m.a-1]?.name||'?'}</td><td style="border:1px solid black; padding:10px; font-size:11px; color:#64748b;">${p.teams[m.arb-1]?.name||'---'}</td></tr>`; }).join('')}</tbody>
             </table>
             <div style="width:70%; margin:auto;">
                 <h3 style="border-bottom:2px solid black; text-align:left; padding-bottom:5px; text-transform:uppercase; font-size:16px;">Classement Officiel</h3>
                 <table style="width:100%; border-collapse:collapse; border:2px solid black; margin-top:10px;">
                     <thead><tr style="background:#f1f5f9; font-size:12px;"><th>RANG</th><th style="text-align:left; padding-left:15px;">CLUB</th><th>PTS</th><th>DIFF</th></tr></thead>
-                    <tbody>
-                        ${computeRanking(p).map((r, i) => `<tr><td style="border:1px solid black; padding:8px; font-weight:bold; font-size:14px;">${i+1}</td><td style="border:1px solid black; padding:8px; text-align:left; text-transform:uppercase; font-weight:bold;">${r.name}</td><td style="border:1px solid black; padding:8px; font-weight:900;">${r.pts}</td><td style="border:1px solid black; padding:8px; font-weight:bold;">${r.diff}</td></tr>`).join('')}
-                    </tbody>
+                    <tbody>${computeRanking(p).map((r, i) => `<tr><td style="border:1px solid black; padding:8px; font-weight:bold; font-size:14px;">${i+1}</td><td style="border:1px solid black; padding:8px; text-align:left; text-transform:uppercase; font-weight:bold;">${r.name}</td><td style="border:1px solid black; padding:8px; font-weight:900;">${r.pts}</td><td style="border:1px solid black; padding:8px; font-weight:bold;">${r.diff}</td></tr>`).join('')}</tbody>
                 </table>
-            </div>
-        </div>`;
-        var win = window.open('', '_blank'); 
-        win.document.write(`<html><head><title>Impression Poule</title></head><body onload="setTimeout(function(){window.print();window.close();}, 500);">${html}</body></html>`); 
-        win.document.close();
+            </div></div>`;
+        var win = window.open('', '_blank'); win.document.write(`<html><head><title>Impression Poule</title></head><body onload="setTimeout(function(){window.print();window.close();}, 500);">${html}</body></html>`); win.document.close();
+    }
+
+    function exportPouleCSV() {
+        var ph = getActivePhase(); var p = ph.poules.find(x => x.letter === appState.activePouleTab); if(!p) return;
+        var csv = "RANG;CLUB;PTS;DIFF\n";
+        computeRanking(p).forEach((r, i) => { csv += `${i+1};${r.name};${r.pts};${r.diff}\n`; });
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); var link = document.createElement("a");
+        var url = URL.createObjectURL(blob); link.setAttribute("href", url); link.setAttribute("download", `Classement_${appState.activeCat}_Poule_${p.letter}.csv`); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    }
+
+    function printCatRanking() {
+        var cat = appState.activeCat; var p2 = appState.cats[cat].phase2; if(!p2.poules || p2.poules.length === 0) return;
+        var fullRank = []; var currentAbsRank = 1;
+        p2.poules.forEach(p => { 
+            computeRanking(p).forEach((r, idx) => { fullRank.push({ rank: currentAbsRank + idx, name: r.name, pts: r.pts, diff: r.diff, poule: p.letter }); }); 
+            currentAbsRank += p.target; 
+        });
+        
+        var html = `<div style="font-family:sans-serif; padding:20px; max-width: 800px; margin: auto;">
+            <h1 style="text-align:center; text-transform:uppercase; border-bottom:4px solid black; padding-bottom:10px;">CLASSEMENT FINAL - ${cat}</h1>
+            <table style="width:100%; border-collapse:collapse; border:3px solid black; margin-top: 20px;">
+                <thead><tr style="background:#e2e8f0; font-size:14px;"><th style="border:1px solid black; padding:10px;">RANG</th><th style="border:1px solid black; padding:10px; text-align:left;">ÉQUIPE</th><th style="border:1px solid black; padding:10px;">POULE</th></tr></thead>
+                <tbody>${fullRank.map(r => `<tr><td style="border:1px solid black; padding:10px; font-weight:900; text-align:center; font-size:16px;">${r.rank}</td><td style="border:1px solid black; padding:10px; font-weight:bold; text-transform:uppercase;">${r.name}</td><td style="border:1px solid black; padding:10px; text-align:center; color:#64748b; font-size:12px;">${r.poule}</td></tr>`).join('')}</tbody>
+            </table></div>`;
+        var win = window.open('', '_blank'); win.document.write(`<html><head><title>Classement Final ${cat}</title></head><body onload="setTimeout(function(){window.print();window.close();}, 500);">${html}</body></html>`); win.document.close();
+    }
+
+    function exportCatRankingCSV() {
+        var cat = appState.activeCat; var p2 = appState.cats[cat].phase2; if(!p2.poules || p2.poules.length === 0) return;
+        var csv = "RANG_GENERAL;EQUIPE;POULE;PTS_POULE;DIFF_POULE\n"; var currentAbsRank = 1;
+        p2.poules.forEach(p => { computeRanking(p).forEach((r, idx) => { csv += `${currentAbsRank + idx};${r.name};${p.letter};${r.pts};${r.diff}\n`; }); currentAbsRank += p.target; });
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }); var link = document.createElement("a");
+        var url = URL.createObjectURL(blob); link.setAttribute("href", url); link.setAttribute("download", `Classement_Final_${cat}.csv`); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
     // --- TROPHEE ---
@@ -978,48 +994,32 @@
     function purge(type) {
         var cat = document.getElementById('maint-cat').value;
         if(!confirm("⚠️ Êtes-vous sûr de vouloir purger " + type + " pour " + cat + " ?")) return;
-        if(type === 'scores') {
-            appState.cats[cat].phase1.poules.forEach(p => p.scores = {});
-            appState.cats[cat].phase2.poules.forEach(p => p.scores = {});
-        } else if (type === 'teams') {
-            appState.cats[cat] = initCatState();
-            syncTeamsWithMaster();
-        }
+        if(type === 'scores') { appState.cats[cat].phase1.poules.forEach(p => p.scores = {}); appState.cats[cat].phase2.poules.forEach(p => p.scores = {}); } 
+        else if (type === 'teams') { appState.cats[cat] = initCatState(); syncTeamsWithMaster(); }
         saveState(); location.reload();
     }
 
     function resetGeneral() {
         if(!confirm("⚠️ DANGER : Vous allez effacer l'intégralité de ce tournoi en local. Continuer ?")) return;
         if(!confirm("Êtes-vous ABSOLUMENT certain ?")) return;
-        appState.masterData = [];
-        appState.cats = { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() };
+        appState.masterData = []; appState.cats = { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() };
         saveState(); location.reload();
     }
 
     function exportJSON() {
         var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
         var downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "t3n_master_backup_" + appState.tournoiId + ".json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", "t3n_master_backup_" + appState.tournoiId + ".json");
+        document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
     }
 
     function importJSON(event) {
-        var file = event.target.files[0];
-        if (!file) return;
+        var file = event.target.files[0]; if (!file) return;
         var reader = new FileReader();
         reader.onload = function(e) {
-            try {
-                var importedState = JSON.parse(e.target.result);
-                if (importedState && importedState.cats) {
-                    appState = importedState;
-                    saveState(); alert("✅ Tournoi restauré avec succès !"); location.reload();
-                } else { alert("❌ Fichier invalide."); }
-            } catch (err) { alert("❌ Erreur de lecture du JSON."); }
-        };
-        reader.readAsText(file);
+            try { var importedState = JSON.parse(e.target.result); if (importedState && importedState.cats) { appState = importedState; saveState(); alert("✅ Tournoi restauré avec succès !"); location.reload(); } else { alert("❌ Fichier invalide."); } } 
+            catch (err) { alert("❌ Erreur de lecture du JSON."); }
+        }; reader.readAsText(file);
     }
 </script>
 </body>

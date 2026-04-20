@@ -12,7 +12,7 @@
         body { -webkit-tap-highlight-color: transparent; background-color: var(--sat-bg); color: #f8fafc; padding-bottom: 80px; }
         .glass-panel { background: var(--panel-bg); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 2px solid var(--accent); z-index: 50; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.75rem 0; width: 25%; }
+        .nav-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.75rem 0; width: 20%; } /* Ajusté pour 5 onglets */
         .nav-item.active { color: var(--accent); transform: translateY(-4px); font-weight: 900;}
         .nav-indicator { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0; margin-top: 2px; transition: opacity 0.3s; }
         .nav-item.active .nav-indicator { opacity: 1; }
@@ -27,7 +27,7 @@
     <header class="glass-panel sticky top-0 z-40 px-4 py-3 shadow-lg flex flex-col gap-3" style="border-bottom: 3px solid var(--accent);">
         <div class="max-w-7xl mx-auto w-full flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <img id="logo-club" class="h-10 w-auto hidden rounded shadow-sm">
+                <img id="logo-club" class="h-10 w-auto hidden rounded shadow-sm bg-white p-0.5">
                 <div>
                     <h1 id="tournoi-name" class="text-xl sm:text-2xl font-black italic uppercase tracking-tighter text-white drop-shadow-md">CHARGEMENT...</h1>
                     <div class="flex items-center gap-2 mt-0.5">
@@ -41,7 +41,7 @@
                     <button onclick="setPhase('PHASE1')" id="tab-PHASE1" class="px-3 py-1 rounded-full text-[10px] font-black uppercase transition-colors text-black shadow-sm" style="background-color: var(--accent);">Matin</button>
                     <button onclick="setPhase('PHASE2')" id="tab-PHASE2" class="px-3 py-1 rounded-full text-[10px] font-black uppercase transition-colors text-slate-400 hover:text-white">A-Midi</button>
                 </div>
-                <img id="logo-year" class="h-10 w-auto hidden rounded shadow-sm">
+                <img id="logo-year" class="h-10 w-auto hidden rounded shadow-sm bg-white p-0.5">
             </div>
         </div>
         <div id="poule-nav-container" class="max-w-7xl mx-auto w-full hidden">
@@ -59,6 +59,7 @@
     <main class="p-4 max-w-7xl mx-auto space-y-6 hidden" id="trophy-container"></main>
 
     <nav class="bottom-nav flex shadow-2xl" id="main-nav">
+        <button onclick="setMainTab('U6')" id="tab-U6" class="nav-item"><span class="text-lg font-black italic">U6</span><div class="nav-indicator"></div></button>
         <button onclick="setMainTab('U8')" id="tab-U8" class="nav-item active"><span class="text-lg font-black italic">U8</span><div class="nav-indicator"></div></button>
         <button onclick="setMainTab('U10')" id="tab-U10" class="nav-item"><span class="text-lg font-black italic">U10</span><div class="nav-indicator"></div></button>
         <button onclick="setMainTab('U12')" id="tab-U12" class="nav-item"><span class="text-lg font-black italic">U12</span><div class="nav-indicator"></div></button>
@@ -79,7 +80,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tournoiId = urlParams.get('id');
 
-    let activeMain = 'U8';
+    let activeMain = 'U10'; // Par défaut
     let localPhase = 'PHASE1';
     let activePoule = null; 
     let currentMatchesData = {};
@@ -95,7 +96,6 @@
             return;
         }
 
-        // Récupération du Branding
         db.ref(`t3n/${tournoiId}/branding`).on('value', snap => {
             if(snap.exists()) {
                 let b = snap.val();
@@ -104,7 +104,6 @@
                 if(b.logoClub) { document.getElementById('logo-club').src = b.logoClub; document.getElementById('logo-club').classList.remove('hidden'); }
                 if(b.logoYear) { document.getElementById('logo-year').src = b.logoYear; document.getElementById('logo-year').classList.remove('hidden'); }
                 
-                // Mettre à jour la couleur du bouton phase actif
                 document.getElementById(`tab-${localPhase}`).style.backgroundColor = 'var(--accent)';
             } else {
                 document.getElementById('tournoi-name').innerText = tournoiId;
@@ -156,7 +155,7 @@
         matchesRef.on('value', snap => {
             if (!snap.exists()) { 
                 document.getElementById('poule-nav-container').classList.add('hidden');
-                document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><p class="font-black text-lg uppercase tracking-widest">Aucun match</p></div>`; 
+                document.getElementById('poules-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><p class="font-black text-lg uppercase tracking-widest">Aucun match programmé</p></div>`; 
                 return; 
             }
             document.getElementById('poule-nav-container').classList.remove('hidden');
@@ -174,7 +173,7 @@
         });
 
         standingsRef.on('value', snap => {
-            if (snap.exists()) { currentStandingsData = snap.val(); renderActivePoule(); }
+            if (snap.exists()) { currentStandingsData = snap.val(); buildPouleNav(Object.keys(currentMatchesData).sort()); renderActivePoule(); }
         });
     }
 
@@ -182,7 +181,18 @@
         let navHtml = '';
         pouleKeys.forEach(p => {
             let isActive = p === activePoule;
-            navHtml += `<button onclick="switchPoule('${p}')" class="px-5 py-1.5 rounded-full font-black text-xs transition-all whitespace-nowrap snap-center shrink-0 border" style="${isActive ? 'background-color: var(--accent); color: #000; border-color: var(--accent);' : 'background-color: rgba(30,41,59,0.8); color: #94a3b8; border-color: #334155;'}">Poule ${p}</button>`;
+            // RECUPERATION DE LA MENTION "Places X à Y" depuis le classement de la poule
+            let rangeText = "";
+            if(currentStandingsData[p]) {
+                try { 
+                    let parsed = JSON.parse(currentStandingsData[p]); 
+                    if (parsed.length > 0 && parsed[0].placeRange) {
+                        rangeText = ` <span class="opacity-60 text-[9px]">(${parsed[0].placeRange})</span>`;
+                    }
+                } catch(e) {}
+            }
+
+            navHtml += `<button onclick="switchPoule('${p}')" class="px-5 py-2 rounded-full font-black text-xs transition-all whitespace-nowrap snap-center shrink-0 border" style="${isActive ? 'background-color: var(--accent); color: #000; border-color: var(--accent);' : 'background-color: rgba(30,41,59,0.8); color: #94a3b8; border-color: #334155;'}">Poule ${p}${rangeText}</button>`;
         });
         document.getElementById('poule-nav').innerHTML = navHtml;
     }
@@ -266,31 +276,8 @@
     }
 
     function loadTrophy() {
-        let tRef = db.ref(`t3n/${tournoiId}/trophy_data`);
-        document.getElementById('trophy-container').innerHTML = `<div class="flex justify-center py-20 opacity-50"><div class="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style="border-color: var(--accent);"></div></div>`;
-        
-        tRef.on('value', snap => {
-            if (!snap.exists()) { 
-                document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><p class="font-black text-lg uppercase tracking-widest">Palmarès en attente</p></div>`; 
-                return; 
-            }
-            try {
-                let dbData = snap.val(); let isProvisional = dbData.status !== 'valide'; let sortedList = JSON.parse(dbData.payload);
-                if (!sortedList || sortedList.length === 0) return;
-
-                let badgeHtml = isProvisional 
-                    ? `<div class="inline-block bg-indigo-900/50 border border-indigo-500 text-indigo-300 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse mb-6">⚠️ Classement Provisoire</div>`
-                    : `<div class="inline-block bg-green-900/50 border border-green-500 text-green-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest mb-6">✅ Classement Définitif</div>`;
-                
-                let tbody = sortedList.map((c, idx) => `<div class="flex items-center justify-between p-3 border-b border-slate-700/50 hover:bg-slate-800/30">
-                    <div class="w-8 font-black ${idx<3?'text-lg':'text-slate-500'}" style="${idx<3?'color: var(--accent)':''}">${idx+1}</div>
-                    <div class="flex-1 font-bold text-sm text-white uppercase truncate px-2">${c.name}</div>
-                    <div class="w-16 text-right font-black text-lg" style="color: var(--accent);">${c.pts} <span class="text-[8px] text-slate-500">pts</span></div>
-                </div>`).join('');
-                
-                document.getElementById('trophy-container').innerHTML = `<div class="text-center w-full">${badgeHtml}</div><div class="glass-panel p-4 sm:p-8 rounded-[2.5rem] shadow-2xl mb-8"><div class="bg-slate-900/50 rounded-2xl p-2">${tbody}</div></div>`;
-            } catch (err) {}
-        });
+        // En attendant que la base de données stocke le palmarès
+        document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><p class="font-black text-lg uppercase tracking-widest">Le Bouclier T3N sera calculé à la fin du tournoi.</p></div>`; 
     }
 </script>
 </body>
