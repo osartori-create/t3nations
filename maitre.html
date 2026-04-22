@@ -995,47 +995,64 @@
         var cat = document.getElementById('maint-cat').value;
         if(!confirm("⚠️ Êtes-vous sûr de vouloir purger " + type + " pour " + cat + " (Local ET Serveur) ?")) return;
         
+        var promises = [];
+
         if(type === 'scores') { 
             appState.cats[cat].phase1.poules.forEach(p => p.scores = {}); 
             appState.cats[cat].phase2.poules.forEach(p => p.scores = {}); 
             
-            // ACTION SERVEUR : On efface les matchs et classements pour forcer le vide
             if(db && appState.tournoiId) {
-                db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE1/matches`).remove();
-                db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE1/standings`).remove();
-                db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE2/matches`).remove();
-                db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE2/standings`).remove();
+                promises.push(db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE1/matches`).remove());
+                promises.push(db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE1/standings`).remove());
+                promises.push(db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE2/matches`).remove());
+                promises.push(db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE2/standings`).remove());
             }
         } 
         else if (type === 'teams') { 
             appState.cats[cat] = initCatState(); 
             syncTeamsWithMaster(); 
             
-            // ACTION SERVEUR : On supprime toute trace de cette catégorie
             if(db && appState.tournoiId) {
-                db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE1`).remove();
-                db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE2`).remove();
+                promises.push(db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE1`).remove());
+                promises.push(db.ref(`t3n/${appState.tournoiId}/${cat}_PHASE2`).remove());
             }
         }
+
         saveState(); 
-        alert("🧹 Purge effectuée en local et sur les téléphones !");
-        location.reload();
+
+        // On attend que Firebase ait fini son travail avant de rafraîchir
+        if (promises.length > 0) {
+            Promise.all(promises).then(() => {
+                alert("🧹 Purge effectuée en local et sur les téléphones !");
+                location.reload();
+            }).catch(err => {
+                alert("Erreur réseau : La purge serveur a échoué.");
+                location.reload();
+            });
+        } else {
+            alert("🧹 Purge locale effectuée !");
+            location.reload();
+        }
     }
 
     function resetGeneral() {
         if(!confirm("⚠️ DANGER : Vous allez effacer l'intégralité de ce tournoi en LOCAL ET SUR LE SERVEUR. Continuer ?")) return;
         if(!confirm("Êtes-vous ABSOLUMENT certain ? Action irréversible.")) return;
         
-        // ACTION SERVEUR : Destruction totale du dossier du tournoi
-        if(db && appState.tournoiId) {
-            db.ref(`t3n/${appState.tournoiId}`).remove();
-        }
+        var finishReset = function() {
+            appState.masterData = []; 
+            appState.cats = { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() };
+            saveState(); 
+            alert("💣 Tournoi entièrement réinitialisé.");
+            location.reload();
+        };
 
-        appState.masterData = []; 
-        appState.cats = { 'U6': initCatState(), 'U8': initCatState(), 'U10': initCatState(), 'U12': initCatState() };
-        saveState(); 
-        alert("💣 Tournoi entièrement réinitialisé.");
-        location.reload();
+        // On attend la suppression de tout le nœud du tournoi
+        if(db && appState.tournoiId) {
+            db.ref(`t3n/${appState.tournoiId}`).remove().then(finishReset).catch(finishReset);
+        } else {
+            finishReset();
+        }
     }
 
     function exportJSON() {
