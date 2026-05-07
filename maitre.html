@@ -2,11 +2,17 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>T3N Master v46 - Pro & Multi-Tournois</title>
     
     <link rel="manifest" href="manifest.json">
-    <script>if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }</script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) { registration.unregister(); }
+            });
+        }
+    </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
@@ -30,6 +36,13 @@
         .excel-header { background-color: #f1f5f9; font-weight: 900; text-transform: uppercase; font-size: 10px;}
         .excel-yellow { background-color: #fef08a; font-weight: 900; }
         @media print { .no-print { display: none !important; } body { background: white !important; } }
+
+        /* CORRECTIFS iPAD */
+        * { touch-action: manipulation; }
+        body { padding-bottom: max(80px, env(safe-area-inset-bottom)); -webkit-overflow-scrolling: touch; }
+        @media screen and (max-width: 1024px) {
+            input, select, textarea { font-size: 16px !important; }
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans text-slate-900 min-h-screen" onload="initApp()">
@@ -133,6 +146,7 @@
                             </select>
                         </div>
                     </div>
+                    
                     <div class="bg-slate-800 text-white p-4 rounded-2xl flex items-center justify-between border-l-4 border-amber-500">
                         <div>
                             <p class="text-[9px] font-black uppercase text-slate-400 mb-1">Connexion Firebase</p>
@@ -305,6 +319,9 @@
                     <label class="w-full py-3 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 transition-colors shadow-md flex justify-center cursor-pointer">
                         Importer une session JSON <input type="file" class="hidden" accept=".json" onchange="importJSON(event)">
                     </label>
+                    <button onclick="clearAppCache()" class="w-full mt-2 py-3 bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-black uppercase hover:bg-slate-300 transition-colors shadow-sm flex justify-center items-center gap-2">
+                        🔄 Forcer la mise à jour (Vider le cache)
+                    </button>
                 </div>
                 <div class="space-y-4">
                     <h3 class="font-black uppercase text-sm border-b pb-2 text-red-600">⚠️ Purge & Nettoyage</h3>
@@ -323,7 +340,7 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_pro_v54';
+    var STORAGE_KEY = 't3n_master_pro_v46'; // Mise à jour de la clé de version
     var MAX_TERRAINS = { U6: 4, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
@@ -1020,7 +1037,6 @@
 
         saveState(); 
 
-        // On attend que Firebase ait fini son travail avant de rafraîchir
         if (promises.length > 0) {
             Promise.all(promises).then(() => {
                 alert("🧹 Purge effectuée en local et sur les téléphones !");
@@ -1047,7 +1063,6 @@
             location.reload();
         };
 
-        // On attend la suppression de tout le nœud du tournoi
         if(db && appState.tournoiId) {
             db.ref(`t3n/${appState.tournoiId}`).remove().then(finishReset).catch(finishReset);
         } else {
@@ -1069,6 +1084,36 @@
             try { var importedState = JSON.parse(e.target.result); if (importedState && importedState.cats) { appState = importedState; saveState(); alert("✅ Tournoi restauré avec succès !"); location.reload(); } else { alert("❌ Fichier invalide."); } } 
             catch (err) { alert("❌ Erreur de lecture du JSON."); }
         }; reader.readAsText(file);
+    }
+
+    function clearAppCache() {
+        if(!confirm("⚠️ Voulez-vous forcer la mise à jour de l'application ? (Vos données de tournoi actuelles seront conservées).")) return;
+
+        var promises = [];
+        
+        if ('serviceWorker' in navigator) {
+            promises.push(
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(var i = 0; i < registrations.length; i++) { registrations[i].unregister(); }
+                })
+            );
+        }
+        
+        if ('caches' in window) {
+            promises.push(
+                caches.keys().then(function(names) {
+                    return Promise.all(names.map(function(name) { return caches.delete(name); }));
+                })
+            );
+        }
+
+        Promise.all(promises).then(function() {
+            alert("✅ Cache vidé. L'application va redémarrer avec la dernière version.");
+            window.location.href = window.location.pathname + '?v=' + new Date().getTime();
+        }).catch(function() {
+            alert("⚠️ Un problème est survenu. Rechargez la page manuellement.");
+            window.location.reload();
+        });
     }
 </script>
 </body>
