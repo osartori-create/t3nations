@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>T3N Master v46 - Pro & Multi-Tournois</title>
+    <title>T3N Master v47 - Pro & Multi-Tournois</title>
     
     <link rel="manifest" href="manifest.json">
     <script>
@@ -340,7 +340,7 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_pro_v46'; 
+    var STORAGE_KEY = 't3n_master_pro_v47'; 
     var MAX_TERRAINS = { U6: 4, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
@@ -440,6 +440,17 @@
         }; reader.readAsDataURL(file);
     }
 
+    // Gestion dynamique des Terrains pour le système QR
+    function getDynamicMaxTerrains(cat) {
+        var nb = MAX_TERRAINS[cat] || 8;
+        [appState.cats[cat].phase1, appState.cats[cat].phase2].forEach(ph => {
+            if(ph && ph.poules) ph.poules.forEach(p => { 
+                if(p.terrainStart && (p.terrainStart + p.tUsed - 1 > nb)) nb = p.terrainStart + p.tUsed - 1; 
+            });
+        });
+        return nb;
+    }
+
     function openQRModal() { document.getElementById('qr-modal').classList.remove('hidden'); document.getElementById('qr-modal').classList.add('flex'); renderQRCodes(); }
     
     function renderQRCodes() {
@@ -453,7 +464,7 @@
         document.getElementById('link-public').innerText = urlPublic; document.getElementById('link-public').href = urlPublic;
 
         var qrContainer = document.getElementById('qr-terrains'); qrContainer.innerHTML = "";
-        var nbTerrains = MAX_TERRAINS[currentCat] || 8;
+        var nbTerrains = getDynamicMaxTerrains(currentCat);
 
         for (var i = 1; i <= nbTerrains; i++) {
             var urlTerrain = baseUrl + "/terrain.html?id=" + tId + "&cat=" + currentCat + "&t=" + i + (pin ? "&key=" + pin : "");
@@ -470,7 +481,7 @@
         var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
         var tId = appState.tournoiId; var pin = appState.pinCode;
         var cat = appState.activeCat;
-        var nbTerrains = MAX_TERRAINS[cat] || 8;
+        var nbTerrains = getDynamicMaxTerrains(cat);
         
         var html = `<div style="font-family:sans-serif; text-align:center;">
             <h1 style="text-transform:uppercase; margin-bottom:5px;">${appState.branding.name}</h1>
@@ -773,12 +784,31 @@
         return stats.sort((a,b) => b.pts - a.pts || b.diff - a.diff);
     }
 
+    // Gestion du décalage manuel des terrains
+    function updatePouleTerrain(startIdx, val) {
+        var phase = getActivePhase();
+        var currentT = parseInt(val) || 1;
+        for(var i = startIdx; i < phase.poules.length; i++) {
+            phase.poules[i].terrainStart = currentT;
+            currentT += phase.poules[i].tUsed;
+        }
+        saveState();
+        renderBoard();
+    }
+
     function renderBoard() {
         var phase = getActivePhase();
         if(!phase.poules || phase.poules.length === 0) { document.getElementById('match-board').innerHTML = ''; document.getElementById('validation-zone').classList.add('hidden'); document.getElementById('deploy-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden'); return; }
         
-        var currentT = 1; phase.poules.forEach(p => { p.terrainStart = currentT; currentT += p.tUsed; });
-        document.getElementById('terrain-counter').innerText = (currentT - 1) + " / " + MAX_TERRAINS[appState.activeCat];
+        var defaultT = 1;
+        var maxTer = 0;
+        phase.poules.forEach(p => { 
+            if (!p.terrainStart) p.terrainStart = defaultT;
+            defaultT = p.terrainStart + p.tUsed;
+            var tEnd = p.terrainStart + p.tUsed - 1;
+            if(tEnd > maxTer) maxTer = tEnd;
+        });
+        document.getElementById('terrain-counter').innerText = maxTer + " / " + MAX_TERRAINS[appState.activeCat];
 
         if(!phase.validated) {
             document.getElementById('validation-zone').classList.remove('hidden'); document.getElementById('deploy-zone').classList.add('hidden'); document.getElementById('poule-tabs').classList.add('hidden');
@@ -815,7 +845,7 @@
                 return `<tr class="${opClass}"><td class="excel-yellow">${idx+1}</td><td class="font-bold text-left px-2 ${r.ogTeam&&r.ogTeam.isDummy?'text-indigo-600 italic':''}">${r.name}</td><td class="font-black text-amber-600">${r.pts}</td><td class="${r.diff>0?'text-green-600':(r.diff<0?'text-red-600':'')} font-bold">${r.diff>0?'+'+r.diff:r.diff}</td><td class="p-1"><input type="number" ${lockedAttr} value="${adj.val}" class="w-12 text-center border rounded text-xs py-1" onblur="updateAdjVal(${pIdx}, ${r.id}, this.value)"></td><td class="p-1"><input type="text" ${lockedAttr} value="${adj.note}" class="w-full text-left px-2 border rounded text-xs py-1" onblur="updateAdjNote(${pIdx}, ${r.id}, this.value)"></td></tr>`;
             }).join('');
 
-            document.getElementById('match-board').innerHTML = `<div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full"><div class="flex justify-between items-center mb-4 border-b pb-4"><h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[12px] text-indigo-500 ml-2">${p.placeRange||''}</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600 hover:bg-slate-300">⚙️ Déverrouiller Ossature</button></h3><select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value);saveState();renderBoard()" class="text-xs font-bold bg-slate-100 p-2 rounded-lg outline-none border-none"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select></div>${isGhostPhase?'<div class="bg-indigo-100 text-indigo-800 text-center py-2 text-xs font-black uppercase tracking-widest rounded-xl mb-4">Vue Fantôme (Saisie bloquée)</div>':''}<div class="flex flex-col lg:flex-row gap-6 items-start"><table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table><div class="flex-1 w-full"><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajust.</th><th>Motif</th></tr></thead><tbody>${classRows}</tbody></table></div></div></div>`;
+            document.getElementById('match-board').innerHTML = `<div class="bg-white p-6 rounded-[2rem] border-2 shadow-sm w-full"><div class="flex justify-between items-center mb-4 border-b pb-4"><h3 class="font-black italic uppercase text-xl">Poule ${p.letter} <span class="text-[12px] text-indigo-500 ml-2">${p.placeRange||''}</span> <button onclick="getActivePhase().validated=false;saveState();renderBoard()" class="ml-4 text-[9px] bg-slate-200 px-2 py-1 rounded text-slate-600 hover:bg-slate-300">⚙️ Déverrouiller Ossature</button></h3><div class="flex gap-2 items-center"><label class="text-[10px] font-black uppercase text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-200">N° Terrain Départ :<input type="number" value="${p.terrainStart}" onchange="updatePouleTerrain(${pIdx}, this.value)" class="w-12 text-center ml-2 text-xs font-black border border-slate-300 rounded bg-white outline-none text-indigo-600"></label><select onchange="getActivePhase().poules[${pIdx}].tUsed=parseInt(this.value); updatePouleTerrain(${pIdx}, getActivePhase().poules[${pIdx}].terrainStart);" class="text-[10px] font-black bg-slate-50 p-2 rounded-lg outline-none border border-slate-200 uppercase text-slate-600"><option value="1" ${p.tUsed===1?'selected':''}>1 Terrain</option><option value="2" ${p.tUsed===2?'selected':''}>2 Terrains</option></select></div></div>${isGhostPhase?'<div class="bg-indigo-100 text-indigo-800 text-center py-2 text-xs font-black uppercase tracking-widest rounded-xl mb-4">Vue Fantôme (Saisie bloquée)</div>':''}<div class="flex flex-col lg:flex-row gap-6 items-start"><table class="excel-table flex-1 shadow-sm"><thead class="excel-header"><tr><th>Ter.</th><th class="excel-yellow w-1/4">Eq. 2</th><th colspan="2" class="w-1/6">SCORES</th><th class="w-1/4">Eq. 1</th><th>Arbitre</th><th>Lock</th></tr></thead><tbody>${matchesRows}</tbody></table><div class="flex-1 w-full"><table class="excel-table shadow-sm w-full"><thead class="excel-header"><tr><th>Cls</th><th>Equipes</th><th>Pts</th><th>Diff</th><th>Ajust.</th><th>Motif</th></tr></thead><tbody>${classRows}</tbody></table></div></div></div>`;
         }
     }
 
@@ -922,7 +952,6 @@
         if(!ph.poules || ph.poules.length === 0) return alert("Aucune poule à imprimer.");
         
         var html = `<div style="font-family:sans-serif; padding:20px; max-width: 1100px; margin: auto;">`;
-        var currentT = 1;
 
         ph.poules.forEach(p => {
             var ranking = computeRanking(p);
@@ -943,7 +972,7 @@
                 <table style="width:100%; border-collapse:collapse; border:2px solid black; margin-bottom: 20px; font-size:12px;">
                     <thead><tr style="background:#f1f5f9;"><th>TERRAIN</th><th>EQUIPE 2</th><th colspan="2">SCORES</th><th>EQUIPE 1</th><th>ARBITRE</th></tr></thead>
                     <tbody>${MATRICES[p.target].map((m, idx) => { 
-                        var ter = p.tUsed === 2 ? (idx % 2 === 0 ? currentT : currentT+1) : currentT; 
+                        var ter = p.tUsed === 2 ? (idx % 2 === 0 ? p.terrainStart : p.terrainStart+1) : p.terrainStart; 
                         var sc = p.scores[idx] || {s1:'', s2:''}; 
                         return `<tr><td style="border:1px solid black; padding:6px; font-weight:900; background:#f8fafc;">T.${ter}</td><td style="border:1px solid black; padding:6px; font-weight:bold; text-transform:uppercase;">${p.teams[m.b-1]?.name||'?'}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s2}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s1}</td><td style="border:1px solid black; padding:6px; font-weight:bold; text-transform:uppercase;">${p.teams[m.a-1]?.name||'?'}</td><td style="border:1px solid black; padding:6px; font-size:10px; color:#64748b;">${p.teams[m.arb-1]?.name||'---'}</td></tr>`; 
                     }).join('')}</tbody>
@@ -956,7 +985,6 @@
                     </table>
                 </div>
             </div>`;
-            currentT += p.tUsed;
         });
         
         html += `</div>`;
