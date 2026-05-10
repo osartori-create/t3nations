@@ -14,10 +14,10 @@
         }
     </script>
 
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <script src="[https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js](https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js)"></script>
-    <script src="[https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js](https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js)"></script>
-    <script src="[https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js](https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         :root { --primary-color: #f59e0b; }
         .tab-btn { color: white; opacity: 0.7; transition: all 0.2s; cursor: pointer; }
@@ -76,7 +76,7 @@
         </div>
         <div class="mb-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
             <label class="text-[10px] font-black uppercase text-slate-500 flex items-center gap-2">URL de votre site public (Firebase Hosting)</label>
-            <input type="text" id="cfg-base-url" onchange="appState.branding.baseUrl = this.value; saveState(); renderQRCodes();" class="w-full bg-white border border-slate-300 p-2 mt-1 rounded-lg font-bold text-sm outline-none" placeholder="[https://votre-projet.web.app](https://votre-projet.web.app)">
+            <input type="text" id="cfg-base-url" onchange="appState.branding.baseUrl = this.value; saveState(); renderQRCodes();" class="w-full bg-white border border-slate-300 p-2 mt-1 rounded-lg font-bold text-sm outline-none" placeholder="https://votre-projet.web.app">
         </div>
         <div class="overflow-y-auto flex-1 hide-scrollbar space-y-6 pr-2">
             <div>
@@ -376,7 +376,7 @@
     function getActivePhase() { return appState.cats[appState.activeCat][appState.currentPhase.toLowerCase()]; }
     function getCatSettings() { return appState.cats[appState.activeCat].settings; }
 
-    var firebaseConfig = { apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", databaseURL: "[https://t3nations-default-rtdb.europe-west1.firebasedatabase.app](https://t3nations-default-rtdb.europe-west1.firebasedatabase.app)" };
+    var firebaseConfig = { apiKey: "AIzaSyBJOSTZJ3--Bspwt3ld-S8Wu2D5FGdcOMI", databaseURL: "https://t3nations-default-rtdb.europe-west1.firebasedatabase.app" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
 
@@ -443,7 +443,7 @@
     function openQRModal() { document.getElementById('qr-modal').classList.remove('hidden'); document.getElementById('qr-modal').classList.add('flex'); renderQRCodes(); }
     
     function renderQRCodes() {
-        var baseUrl = (appState.branding.baseUrl || "[https://t3nations.web.app](https://t3nations.web.app)").replace(/\/$/, "");
+        var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
         var tId = appState.tournoiId; var pin = appState.pinCode;
         var currentCat = appState.activeCat; 
 
@@ -467,7 +467,7 @@
     }
 
     function printQRCodes() {
-        var baseUrl = (appState.branding.baseUrl || "[https://t3nations.web.app](https://t3nations.web.app)").replace(/\/$/, "");
+        var baseUrl = (appState.branding.baseUrl || "https://t3nations.web.app").replace(/\/$/, "");
         var tId = appState.tournoiId; var pin = appState.pinCode;
         var cat = appState.activeCat;
         var nbTerrains = MAX_TERRAINS[cat] || 8;
@@ -916,16 +916,15 @@
         if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement réussi avec les scores à 0-0 !"); }); }
     }
 
-    // --- NOUVELLES FONCTIONS D'EXPORTS GLOBAUX ---
     function printAllPoules() {
         var cat = appState.activeCat;
         var ph = getActivePhase();
         if(!ph.poules || ph.poules.length === 0) return alert("Aucune poule à imprimer.");
         
         var html = `<div style="font-family:sans-serif; padding:20px; max-width: 1100px; margin: auto;">`;
-        var currentT = 1; // Gestion des terrains sur l'ensemble de la catégorie
+        var currentT = 1;
 
-        ph.poules.forEach((p, pIdx) => {
+        ph.poules.forEach(p => {
             var ranking = computeRanking(p);
             
             html += `
@@ -946,18 +945,18 @@
                     <tbody>${MATRICES[p.target].map((m, idx) => { 
                         var ter = p.tUsed === 2 ? (idx % 2 === 0 ? currentT : currentT+1) : currentT; 
                         var sc = p.scores[idx] || {s1:'', s2:''}; 
-                        return `<tr><td style="border:1px solid black; padding:6px; font-weight:900; background:#f8fafc;">T.${ter}</td><td style="border:1px solid black; padding:6px; font-weight:bold;">${p.teams[m.b-1]?.name||'?'}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s2}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s1}</td><td style="border:1px solid black; padding:6px; font-weight:bold;">${p.teams[m.a-1]?.name||'?'}</td><td style="border:1px solid black; padding:6px; font-size:10px; color:#64748b;">${p.teams[m.arb-1]?.name||'---'}</td></tr>`; 
+                        return `<tr><td style="border:1px solid black; padding:6px; font-weight:900; background:#f8fafc;">T.${ter}</td><td style="border:1px solid black; padding:6px; font-weight:bold; text-transform:uppercase;">${p.teams[m.b-1]?.name||'?'}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s2}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s1}</td><td style="border:1px solid black; padding:6px; font-weight:bold; text-transform:uppercase;">${p.teams[m.a-1]?.name||'?'}</td><td style="border:1px solid black; padding:6px; font-size:10px; color:#64748b;">${p.teams[m.arb-1]?.name||'---'}</td></tr>`; 
                     }).join('')}</tbody>
                 </table>
 
                 <div style="width:100%;">
                     <table style="width:100%; border-collapse:collapse; border:1px solid #ccc; font-size:11px;">
                         <thead><tr style="background:#f8fafc;"><th>RANG</th><th style="text-align:left;">CLUB</th><th>PTS</th><th>DIFF</th></tr></thead>
-                        <tbody>${ranking.map((r, i) => `<tr><td style="border:1px solid #eee; padding:4px;">${i+1}</td><td style="border:1px solid #eee; padding:4px; text-align:left; font-weight:bold;">${r.name}</td><td style="border:1px solid #eee; padding:4px;">${r.pts}</td><td style="border:1px solid #eee; padding:4px;">${r.diff}</td></tr>`).join('')}</tbody>
+                        <tbody>${ranking.map((r, i) => `<tr><td style="border:1px solid #eee; padding:4px; font-weight:bold;">${i+1}</td><td style="border:1px solid #eee; padding:4px; text-align:left; font-weight:bold; text-transform:uppercase;">${r.name}</td><td style="border:1px solid #eee; padding:4px; font-weight:900;">${r.pts}</td><td style="border:1px solid #eee; padding:4px; font-weight:bold;">${r.diff}</td></tr>`).join('')}</tbody>
                     </table>
                 </div>
             </div>`;
-            currentT += p.tUsed; 
+            currentT += p.tUsed;
         });
         
         html += `</div>`;
