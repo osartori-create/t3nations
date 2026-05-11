@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>T3N Master v48 - Pro & Multi-Tournois</title>
+    <title>T3N Master v49 - Pro & Multi-Tournois</title>
     
     <link rel="manifest" href="manifest.json">
     <script>
@@ -340,7 +340,7 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_pro_v48'; 
+    var STORAGE_KEY = 't3n_master_pro_v49'; 
     var MAX_TERRAINS = { U6: 4, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
@@ -566,9 +566,17 @@
     }
 
     function toggleForfait(tId) {
-        var phase1 = appState.cats[appState.activeCat].phase1; var tFound = null;
-        phase1.reserve.forEach(t => { if(t.id === tId) tFound = t; });
-        phase1.poules.forEach(p => p.teams.forEach(t => { if(t && t.id === tId) tFound = t; }));
+        var phase = getActivePhase(); var tFound = null;
+        phase.reserve.forEach(t => { if(t.id === tId) tFound = t; });
+        phase.poules.forEach(p => p.teams.forEach(t => { if(t && t.id === tId) tFound = t; }));
+        
+        // Backup: si pas trouvé, chercher dans la phase 1 (cas global)
+        if (!tFound) {
+            var p1 = appState.cats[appState.activeCat].phase1;
+            p1.reserve.forEach(t => { if(t.id === tId) tFound = t; });
+            p1.poules.forEach(p => p.teams.forEach(t => { if(t && t.id === tId) tFound = t; }));
+        }
+
         if (tFound) { tFound.isForfait = !tFound.isForfait; saveState(); initCategoryUI(); }
     }
 
@@ -850,7 +858,8 @@
     }
 
     function renderReserve() {
-        var phase = appState.cats[appState.activeCat].phase1; document.getElementById('reserve-count').innerText = phase.reserve.length;
+        var phase = getActivePhase(); // CORRECTION ICI !
+        document.getElementById('reserve-count').innerText = phase.reserve.length;
         document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move relative ${t.isForfait?'forfait':''}">${t.name} <button onclick="toggleForfait('${t.id}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center">🚫</button></div>`).join('') || '<div class="opacity-20 text-[10px] text-center italic">Vide</div>';
     }
 
