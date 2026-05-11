@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>T3N Master v47 - Pro & Multi-Tournois</title>
+    <title>T3N Master v48 - Pro & Multi-Tournois</title>
     
     <link rel="manifest" href="manifest.json">
     <script>
@@ -340,7 +340,7 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_pro_v47'; 
+    var STORAGE_KEY = 't3n_master_pro_v48'; 
     var MAX_TERRAINS = { U6: 4, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:2,arb:3},{a:2,b:3,arb:1},{a:1,b:3,arb:2}],
@@ -937,13 +937,13 @@
                     var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
                     updates[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
                         t1: (p.teams[m.a-1]?p.teams[m.a-1].name:'?'), t2: (p.teams[m.b-1]?p.teams[m.b-1].name:'?'), arb: (p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'), 
-                        s1: sc.s1 === '' ? 0 : parseInt(sc.s1), s2: sc.s2 === '' ? 0 : parseInt(sc.s2), 
+                        s1: sc.s1 === '' ? '' : parseInt(sc.s1), s2: sc.s2 === '' ? '' : parseInt(sc.s2), 
                         locked: sc.locked||false, terrain: 'Terrain '+tStr, status:'en_attente', poule: p.letter, ordre: idx + 1, auth_token: appState.pinCode || ''
                     };
                 });
             }
         });
-        if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement réussi avec les scores à 0-0 !"); }); }
+        if(Object.keys(updates).length > 0) { db.ref().update(updates).then(() => { syncStandings(); alert("✅ Déploiement de l'ordre des matchs réussi !"); }); }
     }
 
     function printAllPoules() {
