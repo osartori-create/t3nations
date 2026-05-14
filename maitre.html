@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>T3N Master v49 - Pro & Multi-Tournois</title>
+    <title>T3N Master v50 - Pro & Multi-Tournois</title>
     
     <link rel="manifest" href="manifest.json">
     <script>
@@ -340,12 +340,23 @@
 </main>
 
 <script>
-    var STORAGE_KEY = 't3n_master_pro_v49'; 
+    var STORAGE_KEY = 't3n_master_pro_v50'; 
     var MAX_TERRAINS = { U6: 4, U8: 8, U10: 6, U12: 5 };
     var MATRICES = {
         3: [{a:1,b:3,arb:2},{a:1,b:2,arb:3},{a:2,b:3,arb:1}],
         4: [{a:1,b:3,arb:4},{a:2,b:4,arb:1},{a:3,b:4,arb:2},{a:1,b:2,arb:3},{a:1,b:4,arb:2},{a:2,b:3,arb:1}],
-        5: [{a:1,b:3,arb:5},{a:2,b:4,arb:3},{a:1,b:5,arb:2},{a:3,b:4,arb:1},{a:2,b:5,arb:4},{a:1,b:2,arb:4},{a:3,b:5,arb:2},{a:1,b:4,arb:5},{a:2,b:3,arb:1},{a:4,b:5,arb:3}],
+        5: [
+            {a:1,b:3,arb:5,t:0}, // Match 1 sur Terrain Départ
+            {a:2,b:4,arb:3,t:1}, // Match 2 sur Terrain + 1
+            {a:1,b:5,arb:2,t:0}, // Match 3 sur Terrain Départ
+            {a:3,b:4,arb:1,t:1}, // Match 4 sur Terrain + 1
+            {a:2,b:3,arb:4,t:0}, // Match 5 sur Terrain Départ
+            {a:4,b:5,arb:1,t:0}, // Match 6 sur Terrain Départ (Doublon pour repos/déplacement)
+            {a:1,b:2,arb:4,t:0}, // Match 7 sur Terrain Départ
+            {a:3,b:5,arb:2,t:1}, // Match 8 sur Terrain + 1
+            {a:1,b:4,arb:5,t:0}, // Match 9 sur Terrain Départ
+            {a:2,b:5,arb:3,t:1}  // Match 10 sur Terrain + 1
+        ],
         6: [{a:1,b:3,arb:2},{a:5,b:6,arb:4},{a:2,b:4,arb:1},{a:3,b:6,arb:5},{a:1,b:5,arb:6},{a:3,b:4,arb:2},{a:1,b:6,arb:3},{a:2,b:5,arb:4},{a:1,b:2,arb:5},{a:4,b:6,arb:3},{a:3,b:5,arb:1},{a:2,b:6,arb:4},{a:1,b:4,arb:5},{a:2,b:3,arb:6},{a:4,b:5,arb:3}]
     };
     var RECIPES = [
@@ -440,7 +451,6 @@
         }; reader.readAsDataURL(file);
     }
 
-    // Gestion dynamique des Terrains pour le système QR
     function getDynamicMaxTerrains(cat) {
         var nb = MAX_TERRAINS[cat] || 8;
         [appState.cats[cat].phase1, appState.cats[cat].phase2].forEach(ph => {
@@ -570,7 +580,6 @@
         phase.reserve.forEach(t => { if(t.id === tId) tFound = t; });
         phase.poules.forEach(p => p.teams.forEach(t => { if(t && t.id === tId) tFound = t; }));
         
-        // Backup: si pas trouvé, chercher dans la phase 1 (cas global)
         if (!tFound) {
             var p1 = appState.cats[appState.activeCat].phase1;
             p1.reserve.forEach(t => { if(t.id === tId) tFound = t; });
@@ -792,7 +801,6 @@
         return stats.sort((a,b) => b.pts - a.pts || b.diff - a.diff);
     }
 
-    // Gestion du décalage manuel des terrains
     function updatePouleTerrain(startIdx, val) {
         var phase = getActivePhase();
         var currentT = parseInt(val) || 1;
@@ -841,7 +849,7 @@
             var terrainColors = ['bg-slate-50', 'bg-blue-100', 'bg-green-100', 'bg-pink-100', 'bg-purple-100'];
             
             var matchesRows = MATRICES[p.target].map((m, mIdx) => {
-                var tStr = p.tUsed === 2 ? ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                var tStr = p.tUsed === 2 ? (m.t !== undefined ? p.terrainStart + m.t : ((mIdx % 2 === 0) ? p.terrainStart : p.terrainStart + 1)) : p.terrainStart;
                 var sc = (p.scores && p.scores[mIdx]) ? p.scores[mIdx] : {s1:'', s2:'', locked:false};
                 var lockedAttr = isGhostPhase ? 'disabled' : ''; var opClass = isGhostPhase ? 'opacity-50' : '';
                 return `<tr class="${opClass}"><td class="font-bold text-slate-700 ${terrainColors[tStr%5]}">T.${tStr}</td><td class="excel-yellow ${p.teams[m.b-1]&&p.teams[m.b-1].isDummy?'text-indigo-600':''}">${p.teams[m.b-1]?p.teams[m.b-1].name:'?'}</td><td class="bg-slate-50 p-0"><input type="number" ${lockedAttr} class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s2}" onchange="updateScore(${pIdx}, ${mIdx}, 's2', this.value)"></td><td class="bg-slate-50 p-0"><input type="number" ${lockedAttr} class="w-full text-center font-black h-full py-2 outline-none" value="${sc.s1}" onchange="updateScore(${pIdx}, ${mIdx}, 's1', this.value)"></td><td class="${p.teams[m.a-1]&&p.teams[m.a-1].isDummy?'text-indigo-600':''}">${p.teams[m.a-1]?p.teams[m.a-1].name:'?'}</td><td class="text-orange-600">${p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'}</td><td><input type="checkbox" ${sc.locked?'checked':''} onchange="toggleLock(${pIdx}, ${mIdx}, this.checked)" class="accent-red-500 w-4 h-4 cursor-pointer" ${lockedAttr}></td></tr>`;
@@ -858,7 +866,7 @@
     }
 
     function renderReserve() {
-        var phase = getActivePhase(); // CORRECTION ICI !
+        var phase = getActivePhase(); 
         document.getElementById('reserve-count').innerText = phase.reserve.length;
         document.getElementById('reserve-zone').innerHTML = phase.reserve.map((t, i) => `<div draggable="true" ondragstart="dragFromReserve(event, ${i})" class="p-2 bg-white border border-slate-200 rounded-lg text-[10px] font-bold shadow-sm cursor-move relative ${t.isForfait?'forfait':''}">${t.name} <button onclick="toggleForfait('${t.id}')" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 text-[8px] flex items-center justify-center">🚫</button></div>`).join('') || '<div class="opacity-20 text-[10px] text-center italic">Vide</div>';
     }
@@ -942,7 +950,7 @@
         getActivePhase().poules.forEach(p => {
             if (p.teams.length === p.target) {
                 MATRICES[p.target].forEach((m, idx) => {
-                    var tStr = p.tUsed === 2 ? ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1) : p.terrainStart;
+                    var tStr = p.tUsed === 2 ? (m.t !== undefined ? p.terrainStart + m.t : ((idx % 2 === 0) ? p.terrainStart : p.terrainStart + 1)) : p.terrainStart;
                     var sc = (p.scores && p.scores[idx]) ? p.scores[idx] : {s1:'', s2:'', locked:false};
                     updates[`t3n/${appState.tournoiId}/${appState.activeCat}_${appState.currentPhase}/matches/P${p.letter}_M${idx+1}`] = { 
                         t1: (p.teams[m.a-1]?p.teams[m.a-1].name:'?'), t2: (p.teams[m.b-1]?p.teams[m.b-1].name:'?'), arb: (p.teams[m.arb-1]?p.teams[m.arb-1].name:'?'), 
@@ -981,7 +989,7 @@
                 <table style="width:100%; border-collapse:collapse; border:2px solid black; margin-bottom: 20px; font-size:12px;">
                     <thead><tr style="background:#f1f5f9;"><th>TERRAIN</th><th>EQUIPE 2</th><th colspan="2">SCORES</th><th>EQUIPE 1</th><th>ARBITRE</th></tr></thead>
                     <tbody>${MATRICES[p.target].map((m, idx) => { 
-                        var ter = p.tUsed === 2 ? (idx % 2 === 0 ? p.terrainStart : p.terrainStart+1) : p.terrainStart; 
+                        var ter = p.tUsed === 2 ? (m.t !== undefined ? p.terrainStart + m.t : (idx % 2 === 0 ? p.terrainStart : p.terrainStart+1)) : p.terrainStart; 
                         var sc = p.scores[idx] || {s1:'', s2:''}; 
                         return `<tr><td style="border:1px solid black; padding:6px; font-weight:900; background:#f8fafc;">T.${ter}</td><td style="border:1px solid black; padding:6px; font-weight:bold; text-transform:uppercase;">${p.teams[m.b-1]?.name||'?'}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s2}</td><td style="border:1px solid black; width:40px; font-weight:900; font-size:16px;">${sc.s1}</td><td style="border:1px solid black; padding:6px; font-weight:bold; text-transform:uppercase;">${p.teams[m.a-1]?.name||'?'}</td><td style="border:1px solid black; padding:6px; font-size:10px; color:#64748b;">${p.teams[m.arb-1]?.name||'---'}</td></tr>`; 
                     }).join('')}</tbody>
