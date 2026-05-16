@@ -787,6 +787,7 @@
         appState.activePouleTab = 'A'; saveState(); initCategoryUI();
     }
 
+    // --- FIX 1 : ANTI-SCORES FANTOMES (!isNaN) ---
     function computeRanking(p) {
         var stats = p.teams.map((t, idx) => ({ id: idx, ogTeam: t, name: (t ? t.name : '?'), pts: 0, diff: 0 }));
         if(p.teams.length !== p.target) return stats;
@@ -794,12 +795,20 @@
             if(p.scores && p.scores[mIdx] && p.scores[mIdx].s1 !== '' && p.scores[mIdx].s2 !== '') {
                 var sA = parseInt(p.scores[mIdx].s1), sB = parseInt(p.scores[mIdx].s2);
                 var tA = stats[m.a - 1], tB = stats[m.b - 1];
-                if(tA && tB) { tA.diff += (sA - sB); tB.diff += (sB - sA); if(sA > sB) { tA.pts += 3; tB.pts += 1; } else if (sA < sB) { tA.pts += 1; tB.pts += 3; } else { tA.pts += 2; tB.pts += 2; } }
+                // Vérification stricte que sA et sB sont de vrais nombres avant d'attribuer les points
+                if(tA && tB && !isNaN(sA) && !isNaN(sB)) { 
+                    tA.diff += (sA - sB); 
+                    tB.diff += (sB - sA); 
+                    if(sA > sB) { tA.pts += 3; tB.pts += 1; } 
+                    else if (sA < sB) { tA.pts += 1; tB.pts += 3; } 
+                    else { tA.pts += 2; tB.pts += 2; } 
+                }
             }
         });
         stats.forEach(s => { var adj = p.adjustments && p.adjustments[s.id] ? parseInt(p.adjustments[s.id].val)||0 : 0; s.pts += adj; });
         return stats.sort((a,b) => b.pts - a.pts || b.diff - a.diff);
     }
+    // ----------------------------------------------
 
     function updatePouleTerrain(startIdx, val) {
         var phase = getActivePhase();
@@ -1062,6 +1071,7 @@
         var url = URL.createObjectURL(blob); link.setAttribute("href", url); link.setAttribute("download", `Classement_Final_${cat}.csv`); link.style.visibility = 'hidden'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     }
 
+    // --- FIX 2 : DIFFUSION DU TROPHEE VERS FIREBASE ---
     function computeTrophy(forceBroadcast, isDefinitive) {
         document.getElementById('trophy-empty').classList.add('hidden'); 
         var clubs = {}; appState.masterData.forEach(c => clubs[c.name] = { name: c.name, U6: 999, U8: 999, U10: 999, U12: 999, pts: 0 });
@@ -1083,7 +1093,13 @@
         
         document.getElementById('trophy-tbody').innerHTML = sortedClubs.map((c, i) => `<tr><td class="p-4 font-black">${i+1}</td><td class="p-4 font-bold uppercase">${c.name}</td><td class="p-4 text-center font-bold text-indigo-600">${c.U6===999?'-':c.U6}</td><td class="p-4 text-center font-bold text-blue-600">${c.U8===999?'-':c.U8}</td><td class="p-4 text-center font-bold text-slate-800">${c.U10===999?'-':c.U10}</td><td class="p-4 text-center font-bold text-red-600">${c.U12===999?'-':c.U12}</td><td class="p-4 text-center font-black text-amber-600 text-lg">${c.pts}</td></tr>`).join('');
         if(sortedClubs.length === 0) document.getElementById('trophy-empty').classList.remove('hidden');
+
+        // Ligne ajoutée pour propulser le Trophée vers Firebase :
+        if (db && appState.tournoiId) {
+            db.ref(`t3n/${appState.tournoiId}/CHALLENGE_PUBLIC`).set(sortedClubs);
+        }
     }
+    // --------------------------------------------------
 
     function purge(type) {
         var cat = document.getElementById('maint-cat').value;
