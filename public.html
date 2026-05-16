@@ -12,7 +12,7 @@
         body { -webkit-tap-highlight-color: transparent; background-color: var(--sat-bg); color: #f8fafc; padding-bottom: 80px; }
         .glass-panel { background: var(--panel-bg); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 2px solid var(--accent); z-index: 50; padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.75rem 0; width: 20%; } /* Ajusté pour 5 onglets */
+        .nav-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.75rem 0; width: 20%; }
         .nav-item.active { color: var(--accent); transform: translateY(-4px); font-weight: 900;}
         .nav-indicator { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0; margin-top: 2px; transition: opacity 0.3s; }
         .nav-item.active .nav-indicator { opacity: 1; }
@@ -20,6 +20,8 @@
         .form-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 1px; }
         .bg-win { background-color: #10b981; } .bg-draw { background-color: #94a3b8; } .bg-loss { background-color: #ef4444; }
         .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="font-sans min-h-screen" onload="initApp()">
@@ -80,7 +82,7 @@
     const urlParams = new URLSearchParams(window.location.search);
     const tournoiId = urlParams.get('id');
 
-    let activeMain = 'U10'; // Par défaut
+    let activeMain = 'U10'; 
     let localPhase = 'PHASE1';
     let activePoule = null; 
     let currentMatchesData = {};
@@ -88,6 +90,7 @@
 
     let matchesRef = null;
     let standingsRef = null;
+    let trophyRef = null; // Ajout de la référence pour le Trophée
 
     function initApp() {
         if(!tournoiId) {
@@ -181,7 +184,6 @@
         let navHtml = '';
         pouleKeys.forEach(p => {
             let isActive = p === activePoule;
-            // RECUPERATION DE LA MENTION "Places X à Y" depuis le classement de la poule
             let rangeText = "";
             if(currentStandingsData[p]) {
                 try { 
@@ -275,9 +277,56 @@
         </div>`;
     }
 
+    // --- FONCTION DE CHARGEMENT DU TROPHEE MISE A JOUR ---
     function loadTrophy() {
-        // En attendant que la base de données stocke le palmarès
-        document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10"><p class="font-black text-lg uppercase tracking-widest">Le Bouclier T3N sera calculé à la fin du tournoi.</p></div>`; 
+        if (trophyRef) trophyRef.off();
+        trophyRef = db.ref(`t3n/${tournoiId}/CHALLENGE_PUBLIC`);
+
+        // Animation de chargement en attendant les données
+        document.getElementById('trophy-container').innerHTML = `<div class="flex justify-center py-20 opacity-50"><div class="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style="border-color: var(--accent);"></div></div>`; 
+
+        trophyRef.on('value', snap => {
+            if (snap.exists()) {
+                let sortedClubs = snap.val();
+                let tableRows = sortedClubs.map((c, i) => `
+                    <tr class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                        <td class="py-4 px-3 text-center font-black text-xl text-slate-300">${i + 1}</td>
+                        <td class="py-4 px-3 font-bold uppercase text-white">${c.name}</td>
+                        <td class="py-4 px-3 text-center font-bold text-indigo-400">${c.U6 === 999 ? '-' : c.U6}</td>
+                        <td class="py-4 px-3 text-center font-bold text-blue-400">${c.U8 === 999 ? '-' : c.U8}</td>
+                        <td class="py-4 px-3 text-center font-bold text-slate-300">${c.U10 === 999 ? '-' : c.U10}</td>
+                        <td class="py-4 px-3 text-center font-bold text-red-400">${c.U12 === 999 ? '-' : c.U12}</td>
+                        <td class="py-4 px-3 text-center font-black text-2xl" style="color: var(--accent);">${c.pts}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('trophy-container').innerHTML = `
+                <div class="glass-panel p-4 sm:p-6 rounded-[2rem] shadow-lg animate-fade-in pb-10">
+                    <h2 class="text-2xl font-black uppercase italic mb-6 text-center" style="color: var(--accent);">🏆 Bouclier du Club Complet</h2>
+                    <div class="overflow-x-auto hide-scrollbar rounded-xl">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead>
+                                <tr class="border-b-2 border-slate-700 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    <th class="py-3 px-3 text-center">Rang</th>
+                                    <th class="py-3 px-3">Club</th>
+                                    <th class="py-3 px-3 text-center text-indigo-500">U6</th>
+                                    <th class="py-3 px-3 text-center text-blue-500">U8</th>
+                                    <th class="py-3 px-3 text-center text-slate-400">U10</th>
+                                    <th class="py-3 px-3 text-center text-red-500">U12</th>
+                                    <th class="py-3 px-3 text-center" style="color: var(--accent);">Total Points</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            } else {
+                // S'affiche tant que le Maitre n'a pas validé/poussé le classement
+                document.getElementById('trophy-container').innerHTML = `<div class="glass-panel p-10 rounded-[2rem] text-center text-slate-400 mt-10 animate-fade-in"><span class="text-4xl mb-4 block">🏆</span><p class="font-black text-lg uppercase tracking-widest leading-tight">Le Bouclier T3N n'a pas encore été validé par l'organisation.</p></div>`;
+            }
+        });
     }
 </script>
 </body>
